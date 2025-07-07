@@ -523,9 +523,9 @@ class MiniGrid {
     updateGridTransform() {
         const grid = document.getElementById('pixel-grid');
         if (grid) {
-            // Используем transform-origin: center для правильного масштабирования относительно центра
-            grid.style.transformOrigin = 'center center';
-            grid.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+            // ИСПРАВЛЕНО: Правильное центрирование относительно центра сетки
+            grid.style.transformOrigin = '50% 50%'; // Центр сетки
+            grid.style.transform = `translate(calc(-50% + ${this.translateX}px), calc(-50% + ${this.translateY}px)) scale(${this.scale})`;
         }
     }
 

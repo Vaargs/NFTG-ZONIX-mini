@@ -175,7 +175,7 @@ body {
     background-repeat: no-repeat;
 }
 
-/* Стили для бесшовного режима */
+/* Стили для бесшовного режима - как в вашем редакторе */
 .pixel-grid.seamless {
     gap: 0 !important;
     background: #1a1a1a !important;
@@ -184,6 +184,7 @@ body {
 .pixel-grid.seamless .pixel.with-image {
     border: none !important;
     border-radius: 0 !important;
+    margin: 0 !important;
 }
 
 .pixel-grid.seamless .pixel.with-image:hover {
@@ -206,6 +207,15 @@ body {
 
 .pixel.seamless-border-left {
     border-left: 2px solid #9D4EDD !important;
+}
+
+/* Дополнительные стили для плавного перехода в бесшовный режим */
+.pixel-grid {
+    transition: gap 0.3s ease, background 0.3s ease;
+}
+
+.pixel {
+    transition: border 0.3s ease, border-radius 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 @keyframes pulse {
@@ -625,6 +635,7 @@ body {
     margin-bottom: 8px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;  /* Добавьте эту строку */
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
