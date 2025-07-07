@@ -611,6 +611,9 @@ class MiniEditor {
                 window.miniGrid.savePixelData();
             }
 
+            // Автоматически включаем бесшовный режим
+            this.enableSeamlessMode();
+
             MiniUtils.showNotification(`Изображение применено к ${this.selectedPixels.length} пикселям!`, 'success');
             MiniUtils.vibrate([100, 50, 100]);
             
@@ -624,6 +627,7 @@ class MiniEditor {
         }
     }
 
+    // ИСПРАВЛЕННАЯ логика извлечения ячеек - теперь каждый пиксель получает свою часть изображения
     extractCells() {
         const cellSize = 30; // Размер для мини-апп
         const cells = [];
@@ -632,6 +636,14 @@ class MiniEditor {
         const tempCtx = tempCanvas.getContext('2d');
         tempCanvas.width = cellSize;
         tempCanvas.height = cellSize;
+        
+        // ВАЖНО: Разделяем изображение на части по сетке
+        const imageAreaWidth = this.currentImage.width * this.scale;
+        const imageAreaHeight = this.currentImage.height * this.scale;
+        
+        // Размер одной ячейки в пикселях изображения
+        const imageCellWidth = imageAreaWidth / this.areaShape.width;
+        const imageCellHeight = imageAreaHeight / this.areaShape.height;
         
         // Обрабатываем пиксели в том же порядке, что они выбраны
         this.selectedPixels.forEach(pixelId => {
@@ -648,43 +660,31 @@ class MiniEditor {
             if (this.currentImage) {
                 tempCtx.save();
                 
-                // Вычисляем точную позицию ячейки на холсте
-                const cellCenterX = this.areaRect.x + (localCol + 0.5) * this.areaRect.cellSize;
-                const cellCenterY = this.areaRect.y + (localRow + 0.5) * this.areaRect.cellSize;
-                
                 // Центр изображения с учетом смещений
                 const imageCenterX = this.areaRect.centerX + this.offsetX;
                 const imageCenterY = this.areaRect.centerY + this.offsetY;
                 
-                // Смещение от центра изображения до центра ячейки
-                let offsetX = cellCenterX - imageCenterX;
-                let offsetY = cellCenterY - imageCenterY;
+                // Вычисляем координаты части изображения для этой ячейки
+                const sourceX = (localCol - this.areaShape.width / 2 + 0.5) * imageCellWidth;
+                const sourceY = (localRow - this.areaShape.height / 2 + 0.5) * imageCellHeight;
                 
-                // Применяем обратный поворот к смещению
-                const radians = -this.rotation * Math.PI / 180;
-                const rotatedOffsetX = offsetX * Math.cos(radians) - offsetY * Math.sin(radians);
-                const rotatedOffsetY = offsetX * Math.sin(radians) + offsetY * Math.cos(radians);
+                // Применяем поворот к координатам
+                const radians = this.rotation * Math.PI / 180;
+                const rotatedX = sourceX * Math.cos(-radians) - sourceY * Math.sin(-radians);
+                const rotatedY = sourceX * Math.sin(-radians) + sourceY * Math.cos(-radians);
                 
                 // Настраиваем временный canvas
                 tempCtx.translate(cellSize / 2, cellSize / 2);
-                tempCtx.rotate((this.rotation * Math.PI) / 180);
+                tempCtx.rotate(radians);
                 tempCtx.scale(this.scale, this.scale);
-                tempCtx.translate(-rotatedOffsetX, -rotatedOffsetY);
                 
-                // Масштабируем для правильного размера
-                const scaleFactor = this.areaRect.cellSize / cellSize;
-                tempCtx.scale(scaleFactor, scaleFactor);
-                
-                // Рисуем изображение
-                const imgWidth = this.currentImage.width;
-                const imgHeight = this.currentImage.height;
-                
+                // Рисуем соответствующую часть изображения
                 tempCtx.drawImage(
                     this.currentImage,
-                    -imgWidth / 2,
-                    -imgHeight / 2,
-                    imgWidth,
-                    imgHeight
+                    -this.currentImage.width / 2 - rotatedX / this.scale,
+                    -this.currentImage.height / 2 - rotatedY / this.scale,
+                    this.currentImage.width,
+                    this.currentImage.height
                 );
                 
                 tempCtx.restore();
@@ -695,6 +695,67 @@ class MiniEditor {
         
         console.log('Извлечено ячеек:', cells.length, 'поворот:', this.rotation, 'масштаб:', this.scale);
         return cells;
+    }
+
+    // Новый метод для включения бесшовного режима
+    enableSeamlessMode() {
+        const grid = document.getElementById('pixel-grid');
+        if (!grid) return;
+        
+        // Добавляем класс для бесшовного режима
+        grid.classList.add('seamless');
+        
+        // Добавляем границы для выделения областей
+        this.addImageBorders();
+        
+        MiniUtils.showNotification('Бесшовный режим включен!', 'success');
+        console.log('Seamless mode enabled');
+    }
+
+    // Улучшенное добавление границ для выделения областей с изображением
+    addImageBorders() {
+        // Сначала убираем все классы границ
+        document.querySelectorAll('.pixel').forEach(pixel => {
+            pixel.classList.remove('seamless-border-top', 'seamless-border-right', 'seamless-border-bottom', 'seamless-border-left');
+        });
+        
+        // Находим все пиксели с изображением
+        const imagePixels = new Set();
+        document.querySelectorAll('.pixel.with-image').forEach(pixel => {
+            imagePixels.add(parseInt(pixel.dataset.id));
+        });
+        
+        // Добавляем границы только на краях областей
+        imagePixels.forEach(pixelId => {
+            const pixel = document.querySelector(`[data-id="${pixelId}"]`);
+            if (!pixel) return;
+            
+            const row = Math.floor(pixelId / this.gridSize);
+            const col = pixelId % this.gridSize;
+            
+            // Проверяем соседей и добавляем границы там, где нет изображения
+            const topId = (row - 1) * this.gridSize + col;
+            const rightId = row * this.gridSize + (col + 1);
+            const bottomId = (row + 1) * this.gridSize + col;
+            const leftId = row * this.gridSize + (col - 1);
+            
+            // Добавляем границы только на краях областей
+            if (row === 0 || !imagePixels.has(topId)) {
+                pixel.classList.add('seamless-border-top');
+            }
+            
+            if (col === this.gridSize - 1 || !imagePixels.has(rightId)) {
+                pixel.classList.add('seamless-border-right');
+            }
+            
+            if (row === this.gridSize - 1 || !imagePixels.has(bottomId)) {
+                pixel.classList.add('seamless-border-bottom');
+            }
+            
+            if (col === 0 || !imagePixels.has(leftId)) {
+                pixel.classList.add('seamless-border-left');
+            }
+        });
     }
 
     enableControls() {

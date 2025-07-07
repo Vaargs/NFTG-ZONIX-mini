@@ -479,10 +479,16 @@ class MiniGrid {
 
     centerGrid() {
         console.log('Centering grid...');
+        
+        // Сбрасываем трансформацию к исходному состоянию
+        this.scale = 1;
+        this.translateX = 0;
+        this.translateY = 0;
+        
         // Анимация центрирования
         this.animateToTransform(0, 0, 1);
         MiniUtils.vibrate([50]);
-        console.log('Grid centered');
+        console.log('Grid centered to:', { x: this.translateX, y: this.translateY, scale: this.scale });
     }
 
     // Новый метод для плавной анимации трансформации

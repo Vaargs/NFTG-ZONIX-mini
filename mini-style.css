@@ -175,6 +175,39 @@ body {
     background-repeat: no-repeat;
 }
 
+/* Стили для бесшовного режима */
+.pixel-grid.seamless {
+    gap: 0 !important;
+    background: #1a1a1a !important;
+}
+
+.pixel-grid.seamless .pixel.with-image {
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.pixel-grid.seamless .pixel.with-image:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Границы для выделения областей в бесшовном режиме */
+.pixel.seamless-border-top {
+    border-top: 2px solid #9D4EDD !important;
+}
+
+.pixel.seamless-border-right {
+    border-right: 2px solid #9D4EDD !important;
+}
+
+.pixel.seamless-border-bottom {
+    border-bottom: 2px solid #9D4EDD !important;
+}
+
+.pixel.seamless-border-left {
+    border-left: 2px solid #9D4EDD !important;
+}
+
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.1); }
