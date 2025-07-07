@@ -15,6 +15,9 @@ class MiniEditor {
         this.offsetX = 0;
         this.offsetY = 0;
         
+        // Area rect for clipping
+        this.areaRect = null;
+        
         // Interaction state
         this.isDragging = false;
         this.isRotating = false;
@@ -70,6 +73,8 @@ class MiniEditor {
         setTimeout(() => {
             this.setupCanvas();
             this.calculateAreaShape();
+            // Рисуем начальную сетку
+            this.redraw();
         }, 100);
         
         const modal = document.getElementById('editor-modal');
@@ -181,6 +186,15 @@ class MiniEditor {
         const startX = centerX - areaWidth / 2;
         const startY = centerY - areaHeight / 2;
         
+        // Store area dimensions for later use
+        this.areaRect = {
+            x: startX,
+            y: startY,
+            width: areaWidth,
+            height: areaHeight,
+            cellSize: cellSize
+        };
+        
         // Draw area outline
         this.ctx.strokeStyle = '#9D4EDD';
         this.ctx.lineWidth = 2;
@@ -233,7 +247,13 @@ class MiniEditor {
             this.originalImage = image;
             this.currentImage = image;
             
+            // Сначала рисуем сетку, чтобы получить areaRect
+            this.redraw();
+            
+            // Затем подгоняем изображение под размер области
             this.fitImageToCanvas();
+            
+            // Перерисовываем с изображением
             this.redraw();
             
             // Enable controls
@@ -261,22 +281,21 @@ class MiniEditor {
     }
 
     fitImageToCanvas() {
-        if (!this.currentImage || !this.canvas) return;
+        if (!this.currentImage || !this.canvas || !this.areaRect) return;
         
-        const padding = 20;
-        const availableWidth = this.canvas.width - padding * 2;
-        const availableHeight = this.canvas.height - padding * 2;
+        const areaWidth = this.areaRect.width;
+        const areaHeight = this.areaRect.height;
         
-        const scaleX = availableWidth / this.currentImage.width;
-        const scaleY = availableHeight / this.currentImage.height;
-        const scale = Math.min(scaleX, scaleY) * 0.8;
+        const scaleX = areaWidth / this.currentImage.width;
+        const scaleY = areaHeight / this.currentImage.height;
+        const scale = Math.min(scaleX, scaleY) * 0.9; // 90% чтобы было немного меньше области
         
         this.scale = Math.max(0.1, scale);
         this.rotation = 0;
         this.offsetX = 0;
         this.offsetY = 0;
         
-        console.log('Image fitted to canvas', { scale: this.scale });
+        console.log('Image fitted to area', { scale: this.scale });
     }
 
     handleMouseDown(e) {
@@ -412,11 +431,16 @@ class MiniEditor {
         if (!this.ctx || !this.canvas) return;
         
         this.clearCanvas();
-        this.drawAreaGuide();
 
         if (this.currentImage) {
+            // Сначала рисуем изображение
             this.drawImage();
+            // Затем рисуем сетку поверх изображения
+            this.drawAreaGuide();
         } else {
+            // Если нет изображения, рисуем только сетку
+            this.drawAreaGuide();
+            
             // Draw placeholder text
             this.ctx.fillStyle = '#666';
             this.ctx.font = '14px Arial';
@@ -426,9 +450,14 @@ class MiniEditor {
     }
 
     drawImage() {
-        if (!this.currentImage) return;
+        if (!this.currentImage || !this.areaRect) return;
         
         this.ctx.save();
+        
+        // Ограничиваем отрисовку изображения только областью сетки
+        this.ctx.beginPath();
+        this.ctx.rect(this.areaRect.x, this.areaRect.y, this.areaRect.width, this.areaRect.height);
+        this.ctx.clip();
         
         const centerX = this.canvas.width / 2 + this.offsetX;
         const centerY = this.canvas.height / 2 + this.offsetY;
