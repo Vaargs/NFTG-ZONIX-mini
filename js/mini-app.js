@@ -123,6 +123,8 @@ class MiniApp {
                             this.modals.closeAllModals();
                         } else if (this.channels.isOpen) {
                             this.channels.closeSidebar();
+                        } else if (this.channels.isMainSidebarOpen) {
+                            this.channels.closeMainSidebar();
                         } else if (this.editor.isOpen) {
                             this.editor.closeEditor();
                         } else {
@@ -155,7 +157,7 @@ class MiniApp {
             }
 
             // Skip if modal is open
-            if (this.modals.isModalOpen() || this.channels.isOpen || this.editor.isOpen) {
+            if (this.modals.isModalOpen() || this.channels.isOpen || this.channels.isMainSidebarOpen || this.editor.isOpen) {
                 return;
             }
 
@@ -178,7 +180,7 @@ class MiniApp {
                     break;
                 case 'h':
                 case 'H':
-                    this.channels.toggleSidebar();
+                    this.channels.toggleMainSidebar();
                     break;
                 case 'Escape':
                     this.handleEscapeKey();
@@ -216,6 +218,18 @@ class MiniApp {
         document.querySelectorAll('.mode-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.mode === mode);
         });
+
+        // Update mode display in header
+        const modeDisplay = document.getElementById('mode-display');
+        const modeNames = {
+            'view': 'Просмотр',
+            'buy': 'Покупка',
+            'mass-buy': 'Массовая покупка',
+            'edit': 'Редактирование'
+        };
+        if (modeDisplay) {
+            modeDisplay.textContent = modeNames[mode] || mode;
+        }
 
         // Special handling for mass-buy mode
         if (mode === 'mass-buy') {
@@ -320,6 +334,8 @@ class MiniApp {
             this.modals.closeAllModals();
         } else if (this.channels.isOpen) {
             this.channels.closeSidebar();
+        } else if (this.channels.isMainSidebarOpen) {
+            this.channels.closeMainSidebar();
         } else if (this.editor.isOpen) {
             this.editor.closeEditor();
         } else {

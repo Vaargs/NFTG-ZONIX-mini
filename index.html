@@ -12,7 +12,7 @@
     <!-- Header -->
     <div class="header">
         <div class="logo">NFTG-ZONIX</div>
-        <div class="mode-indicator" id="mode-indicator"></div>
+        <div class="mode-display" id="mode-display">Просмотр</div>
         <button class="hamburger-menu" id="hamburger-menu">
             <div class="hamburger-line"></div>
             <div class="hamburger-line"></div>
@@ -35,10 +35,22 @@
     <!-- Bottom Status Bar -->
     <div class="bottom-bar" id="bottom-bar">
         <div class="mode-tabs">
-            <button class="mode-tab active" data-mode="view" id="view-mode">👁️</button>
-            <button class="mode-tab" data-mode="buy" id="buy-mode">💰</button>
-            <button class="mode-tab" data-mode="mass-buy" id="mass-buy-mode">🛒</button>
-            <button class="mode-tab" data-mode="edit" id="edit-mode">🎨</button>
+            <button class="mode-tab active" data-mode="view" id="view-mode" title="Режим просмотра">
+                <span class="mode-icon">👁️</span>
+                <span class="mode-label">Просмотр</span>
+            </button>
+            <button class="mode-tab" data-mode="buy" id="buy-mode" title="Режим покупки">
+                <span class="mode-icon">💰</span>
+                <span class="mode-label">Покупка</span>
+            </button>
+            <button class="mode-tab" data-mode="mass-buy" id="mass-buy-mode" title="Массовая покупка">
+                <span class="mode-icon">🛒</span>
+                <span class="mode-label">Массово</span>
+            </button>
+            <button class="mode-tab" data-mode="edit" id="edit-mode" title="Режим редактирования">
+                <span class="mode-icon">🎨</span>
+                <span class="mode-label">Редактор</span>
+            </button>
         </div>
         
         <div class="status-info">
@@ -56,6 +68,73 @@
     <!-- Action Button -->
     <div class="action-button-container" id="action-button-container">
         <button class="action-button" id="action-button">Купить</button>
+    </div>
+
+    <!-- Main Menu Sidebar -->
+    <div class="main-sidebar" id="main-sidebar">
+        <div class="sidebar-header">
+            <h3>📱 Главное меню</h3>
+            <button class="close-sidebar" id="close-main-sidebar">×</button>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="menu-items">
+                <button class="menu-item" id="channels-navigator-btn">
+                    <span class="menu-icon">📺</span>
+                    <span class="menu-text">
+                        <div class="menu-title">Навигатор каналов</div>
+                        <div class="menu-subtitle">Обзор и поиск каналов</div>
+                    </span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                
+                <button class="menu-item" id="market-btn">
+                    <span class="menu-icon">🛒</span>
+                    <span class="menu-text">
+                        <div class="menu-title">Маркет</div>
+                        <div class="menu-subtitle">Покупка и продажа пикселей</div>
+                    </span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                
+                <button class="menu-item" id="website-btn">
+                    <span class="menu-icon">🌐</span>
+                    <span class="menu-text">
+                        <div class="menu-title">Веб-сайт</div>
+                        <div class="menu-subtitle">Перейти на официальный сайт</div>
+                    </span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                
+                <button class="menu-item" id="verification-btn">
+                    <span class="menu-icon">✅</span>
+                    <span class="menu-text">
+                        <div class="menu-title">Верификация</div>
+                        <div class="menu-subtitle">Подтвердить аккаунт</div>
+                    </span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                
+                <button class="menu-item" id="stats-btn">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">
+                        <div class="menu-title">Статистика</div>
+                        <div class="menu-subtitle">Аналитика и метрики</div>
+                    </span>
+                    <span class="menu-arrow">→</span>
+                </button>
+            </div>
+            
+            <div class="menu-footer">
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name" id="user-name">@demo_user</div>
+                        <div class="user-status" id="user-status">Не верифицирован</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Channel Navigator Sidebar -->
@@ -87,6 +166,7 @@
                         <option value="newest">🆕 Новые</option>
                         <option value="rating">⭐ По рейтингу</option>
                         <option value="subscribers">👥 По подписчикам</option>
+                        <option value="activity">📝 По активности</option>
                     </select>
                 </div>
             </div>
@@ -192,6 +272,54 @@
             <div class="editor-controls">
                 <button class="btn btn-primary" id="preview-editor">👁️ Предпросмотр</button>
                 <button class="btn btn-success" id="apply-editor">✅ Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Channel Rating Modal -->
+    <div class="modal" id="channel-rating-modal">
+        <div class="modal-content">
+            <h3>⭐ Оценить канал</h3>
+            
+            <div class="channel-rating-info">
+                <div class="rating-channel-name" id="rating-channel-name">@channel_name</div>
+                <div class="rating-channel-description" id="rating-channel-description">Описание канала</div>
+                <div class="current-rating" id="current-rating">
+                    Текущий рейтинг: <span class="rating-value">4.2</span> ⭐
+                </div>
+            </div>
+            
+            <div class="rating-selector">
+                <div class="rating-label">Ваша оценка:</div>
+                <div class="star-rating" id="star-rating">
+                    <span class="star" data-rating="1">⭐</span>
+                    <span class="star" data-rating="2">⭐</span>
+                    <span class="star" data-rating="3">⭐</span>
+                    <span class="star" data-rating="4">⭐</span>
+                    <span class="star" data-rating="5">⭐</span>
+                </div>
+                <div class="rating-text" id="rating-text">Выберите оценку</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="rating-comment">💬 Комментарий (опционально):</label>
+                <textarea id="rating-comment" class="form-control" 
+                         placeholder="Поделитесь своим мнением о канале..." maxlength="200"></textarea>
+                <div class="char-counter"><span id="comment-chars">0</span>/200</div>
+            </div>
+            
+            <div class="verification-notice">
+                <div class="notice-icon">🔒</div>
+                <div class="notice-text">
+                    <div class="notice-title">Верификация требуется</div>
+                    <div class="notice-subtitle">Для оценки каналов необходимо пройти верификацию через бот</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-success" id="submit-rating">⭐ Оценить</button>
+                <button class="btn btn-primary" id="verify-account">✅ Верифицироваться</button>
+                <button class="btn btn-secondary" id="cancel-rating">❌ Отмена</button>
             </div>
         </div>
     </div>
