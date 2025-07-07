@@ -104,6 +104,27 @@ body {
     cursor: grabbing;
 }
 
+.grid-container::before {
+    content: 'Длительное нажатие на пиксель = перетаскивание сетки';
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.grid-container:hover::before {
+    opacity: 1;
+}
+
 .pixel-grid {
     position: absolute;
     top: 50%;

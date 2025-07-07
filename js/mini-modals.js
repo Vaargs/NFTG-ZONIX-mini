@@ -35,6 +35,11 @@ class MiniModals {
 
         // Form validation
         this.setupFormValidation();
+        
+        // Добавляем отладочные логи
+        console.log('✅ Modal event listeners setup completed');
+        console.log('confirm-purchase button:', document.getElementById('confirm-purchase'));
+        console.log('confirm-mass-purchase button:', document.getElementById('confirm-mass-purchase'));
     }
 
     setupFormValidation() {

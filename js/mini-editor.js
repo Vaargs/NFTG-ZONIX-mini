@@ -457,9 +457,63 @@ class MiniEditor {
             return;
         }
 
-        // Create simple preview notification
-        MiniUtils.showNotification('Предпросмотр готов! Нажмите "Применить" для сохранения', 'info');
+        const cells = this.extractCells();
+        this.displayPreview(cells);
+        MiniUtils.showNotification('Предпросмотр готов!', 'info');
         MiniUtils.vibrate([100]);
+    }
+
+    displayPreview(cells) {
+        // Создаем контейнер для предпросмотра если его нет
+        let previewContainer = document.getElementById('preview-container');
+        if (!previewContainer) {
+            previewContainer = document.createElement('div');
+            previewContainer.id = 'preview-container';
+            previewContainer.style.cssText = `
+                margin-top: 20px;
+                padding: 20px;
+                background: rgba(42, 42, 42, 0.8);
+                border: 1px solid #333;
+                border-radius: 12px;
+                text-align: center;
+            `;
+            document.querySelector('.editor-content').appendChild(previewContainer);
+        }
+        
+        // Создаем карту для быстрого поиска
+        const pixelMap = new Map();
+        this.selectedPixels.forEach((pixelId, index) => {
+            pixelMap.set(pixelId, index);
+        });
+        
+        let previewHTML = '';
+        for (let row = 0; row < this.areaShape.height; row++) {
+            for (let col = 0; col < this.areaShape.width; col++) {
+                const globalRow = this.areaShape.minRow + row;
+                const globalCol = this.areaShape.minCol + col;
+                const pixelId = globalRow * this.gridSize + globalCol;
+                
+                if (pixelMap.has(pixelId)) {
+                    const cellIndex = pixelMap.get(pixelId);
+                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
+                } else {
+                    previewHTML += `<div style="width: 24px; height: 24px; background: #111; border: 1px solid #333; opacity: 0.3;"></div>`;
+                }
+            }
+        }
+        
+        previewContainer.innerHTML = `
+            <h3 style="color: #9D4EDD; margin-bottom: 15px;">Предпросмотр для ${this.selectedPixels.length} пикселей</h3>
+            <div style="margin: 15px 0; color: #b0b0b0; font-size: 12px;">
+                Область: ${this.areaShape.width}×${this.areaShape.height} • Позиции: ${this.selectedPixels.slice(0, 5).join(', ')}${this.selectedPixels.length > 5 ? '...' : ''}
+            </div>
+            <div style="display: inline-grid; grid-template-columns: repeat(${this.areaShape.width}, 24px); gap: 1px; background: #000; padding: 4px; border-radius: 5px;">
+                ${previewHTML}
+            </div>
+            <p style="margin-top: 15px; color: #9D4EDD; font-size: 12px; font-weight: bold;">
+                ✅ Готово к применению! Нажмите "Применить"
+            </p>
+        `;
     }
 
     applyToPixels() {
@@ -469,14 +523,14 @@ class MiniEditor {
         }
 
         try {
-            // Generate image data for each pixel
+            // Извлекаем ячейки как в рабочем редакторе
+            const cells = this.extractCells();
+            
+            // Применяем изображение к пикселям в правильном порядке
             this.selectedPixels.forEach((pixelId, index) => {
-                const cellImage = this.generatePixelImage(pixelId);
-                
-                // Apply to pixel element
                 const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
-                if (pixelElement && cellImage) {
-                    pixelElement.style.backgroundImage = `url(${cellImage})`;
+                if (pixelElement && cells[index]) {
+                    pixelElement.style.backgroundImage = `url(${cells[index]})`;
                     pixelElement.style.backgroundSize = 'cover';
                     pixelElement.style.backgroundPosition = 'center';
                     pixelElement.classList.add('with-image');
@@ -493,7 +547,7 @@ class MiniEditor {
                 // Update pixel data in grid
                 if (window.miniGrid && window.miniGrid.pixels.has(pixelId)) {
                     const pixelData = window.miniGrid.pixels.get(pixelId);
-                    pixelData.imageUrl = cellImage;
+                    pixelData.imageUrl = cells[index];
                     window.miniGrid.pixels.set(pixelId, pixelData);
                 }
             });
@@ -516,59 +570,89 @@ class MiniEditor {
         }
     }
 
-    generatePixelImage(pixelId) {
-        // Create a small canvas for this pixel
-        const cellCanvas = document.createElement('canvas');
-        const cellCtx = cellCanvas.getContext('2d');
+    extractCells() {
+        const cellSize = 30; // Размер для мини-апп
+        const cells = [];
         
-        const cellSize = 30; // Size for mobile pixels
-        cellCanvas.width = cellSize;
-        cellCanvas.height = cellSize;
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = cellSize;
+        tempCanvas.height = cellSize;
         
-        cellCtx.imageSmoothingEnabled = true;
-        cellCtx.imageSmoothingQuality = 'high';
+        // Обрабатываем пиксели в том же порядке, что они выбраны
+        this.selectedPixels.forEach(pixelId => {
+            // Вычисляем позицию пикселя в области
+            const globalRow = Math.floor(pixelId / this.gridSize);
+            const globalCol = pixelId % this.gridSize;
+            
+            const localRow = globalRow - this.areaShape.minRow;
+            const localCol = globalCol - this.areaShape.minCol;
+            
+            // Очищаем временный canvas
+            tempCtx.clearRect(0, 0, cellSize, cellSize);
+            
+            if (this.currentImage) {
+                tempCtx.save();
+                
+                const imgWidth = this.currentImage.width * this.scale;
+                const imgHeight = this.currentImage.height * this.scale;
+                
+                // Центр изображения на главном canvas
+                const centerX = this.canvas.width / 2 + this.offsetX;
+                const centerY = this.canvas.height / 2 + this.offsetY;
+                
+                // Размер ячейки в области на главном canvas
+                const mainCellSize = Math.min(
+                    (this.canvas.width - 40) / this.areaShape.width,
+                    (this.canvas.height - 40) / this.areaShape.height
+                );
+                
+                // Позиция ячейки на главном canvas
+                const cellX = 20 + localCol * mainCellSize;
+                const cellY = 20 + localRow * mainCellSize;
+                const cellCenterX = cellX + mainCellSize / 2;
+                const cellCenterY = cellY + mainCellSize / 2;
+                
+                // Перемещаем центр временного canvas
+                tempCtx.translate(cellSize / 2, cellSize / 2);
+                
+                // Вычисляем смещение от центра изображения до центра ячейки
+                const offsetFromImageCenter = {
+                    x: cellCenterX - centerX,
+                    y: cellCenterY - centerY
+                };
+                
+                // Применяем поворот к смещению
+                const rotatedOffsetX = offsetFromImageCenter.x * Math.cos(-this.rotation * Math.PI / 180) - 
+                                    offsetFromImageCenter.y * Math.sin(-this.rotation * Math.PI / 180);
+                const rotatedOffsetY = offsetFromImageCenter.x * Math.sin(-this.rotation * Math.PI / 180) + 
+                                    offsetFromImageCenter.y * Math.cos(-this.rotation * Math.PI / 180);
+                
+                // Применяем смещение и поворот
+                tempCtx.translate(-rotatedOffsetX, -rotatedOffsetY);
+                tempCtx.rotate((this.rotation * Math.PI) / 180);
+                
+                // Масштабируем для соответствия размеру ячейки
+                const scaleFactor = cellSize / mainCellSize;
+                tempCtx.scale(scaleFactor, scaleFactor);
+                
+                // Рисуем изображение
+                tempCtx.drawImage(
+                    this.currentImage,
+                    -imgWidth / 2,
+                    -imgHeight / 2,
+                    imgWidth,
+                    imgHeight
+                );
+                
+                tempCtx.restore();
+            }
+            
+            cells.push(tempCanvas.toDataURL('image/png'));
+        });
         
-        cellCtx.save();
-        
-        // Calculate pixel position in the selected area
-        const pixelIndex = this.selectedPixels.indexOf(pixelId);
-        if (pixelIndex === -1) return null;
-        
-        // Calculate row and column in the selected area
-        const col = pixelIndex % this.areaShape.width;
-        const row = Math.floor(pixelIndex / this.areaShape.width);
-        
-        console.log(`Pixel ${pixelId}: index=${pixelIndex}, col=${col}, row=${row}, area=${this.areaShape.width}x${this.areaShape.height}`);
-        
-        // Set up canvas transformation
-        cellCtx.translate(cellSize / 2, cellSize / 2);
-        cellCtx.scale(this.scale, this.scale);
-        cellCtx.rotate((this.rotation * Math.PI) / 180);
-        
-        // Calculate the source rectangle from the original image
-        const imageWidth = this.currentImage.width;
-        const imageHeight = this.currentImage.height;
-        
-        // Calculate how much of the image each pixel should show
-        const pixelWidthInImage = imageWidth / this.areaShape.width;
-        const pixelHeightInImage = imageHeight / this.areaShape.height;
-        
-        // Calculate the source position in the original image
-        const sourceX = col * pixelWidthInImage;
-        const sourceY = row * pixelHeightInImage;
-        
-        // Draw the specific part of the image for this pixel
-        cellCtx.drawImage(
-            this.currentImage,
-            sourceX, sourceY, // Source position
-            pixelWidthInImage, pixelHeightInImage, // Source size
-            -cellSize/2 + this.offsetX/this.scale, -cellSize/2 + this.offsetY/this.scale, // Destination position
-            cellSize, cellSize // Destination size
-        );
-        
-        cellCtx.restore();
-        
-        return cellCanvas.toDataURL('image/png');
+        console.log('Извлечено ячеек:', cells.length, 'с поворотом:', this.rotation);
+        return cells;
     }
 
     enableControls() {

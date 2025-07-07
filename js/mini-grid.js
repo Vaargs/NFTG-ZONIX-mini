@@ -49,14 +49,78 @@ class MiniGrid {
             pixel.dataset.id = i;
             pixel.title = `Пиксель #${i}`;
             
-            pixel.addEventListener('click', (e) => this.handlePixelClick(i, e));
-            pixel.addEventListener('touchstart', (e) => e.stopPropagation());
+            // Обычный клик для выбора пикселя
+            pixel.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handlePixelClick(i, e);
+            });
+            
+            // Длительное нажатие для перетаскивания сетки
+            let longPressTimer;
+            
+            pixel.addEventListener('mousedown', (e) => {
+                // Запускаем таймер для длительного нажатия
+                longPressTimer = setTimeout(() => {
+                    this.startGridDrag(e);
+                }, 500); // 500ms для активации перетаскивания
+            });
+            
+            pixel.addEventListener('mouseup', () => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+            });
+            
+            pixel.addEventListener('mouseleave', () => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+            });
+            
+            // Touch события для мобильных
+            pixel.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                
+                longPressTimer = setTimeout(() => {
+                    this.startGridDrag(e.touches[0]);
+                    MiniUtils.vibrate([100]); // Вибрация при активации перетаскивания
+                }, 500);
+            });
+            
+            pixel.addEventListener('touchend', (e) => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+                if (!this.isDragging) {
+                    // Обычный тап - обрабатываем как клик
+                    this.handlePixelClick(i, e);
+                }
+            });
             
             gridContainer.appendChild(pixel);
         }
         
         this.updatePixelDisplay();
         console.log(`Created ${this.gridSize * this.gridSize} pixels`);
+    }
+
+    startGridDrag(event) {
+        this.isDragging = true;
+        this.lastX = event.clientX || event.pageX;
+        this.lastY = event.clientY || event.pageY;
+        
+        const container = document.getElementById('grid-container');
+        container.style.cursor = 'grabbing';
+        
+        // Добавляем визуальную обратную связь
+        const gridContainer = document.getElementById('pixel-grid');
+        if (gridContainer) {
+            gridContainer.style.opacity = '0.8';
+            gridContainer.style.transition = 'opacity 0.2s ease';
+        }
+        
+        console.log('Grid drag started from pixel');
     }
 
     setupEventListeners() {
@@ -238,7 +302,11 @@ class MiniGrid {
 
     // Grid manipulation methods
     handleMouseDown(e) {
-        if (e.target.closest('.pixel')) return; // Don't drag when clicking pixels
+        // Проверяем, что клик не на пикселе
+        if (e.target.closest('.pixel')) {
+            // Если клик на пикселе, не начинаем перетаскивание
+            return;
+        }
         
         this.isDragging = true;
         this.lastX = e.clientX;
@@ -248,6 +316,7 @@ class MiniGrid {
         container.style.cursor = 'grabbing';
         
         e.preventDefault();
+        e.stopPropagation();
     }
 
     handleMouseMove(e) {
@@ -263,9 +332,14 @@ class MiniGrid {
         this.lastY = e.clientY;
         
         this.updateGridTransform();
+        
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     handleMouseUp() {
+        if (!this.isDragging) return;
+        
         this.isDragging = false;
         
         const container = document.getElementById('grid-container');
@@ -273,7 +347,10 @@ class MiniGrid {
     }
 
     handleTouchStart(e) {
-        if (e.target.closest('.pixel')) return;
+        // Проверяем, что касание не на пикселе
+        if (e.target.closest('.pixel')) {
+            return;
+        }
         
         if (e.touches.length === 1) {
             this.isDragging = true;
@@ -290,6 +367,7 @@ class MiniGrid {
         }
         
         e.preventDefault();
+        e.stopPropagation();
     }
 
     handleTouchMove(e) {
@@ -322,6 +400,7 @@ class MiniGrid {
         }
         
         e.preventDefault();
+        e.stopPropagation();
     }
 
     handleTouchEnd() {
