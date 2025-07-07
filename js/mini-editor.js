@@ -530,37 +530,40 @@ class MiniEditor {
         
         cellCtx.save();
         
-        // Calculate pixel position in area
+        // Calculate pixel position in the selected area
         const pixelIndex = this.selectedPixels.indexOf(pixelId);
-        const areaWidth = this.areaShape.width;
-        const col = pixelIndex % areaWidth;
-        const row = Math.floor(pixelIndex / areaWidth);
+        if (pixelIndex === -1) return null;
         
-        // Set up transformation to extract this specific pixel
+        // Calculate row and column in the selected area
+        const col = pixelIndex % this.areaShape.width;
+        const row = Math.floor(pixelIndex / this.areaShape.width);
+        
+        console.log(`Pixel ${pixelId}: index=${pixelIndex}, col=${col}, row=${row}, area=${this.areaShape.width}x${this.areaShape.height}`);
+        
+        // Set up canvas transformation
         cellCtx.translate(cellSize / 2, cellSize / 2);
-        
-        // Apply image transformations
         cellCtx.scale(this.scale, this.scale);
         cellCtx.rotate((this.rotation * Math.PI) / 180);
         
-        // Calculate the portion of the image for this pixel
+        // Calculate the source rectangle from the original image
         const imageWidth = this.currentImage.width;
         const imageHeight = this.currentImage.height;
         
-        // Scale factors to fit the area
-        const scaleX = imageWidth / (this.areaShape.width * cellSize);
-        const scaleY = imageHeight / (this.areaShape.height * cellSize);
+        // Calculate how much of the image each pixel should show
+        const pixelWidthInImage = imageWidth / this.areaShape.width;
+        const pixelHeightInImage = imageHeight / this.areaShape.height;
         
-        // Offset to the specific pixel position
-        const offsetX = -imageWidth / 2 + (col * cellSize + cellSize / 2) * scaleX + this.offsetX / this.scale;
-        const offsetY = -imageHeight / 2 + (row * cellSize + cellSize / 2) * scaleY + this.offsetY / this.scale;
+        // Calculate the source position in the original image
+        const sourceX = col * pixelWidthInImage;
+        const sourceY = row * pixelHeightInImage;
         
+        // Draw the specific part of the image for this pixel
         cellCtx.drawImage(
             this.currentImage,
-            offsetX - (cellSize * scaleX) / 2,
-            offsetY - (cellSize * scaleY) / 2,
-            cellSize * scaleX,
-            cellSize * scaleY
+            sourceX, sourceY, // Source position
+            pixelWidthInImage, pixelHeightInImage, // Source size
+            -cellSize/2 + this.offsetX/this.scale, -cellSize/2 + this.offsetY/this.scale, // Destination position
+            cellSize, cellSize // Destination size
         );
         
         cellCtx.restore();

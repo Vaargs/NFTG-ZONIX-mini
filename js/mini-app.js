@@ -95,17 +95,24 @@ class MiniApp {
 
         // Setup Telegram WebApp back button handling
         if (this.telegramConfig.isWebApp) {
-            this.telegramConfig.telegram.onEvent('backButtonClicked', () => {
-                if (this.modals.isModalOpen()) {
-                    this.modals.closeAllModals();
-                } else if (this.channels.isOpen) {
-                    this.channels.closeSidebar();
-                } else if (this.editor.isOpen) {
-                    this.editor.closeEditor();
-                } else {
-                    this.telegramConfig.telegram.close();
+            try {
+                const version = this.telegramConfig.telegram.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    this.telegramConfig.telegram.onEvent('backButtonClicked', () => {
+                        if (this.modals.isModalOpen()) {
+                            this.modals.closeAllModals();
+                        } else if (this.channels.isOpen) {
+                            this.channels.closeSidebar();
+                        } else if (this.editor.isOpen) {
+                            this.editor.closeEditor();
+                        } else {
+                            this.telegramConfig.telegram.close();
+                        }
+                    });
                 }
-            });
+            } catch (error) {
+                console.log('BackButton not supported in this version');
+            }
         }
 
         console.log('🔗 Module communication setup completed');
@@ -453,14 +460,22 @@ class MiniApp {
     handleGlobalError(error, context = 'Unknown') {
         console.error(`💥 Global error in ${context}:`, error);
         
+        // Проверяем что error существует и имеет message
+        const errorMessage = error && error.message ? error.message : 'Неизвестная ошибка';
+        
         // Send error to Telegram if available
         if (this.telegramConfig.isWebApp) {
-            this.telegramConfig.telegram.sendData(JSON.stringify({
-                type: 'error',
-                error: error.message,
-                context,
-                timestamp: new Date().toISOString()
-            }));
+            try {
+                this.telegramConfig.telegram.sendData(JSON.stringify({
+                    type: 'error',
+                    error: errorMessage,
+                    context,
+                    timestamp: new Date().toISOString()
+                }));
+            } catch (e) {
+                // Игнорируем ошибки отправки
+                console.log('Could not send error data to Telegram');
+            }
         }
         
         MiniUtils.showNotification('Произошла ошибка', 'error');

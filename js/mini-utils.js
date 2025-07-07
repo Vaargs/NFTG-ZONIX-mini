@@ -5,14 +5,26 @@ class MiniUtils {
     static showNotification(message, type = 'info') {
         // Используем Telegram WebApp API если доступно
         if (window.Telegram?.WebApp) {
-            if (type === 'error') {
-                window.Telegram.WebApp.showAlert(message);
-            } else {
-                window.Telegram.WebApp.showPopup({
-                    title: 'NFTG-ZONIX',
-                    message: message,
-                    buttons: [{ type: 'ok' }]
-                });
+            try {
+                // Проверяем версию API перед использованием
+                const version = window.Telegram.WebApp.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    if (type === 'error') {
+                        window.Telegram.WebApp.showAlert(message);
+                    } else {
+                        window.Telegram.WebApp.showPopup({
+                            title: 'NFTG-ZONIX',
+                            message: message,
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                } else {
+                    // Fallback для старых версий - используем toast
+                    this.createToast(message, type);
+                }
+            } catch (error) {
+                // Если API недоступен - используем toast
+                this.createToast(message, type);
             }
         } else {
             // Fallback для десктопа
@@ -292,10 +304,18 @@ class MiniUtils {
 
     // Вибрация для мобильных устройств
     static vibrate(pattern = [100]) {
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-        } else if (navigator.vibrate) {
-            navigator.vibrate(pattern);
+        try {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                const version = window.Telegram.WebApp.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+            } else if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        } catch (error) {
+            // Игнорируем ошибки вибрации
+            console.log('Vibration not supported');
         }
     }
 
@@ -403,18 +423,28 @@ class MiniUtils {
         const config = this.getTelegramConfig();
         
         if (config.isWebApp) {
-            // Настройка WebApp
-            config.telegram.ready();
-            config.telegram.expand();
-            config.telegram.enableClosingConfirmation();
-            
-            // Применение темы Telegram
-            if (config.theme.bg_color) {
-                document.documentElement.style.setProperty('--tg-bg-color', config.theme.bg_color);
+            try {
+                // Настройка WebApp
+                config.telegram.ready();
+                config.telegram.expand();
+                
+                // Проверяем версию перед использованием методов
+                const version = config.telegram.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    config.telegram.enableClosingConfirmation();
+                }
+                
+                // Применение темы Telegram
+                if (config.theme.bg_color) {
+                    document.documentElement.style.setProperty('--tg-bg-color', config.theme.bg_color);
+                }
+                
+                console.log('✅ Telegram WebApp initialized, version:', version);
+                return config;
+            } catch (error) {
+                console.log('⚠️ Some Telegram WebApp features not supported:', error.message);
+                return config;
             }
-            
-            console.log('✅ Telegram WebApp initialized');
-            return config;
         } else {
             console.log('ℹ️ Running in browser mode');
             return config;
