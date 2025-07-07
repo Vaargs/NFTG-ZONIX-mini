@@ -96,33 +96,16 @@ body {
     width: 100vw;
     height: calc(100vh - 120px);
     overflow: hidden;
-    cursor: grab;
+    cursor: default;
     background: rgba(0, 0, 0, 0.3);
 }
 
-.grid-container:active {
+.grid-container.drag-mode {
+    cursor: grab;
+}
+
+.grid-container.drag-mode:active {
     cursor: grabbing;
-}
-
-.grid-container::before {
-    content: 'Длительное нажатие на пиксель = перетаскивание сетки';
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: rgba(255, 255, 255, 0.6);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    pointer-events: none;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.grid-container:hover::before {
-    opacity: 1;
 }
 
 .pixel-grid {
@@ -238,6 +221,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .control-btn:hover {
@@ -248,6 +234,24 @@ body {
 
 .control-btn:active {
     transform: translateY(0);
+}
+
+/* Стили для кнопки руки */
+.drag-mode-btn {
+    font-size: 20px;
+}
+
+.drag-mode-btn.active {
+    background: linear-gradient(45deg, #00FF88, #00CC66);
+    color: #000;
+    border-color: #00FF88;
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+}
+
+.drag-mode-btn.active:hover {
+    background: linear-gradient(45deg, #00CC66, #009944);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 255, 136, 0.6);
 }
 
 /* === BOTTOM BAR === */
@@ -285,6 +289,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .mode-tab:hover {
@@ -350,6 +357,9 @@ body {
     box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
     transition: all 0.3s ease;
     min-width: 120px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .action-button:hover {
@@ -721,6 +731,9 @@ body {
     font-size: 12px;
     transition: all 0.3s ease;
     min-width: 80px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-primary {
@@ -905,6 +918,10 @@ body {
         font-size: 16px;
     }
     
+    .drag-mode-btn {
+        font-size: 18px;
+    }
+    
     .bottom-bar {
         padding: 8px 12px;
         height: 50px;
@@ -991,6 +1008,10 @@ body {
         font-size: 14px;
     }
     
+    .drag-mode-btn {
+        font-size: 16px;
+    }
+    
     .status-info {
         gap: 8px;
     }
@@ -999,5 +1020,23 @@ body {
         padding: 10px 16px;
         font-size: 12px;
         min-width: 90px;
+    }
+}
+
+/* === УТИЛИТЫ ДЛЯ МОБИЛЬНЫХ === */
+@media (hover: none) and (pointer: coarse) {
+    .control-btn:hover,
+    .mode-tab:hover,
+    .action-button:hover,
+    .btn:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .control-btn:active,
+    .mode-tab:active,
+    .action-button:active,
+    .btn:active {
+        transform: scale(0.95);
     }
 }

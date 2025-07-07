@@ -17,6 +17,7 @@ class MiniEditor {
         
         // Area rect for clipping
         this.areaRect = null;
+        this.areaShape = null;
         
         // Interaction state
         this.isDragging = false;
@@ -118,9 +119,12 @@ class MiniEditor {
         
         this.ctx = this.canvas.getContext('2d');
         
-        // Set canvas size
-        this.canvas.width = 300;
-        this.canvas.height = 200;
+        // Set canvas size responsively
+        const containerWidth = this.canvas.parentElement.clientWidth - 20;
+        const containerHeight = 200;
+        
+        this.canvas.width = Math.min(containerWidth, 400);
+        this.canvas.height = containerHeight;
         
         // Enable high quality rendering
         this.ctx.imageSmoothingEnabled = true;
@@ -176,9 +180,15 @@ class MiniEditor {
         
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
+        
+        // Вычисляем оптимальный размер ячейки с учетом отступов
+        const padding = 40;
+        const availableWidth = this.canvas.width - padding;
+        const availableHeight = this.canvas.height - padding;
+        
         const cellSize = Math.min(
-            (this.canvas.width - 40) / this.areaShape.width,
-            (this.canvas.height - 40) / this.areaShape.height
+            availableWidth / this.areaShape.width,
+            availableHeight / this.areaShape.height
         );
         
         const areaWidth = this.areaShape.width * cellSize;
@@ -192,7 +202,9 @@ class MiniEditor {
             y: startY,
             width: areaWidth,
             height: areaHeight,
-            cellSize: cellSize
+            cellSize: cellSize,
+            centerX: centerX,
+            centerY: centerY
         };
         
         // Draw area outline
@@ -288,14 +300,18 @@ class MiniEditor {
         
         const scaleX = areaWidth / this.currentImage.width;
         const scaleY = areaHeight / this.currentImage.height;
-        const scale = Math.min(scaleX, scaleY) * 0.9; // 90% чтобы было немного меньше области
+        const scale = Math.min(scaleX, scaleY) * 0.8; // 80% для удобства редактирования
         
         this.scale = Math.max(0.1, scale);
         this.rotation = 0;
         this.offsetX = 0;
         this.offsetY = 0;
         
-        console.log('Image fitted to area', { scale: this.scale });
+        console.log('Image fitted to area', { 
+            scale: this.scale, 
+            imageSize: { w: this.currentImage.width, h: this.currentImage.height },
+            areaSize: { w: areaWidth, h: areaHeight }
+        });
     }
 
     handleMouseDown(e) {
@@ -310,8 +326,8 @@ class MiniEditor {
             this.isDragging = false;
             this.canvas.style.cursor = 'crosshair';
             
-            const centerX = this.canvas.width / 2;
-            const centerY = this.canvas.height / 2;
+            const centerX = this.areaRect.centerX;
+            const centerY = this.areaRect.centerY;
             this.rotationStartAngle = Math.atan2(this.lastY - centerY, this.lastX - centerX) * (180 / Math.PI) - this.rotation;
         } else {
             this.isDragging = true;
@@ -328,8 +344,8 @@ class MiniEditor {
         const currentY = e.clientY - rect.top;
 
         if (this.isRotating) {
-            const centerX = this.canvas.width / 2;
-            const centerY = this.canvas.height / 2;
+            const centerX = this.areaRect.centerX;
+            const centerY = this.areaRect.centerY;
             const currentAngle = Math.atan2(currentY - centerY, currentX - centerX) * (180 / Math.PI);
             
             this.rotation = currentAngle - this.rotationStartAngle;
@@ -459,8 +475,9 @@ class MiniEditor {
         this.ctx.rect(this.areaRect.x, this.areaRect.y, this.areaRect.width, this.areaRect.height);
         this.ctx.clip();
         
-        const centerX = this.canvas.width / 2 + this.offsetX;
-        const centerY = this.canvas.height / 2 + this.offsetY;
+        // Центр области (не canvas)
+        const centerX = this.areaRect.centerX + this.offsetX;
+        const centerY = this.areaRect.centerY + this.offsetY;
         
         this.ctx.translate(centerX, centerY);
         this.ctx.scale(this.scale, this.scale);
@@ -509,22 +526,30 @@ class MiniEditor {
             document.querySelector('.editor-content').appendChild(previewContainer);
         }
         
-        // Создаем карту для быстрого поиска
-        const pixelMap = new Map();
-        this.selectedPixels.forEach((pixelId, index) => {
-            pixelMap.set(pixelId, index);
-        });
-        
-        let previewHTML = '';
+        // Создаем упорядоченную карту пикселей (строка за строкой, слева направо)
+        const pixelMatrix = [];
         for (let row = 0; row < this.areaShape.height; row++) {
+            pixelMatrix[row] = [];
             for (let col = 0; col < this.areaShape.width; col++) {
                 const globalRow = this.areaShape.minRow + row;
                 const globalCol = this.areaShape.minCol + col;
                 const pixelId = globalRow * this.gridSize + globalCol;
                 
-                if (pixelMap.has(pixelId)) {
-                    const cellIndex = pixelMap.get(pixelId);
-                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
+                const pixelIndex = this.selectedPixels.indexOf(pixelId);
+                if (pixelIndex !== -1) {
+                    pixelMatrix[row][col] = cells[pixelIndex];
+                } else {
+                    pixelMatrix[row][col] = null;
+                }
+            }
+        }
+        
+        // Генерируем HTML для предпросмотра
+        let previewHTML = '';
+        for (let row = 0; row < this.areaShape.height; row++) {
+            for (let col = 0; col < this.areaShape.width; col++) {
+                if (pixelMatrix[row][col]) {
+                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${pixelMatrix[row][col]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
                 } else {
                     previewHTML += `<div style="width: 24px; height: 24px; background: #111; border: 1px solid #333; opacity: 0.3;"></div>`;
                 }
@@ -552,7 +577,7 @@ class MiniEditor {
         }
 
         try {
-            // Извлекаем ячейки как в рабочем редакторе
+            // Извлекаем ячейки
             const cells = this.extractCells();
             
             // Применяем изображение к пикселям в правильном порядке
@@ -623,49 +648,37 @@ class MiniEditor {
             if (this.currentImage) {
                 tempCtx.save();
                 
-                const imgWidth = this.currentImage.width * this.scale;
-                const imgHeight = this.currentImage.height * this.scale;
+                // Вычисляем точную позицию ячейки на холсте
+                const cellCenterX = this.areaRect.x + (localCol + 0.5) * this.areaRect.cellSize;
+                const cellCenterY = this.areaRect.y + (localRow + 0.5) * this.areaRect.cellSize;
                 
-                // Центр изображения на главном canvas
-                const centerX = this.canvas.width / 2 + this.offsetX;
-                const centerY = this.canvas.height / 2 + this.offsetY;
+                // Центр изображения с учетом смещений
+                const imageCenterX = this.areaRect.centerX + this.offsetX;
+                const imageCenterY = this.areaRect.centerY + this.offsetY;
                 
-                // Размер ячейки в области на главном canvas
-                const mainCellSize = Math.min(
-                    (this.canvas.width - 40) / this.areaShape.width,
-                    (this.canvas.height - 40) / this.areaShape.height
-                );
+                // Смещение от центра изображения до центра ячейки
+                let offsetX = cellCenterX - imageCenterX;
+                let offsetY = cellCenterY - imageCenterY;
                 
-                // Позиция ячейки на главном canvas
-                const cellX = 20 + localCol * mainCellSize;
-                const cellY = 20 + localRow * mainCellSize;
-                const cellCenterX = cellX + mainCellSize / 2;
-                const cellCenterY = cellY + mainCellSize / 2;
+                // Применяем обратный поворот к смещению
+                const radians = -this.rotation * Math.PI / 180;
+                const rotatedOffsetX = offsetX * Math.cos(radians) - offsetY * Math.sin(radians);
+                const rotatedOffsetY = offsetX * Math.sin(radians) + offsetY * Math.cos(radians);
                 
-                // Перемещаем центр временного canvas
+                // Настраиваем временный canvas
                 tempCtx.translate(cellSize / 2, cellSize / 2);
-                
-                // Вычисляем смещение от центра изображения до центра ячейки
-                const offsetFromImageCenter = {
-                    x: cellCenterX - centerX,
-                    y: cellCenterY - centerY
-                };
-                
-                // Применяем поворот к смещению
-                const rotatedOffsetX = offsetFromImageCenter.x * Math.cos(-this.rotation * Math.PI / 180) - 
-                                    offsetFromImageCenter.y * Math.sin(-this.rotation * Math.PI / 180);
-                const rotatedOffsetY = offsetFromImageCenter.x * Math.sin(-this.rotation * Math.PI / 180) + 
-                                    offsetFromImageCenter.y * Math.cos(-this.rotation * Math.PI / 180);
-                
-                // Применяем смещение и поворот
-                tempCtx.translate(-rotatedOffsetX, -rotatedOffsetY);
                 tempCtx.rotate((this.rotation * Math.PI) / 180);
+                tempCtx.scale(this.scale, this.scale);
+                tempCtx.translate(-rotatedOffsetX, -rotatedOffsetY);
                 
-                // Масштабируем для соответствия размеру ячейки
-                const scaleFactor = cellSize / mainCellSize;
+                // Масштабируем для правильного размера
+                const scaleFactor = this.areaRect.cellSize / cellSize;
                 tempCtx.scale(scaleFactor, scaleFactor);
                 
                 // Рисуем изображение
+                const imgWidth = this.currentImage.width;
+                const imgHeight = this.currentImage.height;
+                
                 tempCtx.drawImage(
                     this.currentImage,
                     -imgWidth / 2,
@@ -680,7 +693,7 @@ class MiniEditor {
             cells.push(tempCanvas.toDataURL('image/png'));
         });
         
-        console.log('Извлечено ячеек:', cells.length, 'с поворотом:', this.rotation);
+        console.log('Извлечено ячеек:', cells.length, 'поворот:', this.rotation, 'масштаб:', this.scale);
         return cells;
     }
 
@@ -705,6 +718,7 @@ class MiniEditor {
         this.currentImage = null;
         this.selectedPixels = [];
         this.areaShape = null;
+        this.areaRect = null;
         this.resetTransform();
         
         if (this.canvas) {
@@ -718,6 +732,12 @@ class MiniEditor {
         if (imageInput) {
             imageInput.value = '';
         }
+        
+        // Remove preview container if exists
+        const previewContainer = document.getElementById('preview-container');
+        if (previewContainer) {
+            previewContainer.remove();
+        }
     }
 
     // Debug methods
@@ -727,6 +747,7 @@ class MiniEditor {
             hasImage: !!this.currentImage,
             selectedPixels: this.selectedPixels.length,
             areaShape: this.areaShape,
+            areaRect: this.areaRect,
             transform: {
                 scale: this.scale,
                 rotation: this.rotation,

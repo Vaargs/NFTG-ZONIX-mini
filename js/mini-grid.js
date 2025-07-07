@@ -19,6 +19,9 @@ class MiniGrid {
         this.lastY = 0;
         this.lastTouchDistance = 0;
         
+        // New drag mode state
+        this.dragMode = false; // Режим перетаскивания
+        
         this.currentMode = 'view';
         this.currentUser = '@demo_user';
         
@@ -52,47 +55,16 @@ class MiniGrid {
             // Обычный клик для выбора пикселя
             pixel.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.handlePixelClick(i, e);
-            });
-            
-            // Длительное нажатие для перетаскивания сетки
-            let longPressTimer;
-            
-            pixel.addEventListener('mousedown', (e) => {
-                // Запускаем таймер для длительного нажатия
-                longPressTimer = setTimeout(() => {
-                    this.startGridDrag(e);
-                }, 500); // 500ms для активации перетаскивания
-            });
-            
-            pixel.addEventListener('mouseup', () => {
-                if (longPressTimer) {
-                    clearTimeout(longPressTimer);
-                }
-            });
-            
-            pixel.addEventListener('mouseleave', () => {
-                if (longPressTimer) {
-                    clearTimeout(longPressTimer);
+                if (!this.dragMode) {
+                    this.handlePixelClick(i, e);
                 }
             });
             
             // Touch события для мобильных
-            pixel.addEventListener('touchstart', (e) => {
-                e.stopPropagation();
-                
-                longPressTimer = setTimeout(() => {
-                    this.startGridDrag(e.touches[0]);
-                    MiniUtils.vibrate([100]); // Вибрация при активации перетаскивания
-                }, 500);
-            });
-            
             pixel.addEventListener('touchend', (e) => {
-                if (longPressTimer) {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                }
-                if (!this.isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!this.dragMode && !this.isDragging) {
                     // Обычный тап - обрабатываем как клик
                     this.handlePixelClick(i, e);
                 }
@@ -105,51 +77,133 @@ class MiniGrid {
         console.log(`Created ${this.gridSize * this.gridSize} pixels`);
     }
 
-    startGridDrag(event) {
-        this.isDragging = true;
-        this.lastX = event.clientX || event.pageX;
-        this.lastY = event.clientY || event.pageY;
-        
-        const container = document.getElementById('grid-container');
-        container.style.cursor = 'grabbing';
-        
-        // Добавляем визуальную обратную связь
-        const gridContainer = document.getElementById('pixel-grid');
-        if (gridContainer) {
-            gridContainer.style.opacity = '0.8';
-            gridContainer.style.transition = 'opacity 0.2s ease';
-        }
-        
-        console.log('Grid drag started from pixel');
-    }
-
     setupEventListeners() {
         const gridContainer = document.getElementById('grid-container');
         if (!gridContainer) return;
 
-        // Mouse events
+        // Mouse events для контейнера сетки
         gridContainer.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         gridContainer.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         gridContainer.addEventListener('mouseup', () => this.handleMouseUp());
         gridContainer.addEventListener('mouseleave', () => this.handleMouseUp());
 
-        // Touch events
-        gridContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e));
-        gridContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e));
-        gridContainer.addEventListener('touchend', () => this.handleTouchEnd());
+        // Touch events для контейнера сетки
+        gridContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        gridContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        gridContainer.addEventListener('touchend', () => this.handleTouchEnd(), { passive: false });
 
-        // Zoom controls
-        document.getElementById('zoom-in')?.addEventListener('click', () => this.zoomIn());
-        document.getElementById('zoom-out')?.addEventListener('click', () => this.zoomOut());
-        document.getElementById('center')?.addEventListener('click', () => this.centerGrid());
+        // Zoom controls - исправляем для мобильных
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const centerBtn = document.getElementById('center');
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.zoomIn();
+            });
+            zoomInBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.zoomIn();
+            });
+        }
+
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.zoomOut();
+            });
+            zoomOutBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.zoomOut();
+            });
+        }
+
+        if (centerBtn) {
+            centerBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.centerGrid();
+            });
+            centerBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.centerGrid();
+            });
+        }
+
+        // Добавляем кнопку руки в плавающие элементы управления
+        this.addDragModeButton();
 
         // Prevent context menu on grid
         gridContainer.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    handlePixelClick(pixelId, event) {
-        event.stopPropagation();
+    addDragModeButton() {
+        const controlsContainer = document.querySelector('.floating-controls');
+        if (!controlsContainer) return;
+
+        const dragBtn = document.createElement('button');
+        dragBtn.className = 'control-btn drag-mode-btn';
+        dragBtn.id = 'drag-mode-btn';
+        dragBtn.innerHTML = '✋';
+        dragBtn.title = 'Режим перетаскивания';
         
+        // Добавляем кнопку после кнопки центрирования
+        const centerBtn = document.getElementById('center');
+        if (centerBtn && centerBtn.parentNode) {
+            centerBtn.parentNode.insertBefore(dragBtn, centerBtn.nextSibling);
+        } else {
+            controlsContainer.appendChild(dragBtn);
+        }
+
+        // Обработчики событий для кнопки руки
+        dragBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleDragMode();
+        });
+        
+        dragBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleDragMode();
+        });
+    }
+
+    toggleDragMode() {
+        this.dragMode = !this.dragMode;
+        const dragBtn = document.getElementById('drag-mode-btn');
+        const gridContainer = document.getElementById('grid-container');
+        
+        if (this.dragMode) {
+            // Включаем режим перетаскивания
+            dragBtn.classList.add('active');
+            dragBtn.innerHTML = '✊';
+            dragBtn.title = 'Выключить режим перетаскивания';
+            if (gridContainer) {
+                gridContainer.style.cursor = 'grab';
+            }
+            MiniUtils.showNotification('Режим перетаскивания включен', 'info');
+        } else {
+            // Выключаем режим перетаскивания
+            dragBtn.classList.remove('active');
+            dragBtn.innerHTML = '✋';
+            dragBtn.title = 'Режим перетаскивания';
+            if (gridContainer) {
+                gridContainer.style.cursor = 'default';
+            }
+            MiniUtils.showNotification('Режим перетаскивания выключен', 'info');
+        }
+        
+        MiniUtils.vibrate([50]);
+    }
+
+    handlePixelClick(pixelId, event) {
         // Вибрация для тактильной обратной связи
         MiniUtils.vibrate([50]);
         
@@ -302,21 +356,20 @@ class MiniGrid {
 
     // Grid manipulation methods
     handleMouseDown(e) {
-        // Проверяем, что клик не на пикселе
-        if (e.target.closest('.pixel')) {
-            // Если клик на пикселе, не начинаем перетаскивание
-            return;
+        // Проверяем режим перетаскивания или клик не на пикселе
+        if (this.dragMode || !e.target.closest('.pixel')) {
+            this.isDragging = true;
+            this.lastX = e.clientX;
+            this.lastY = e.clientY;
+            
+            const container = document.getElementById('grid-container');
+            if (container) {
+                container.style.cursor = 'grabbing';
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
         }
-        
-        this.isDragging = true;
-        this.lastX = e.clientX;
-        this.lastY = e.clientY;
-        
-        const container = document.getElementById('grid-container');
-        container.style.cursor = 'grabbing';
-        
-        e.preventDefault();
-        e.stopPropagation();
     }
 
     handleMouseMove(e) {
@@ -343,31 +396,32 @@ class MiniGrid {
         this.isDragging = false;
         
         const container = document.getElementById('grid-container');
-        container.style.cursor = 'grab';
+        if (container) {
+            container.style.cursor = this.dragMode ? 'grab' : 'default';
+        }
     }
 
     handleTouchStart(e) {
-        // Проверяем, что касание не на пикселе
-        if (e.target.closest('.pixel')) {
-            return;
+        // Проверяем режим перетаскивания или касание не на пикселе
+        if (this.dragMode || !e.target.closest('.pixel')) {
+            if (e.touches.length === 1) {
+                this.isDragging = true;
+                this.lastX = e.touches[0].clientX;
+                this.lastY = e.touches[0].clientY;
+                e.preventDefault();
+                e.stopPropagation();
+            } else if (e.touches.length === 2) {
+                this.isDragging = false;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                this.lastTouchDistance = Math.hypot(
+                    touch1.clientX - touch2.clientX,
+                    touch1.clientY - touch2.clientY
+                );
+                e.preventDefault();
+                e.stopPropagation();
+            }
         }
-        
-        if (e.touches.length === 1) {
-            this.isDragging = true;
-            this.lastX = e.touches[0].clientX;
-            this.lastY = e.touches[0].clientY;
-        } else if (e.touches.length === 2) {
-            this.isDragging = false;
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            this.lastTouchDistance = Math.hypot(
-                touch1.clientX - touch2.clientX,
-                touch1.clientY - touch2.clientY
-            );
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
     }
 
     handleTouchMove(e) {
@@ -382,6 +436,8 @@ class MiniGrid {
             this.lastY = e.touches[0].clientY;
             
             this.updateGridTransform();
+            e.preventDefault();
+            e.stopPropagation();
         } else if (e.touches.length === 2) {
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
@@ -397,10 +453,9 @@ class MiniGrid {
             }
             
             this.lastTouchDistance = distance;
+            e.preventDefault();
+            e.stopPropagation();
         }
-        
-        e.preventDefault();
-        e.stopPropagation();
     }
 
     handleTouchEnd() {
@@ -412,25 +467,58 @@ class MiniGrid {
         this.scale = Math.min(3, this.scale * 1.2);
         this.updateGridTransform();
         MiniUtils.vibrate([30]);
+        console.log('Zoom in:', this.scale);
     }
 
     zoomOut() {
         this.scale = Math.max(0.5, this.scale * 0.8);
         this.updateGridTransform();
         MiniUtils.vibrate([30]);
+        console.log('Zoom out:', this.scale);
     }
 
     centerGrid() {
-        this.translateX = 0;
-        this.translateY = 0;
-        this.scale = 1;
-        this.updateGridTransform();
+        console.log('Centering grid...');
+        // Анимация центрирования
+        this.animateToTransform(0, 0, 1);
         MiniUtils.vibrate([50]);
+        console.log('Grid centered');
+    }
+
+    // Новый метод для плавной анимации трансформации
+    animateToTransform(targetX, targetY, targetScale, duration = 300) {
+        const startX = this.translateX;
+        const startY = this.translateY;
+        const startScale = this.scale;
+        
+        const startTime = performance.now();
+        
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Функция плавности (ease-out)
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            this.translateX = startX + (targetX - startX) * easeOut;
+            this.translateY = startY + (targetY - startY) * easeOut;
+            this.scale = startScale + (targetScale - startScale) * easeOut;
+            
+            this.updateGridTransform();
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        requestAnimationFrame(animate);
     }
 
     updateGridTransform() {
         const grid = document.getElementById('pixel-grid');
         if (grid) {
+            // Используем transform-origin: center для правильного масштабирования относительно центра
+            grid.style.transformOrigin = 'center center';
             grid.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
         }
     }
@@ -711,6 +799,45 @@ class MiniGrid {
         this.updatePixelDisplay();
         this.updateStatusInfo();
         MiniUtils.showNotification('Все данные очищены', 'info');
+    }
+
+    // Метод для центрирования на конкретном пикселе
+    centerOnPixel(pixelId) {
+        const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
+        const container = document.getElementById('grid-container');
+        
+        if (!pixelElement || !container) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        const pixelRect = pixelElement.getBoundingClientRect();
+        
+        // Вычисляем необходимое смещение для центрирования пикселя
+        const targetX = (containerRect.width / 2) - (pixelRect.left + pixelRect.width / 2 - containerRect.left);
+        const targetY = (containerRect.height / 2) - (pixelRect.top + pixelRect.height / 2 - containerRect.top);
+        
+        // Анимируем к новой позиции
+        this.animateToTransform(targetX, targetY, this.scale);
+    }
+
+    // Debug method
+    getDebugInfo() {
+        return {
+            gridSize: this.gridSize,
+            pixelCount: this.pixels.size,
+            transform: {
+                scale: this.scale,
+                translateX: this.translateX,
+                translateY: this.translateY
+            },
+            selections: {
+                normal: this.selectedPixels.size,
+                mass: this.massSelectedPixels.size,
+                edit: this.editSelectedPixels.size
+            },
+            mode: this.currentMode,
+            isDragging: this.isDragging,
+            dragMode: this.dragMode
+        };
     }
 }
 
