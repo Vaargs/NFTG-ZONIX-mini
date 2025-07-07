@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFTG-ZONIX Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js"></script>
+    <link rel="stylesheet" href="mini-style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">NFTG-ZONIX</div>
+        <div class="mode-indicator" id="mode-indicator"></div>
+        <button class="hamburger-menu" id="hamburger-menu">
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+        </button>
+    </div>
+
+    <!-- Main Grid Area -->
+    <div class="grid-container" id="grid-container">
+        <div class="pixel-grid" id="pixel-grid"></div>
+        
+        <!-- Floating Controls -->
+        <div class="floating-controls">
+            <button class="control-btn zoom-in" id="zoom-in">+</button>
+            <button class="control-btn zoom-out" id="zoom-out">−</button>
+            <button class="control-btn center" id="center">⌖</button>
+        </div>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="bottom-bar" id="bottom-bar">
+        <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="view" id="view-mode">👁️</button>
+            <button class="mode-tab" data-mode="buy" id="buy-mode">💰</button>
+            <button class="mode-tab" data-mode="mass-buy" id="mass-buy-mode">🛒</button>
+            <button class="mode-tab" data-mode="edit" id="edit-mode">🎨</button>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-item">
+                <span class="status-label">Куплено:</span>
+                <span class="status-value" id="owned-count">0/100</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Выбрано:</span>
+                <span class="status-value" id="selected-count">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Button -->
+    <div class="action-button-container" id="action-button-container">
+        <button class="action-button" id="action-button">Купить</button>
+    </div>
+
+    <!-- Channel Navigator Sidebar -->
+    <div class="channel-sidebar" id="channel-sidebar">
+        <div class="sidebar-header">
+            <h3>📺 Навигатор каналов</h3>
+            <button class="close-sidebar" id="close-sidebar">×</button>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="search-section">
+                <input type="text" class="search-input" placeholder="Поиск каналов..." id="search-input">
+            </div>
+            
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label>Категории:</label>
+                    <div class="category-filters" id="category-filters">
+                        <div class="filter-tag" data-category="Крипта">💰 Крипта</div>
+                        <div class="filter-tag" data-category="Игры">🎮 Игры</div>
+                        <div class="filter-tag" data-category="Новости">📰 Новости</div>
+                        <div class="filter-tag" data-category="Технологии">💻 Технологии</div>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Сортировка:</label>
+                    <select class="sort-select" id="sort-select">
+                        <option value="newest">🆕 Новые</option>
+                        <option value="rating">⭐ По рейтингу</option>
+                        <option value="subscribers">👥 По подписчикам</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="channels-list" id="channels-list">
+                <!-- Channels will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div class="modal" id="purchase-modal">
+        <div class="modal-content">
+            <h3>💰 Покупка пикселя #<span id="purchase-pixel-id">0</span></h3>
+            <p>Цена: <span id="purchase-price">5</span> TON</p>
+            
+            <div class="form-group">
+                <label for="category-select">📂 Категория канала:</label>
+                <select id="category-select" class="form-control">
+                    <option value="">Выберите категорию</option>
+                    <option value="Крипта">💰 Крипта</option>
+                    <option value="Игры">🎮 Игры</option>
+                    <option value="Новости">📰 Новости</option>
+                    <option value="Технологии">💻 Технологии</option>
+                    <option value="Бизнес">💼 Бизнес</option>
+                    <option value="Образование">📚 Образование</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="telegram-link">🔗 Telegram канал:</label>
+                <input type="text" id="telegram-link" class="form-control" 
+                       placeholder="@username или https://t.me/username">
+            </div>
+
+            <div class="form-group">
+                <label for="pixel-description">📝 Описание (опционально):</label>
+                <input type="text" id="pixel-description" class="form-control" 
+                       placeholder="Краткое описание канала" maxlength="100">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-success" id="confirm-purchase">💰 Купить</button>
+                <button class="btn btn-secondary" id="cancel-purchase">❌ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mass Purchase Modal -->
+    <div class="modal" id="mass-purchase-modal">
+        <div class="modal-content">
+            <h3>🛒 Массовая покупка</h3>
+            <p>Пикселей: <span id="mass-count">0</span></p>
+            <p>Общая цена: <span id="mass-total">0</span> TON</p>
+            
+            <div class="form-group">
+                <label for="mass-category-select">📂 Категория:</label>
+                <select id="mass-category-select" class="form-control">
+                    <option value="">Выберите категорию</option>
+                    <option value="Крипта">💰 Крипта</option>
+                    <option value="Игры">🎮 Игры</option>
+                    <option value="Новости">📰 Новости</option>
+                    <option value="Технологии">💻 Технологии</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="mass-telegram-link">🔗 Telegram канал:</label>
+                <input type="text" id="mass-telegram-link" class="form-control" 
+                       placeholder="@username или https://t.me/username">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-success" id="confirm-mass-purchase">🛒 Купить все</button>
+                <button class="btn btn-secondary" id="cancel-mass-purchase">❌ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Modal -->
+    <div class="modal" id="editor-modal">
+        <div class="modal-content editor-content">
+            <h3>🎨 Редактор изображений</h3>
+            
+            <div class="editor-controls">
+                <input type="file" id="image-input" accept="image/*" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('image-input').click()">📁 Загрузить изображение</button>
+                <button class="btn btn-secondary" id="close-editor">❌ Закрыть</button>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="editor-canvas" width="300" height="200"></canvas>
+            </div>
+
+            <div class="editor-controls">
+                <button class="btn btn-secondary" id="zoom-in-editor">🔍+</button>
+                <button class="btn btn-secondary" id="zoom-out-editor">🔍−</button>
+                <button class="btn btn-secondary" id="rotate-left">↺</button>
+                <button class="btn btn-secondary" id="rotate-right">↻</button>
+                <button class="btn btn-secondary" id="reset-editor">🔄</button>
+            </div>
+
+            <div class="editor-controls">
+                <button class="btn btn-primary" id="preview-editor">👁️ Предпросмотр</button>
+                <button class="btn btn-success" id="apply-editor">✅ Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pixel Info Modal -->
+    <div class="modal" id="pixel-info-modal">
+        <div class="modal-content">
+            <h3>ℹ️ Пиксель #<span id="info-pixel-id">0</span></h3>
+            
+            <div class="pixel-info">
+                <div class="info-row">
+                    <span class="info-label">👤 Владелец:</span>
+                    <span class="info-value" id="info-owner">@username</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📂 Категория:</span>
+                    <span class="info-value" id="info-category">Не указана</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📅 Дата:</span>
+                    <span class="info-value" id="info-date">Неизвестна</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">💰 Цена:</span>
+                    <span class="info-value" id="info-price">5 TON</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="visit-channel">🔗 Перейти</button>
+                <button class="btn btn-secondary" id="close-pixel-info">❌ Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="mini-utils.js"></script>
+    <script src="mini-grid.js"></script>
+    <script src="mini-modals.js"></script>
+    <script src="mini-channels.js"></script>
+    <script src="mini-editor.js"></script>
+    <script src="mini-app.js"></script>
+</body>
+</html>
