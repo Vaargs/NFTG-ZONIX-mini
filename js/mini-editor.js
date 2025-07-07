@@ -295,22 +295,26 @@ class MiniEditor {
     fitImageToCanvas() {
         if (!this.currentImage || !this.canvas || !this.areaRect) return;
         
+        // Используем размер области, а не всего canvas
         const areaWidth = this.areaRect.width;
         const areaHeight = this.areaRect.height;
         
         const scaleX = areaWidth / this.currentImage.width;
         const scaleY = areaHeight / this.currentImage.height;
-        const scale = Math.min(scaleX, scaleY) * 0.8; // 80% для удобства редактирования
+        const scale = Math.min(scaleX, scaleY) * 0.9; // 90% для удобства редактирования
         
         this.scale = Math.max(0.1, scale);
         this.rotation = 0;
+        
+        // Центрируем изображение в области (не в canvas)
         this.offsetX = 0;
         this.offsetY = 0;
         
         console.log('Image fitted to area', { 
             scale: this.scale, 
             imageSize: { w: this.currentImage.width, h: this.currentImage.height },
-            areaSize: { w: areaWidth, h: areaHeight }
+            areaSize: { w: areaWidth, h: areaHeight },
+            areaRect: this.areaRect
         });
     }
 
@@ -526,30 +530,19 @@ class MiniEditor {
             document.querySelector('.editor-content').appendChild(previewContainer);
         }
         
-        // Создаем упорядоченную карту пикселей (строка за строкой, слева направо)
-        const pixelMatrix = [];
+        // ИСПРАВЛЕНО: Генерируем HTML для предпросмотра в правильном порядке
+        let previewHTML = '';
+        let cellIndex = 0;
+        
         for (let row = 0; row < this.areaShape.height; row++) {
-            pixelMatrix[row] = [];
             for (let col = 0; col < this.areaShape.width; col++) {
                 const globalRow = this.areaShape.minRow + row;
                 const globalCol = this.areaShape.minCol + col;
                 const pixelId = globalRow * this.gridSize + globalCol;
                 
-                const pixelIndex = this.selectedPixels.indexOf(pixelId);
-                if (pixelIndex !== -1) {
-                    pixelMatrix[row][col] = cells[pixelIndex];
-                } else {
-                    pixelMatrix[row][col] = null;
-                }
-            }
-        }
-        
-        // Генерируем HTML для предпросмотра
-        let previewHTML = '';
-        for (let row = 0; row < this.areaShape.height; row++) {
-            for (let col = 0; col < this.areaShape.width; col++) {
-                if (pixelMatrix[row][col]) {
-                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${pixelMatrix[row][col]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
+                if (this.selectedPixels.includes(pixelId)) {
+                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
+                    cellIndex++;
                 } else {
                     previewHTML += `<div style="width: 24px; height: 24px; background: #111; border: 1px solid #333; opacity: 0.3;"></div>`;
                 }
@@ -561,7 +554,7 @@ class MiniEditor {
             <div style="margin: 15px 0; color: #b0b0b0; font-size: 12px;">
                 Область: ${this.areaShape.width}×${this.areaShape.height} • Позиции: ${this.selectedPixels.slice(0, 5).join(', ')}${this.selectedPixels.length > 5 ? '...' : ''}
             </div>
-            <div style="display: inline-grid; grid-template-columns: repeat(${this.areaShape.width}, 24px); gap: 1px; background: #000; padding: 4px; border-radius: 5px;">
+            <div style="display: inline-grid; grid-template-columns: repeat(${this.areaShape.width}, 24px); gap: 0; background: #000; padding: 4px; border-radius: 5px;">
                 ${previewHTML}
             </div>
             <p style="margin-top: 15px; color: #9D4EDD; font-size: 12px; font-weight: bold;">
@@ -580,31 +573,43 @@ class MiniEditor {
             // Извлекаем ячейки
             const cells = this.extractCells();
             
-            // Применяем изображение к пикселям в правильном порядке
-            this.selectedPixels.forEach((pixelId, index) => {
-                const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
-                if (pixelElement && cells[index]) {
-                    pixelElement.style.backgroundImage = `url(${cells[index]})`;
-                    pixelElement.style.backgroundSize = 'cover';
-                    pixelElement.style.backgroundPosition = 'center';
-                    pixelElement.classList.add('with-image');
+            // ИСПРАВЛЕНО: Применяем изображение к пикселям в матричном порядке (слева направо, сверху вниз)
+            let cellIndex = 0;
+            for (let row = 0; row < this.areaShape.height; row++) {
+                for (let col = 0; col < this.areaShape.width; col++) {
+                    const globalRow = this.areaShape.minRow + row;
+                    const globalCol = this.areaShape.minCol + col;
+                    const pixelId = globalRow * this.gridSize + globalCol;
                     
-                    // Add animation
-                    setTimeout(() => {
-                        pixelElement.style.animation = 'pulse 0.6s ease-out';
-                        setTimeout(() => {
-                            pixelElement.style.animation = '';
-                        }, 600);
-                    }, index * 50);
+                    // Проверяем, есть ли этот пиксель в выбранных
+                    if (this.selectedPixels.includes(pixelId)) {
+                        const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
+                        if (pixelElement && cells[cellIndex]) {
+                            pixelElement.style.backgroundImage = `url(${cells[cellIndex]})`;
+                            pixelElement.style.backgroundSize = 'cover';
+                            pixelElement.style.backgroundPosition = 'center';
+                            pixelElement.classList.add('with-image');
+                            
+                            // Add animation
+                            setTimeout(() => {
+                                pixelElement.style.animation = 'pulse 0.6s ease-out';
+                                setTimeout(() => {
+                                    pixelElement.style.animation = '';
+                                }, 600);
+                            }, cellIndex * 50);
+                        }
+                        
+                        // Update pixel data in grid
+                        if (window.miniGrid && window.miniGrid.pixels.has(pixelId)) {
+                            const pixelData = window.miniGrid.pixels.get(pixelId);
+                            pixelData.imageUrl = cells[cellIndex];
+                            window.miniGrid.pixels.set(pixelId, pixelData);
+                        }
+                        
+                        cellIndex++;
+                    }
                 }
-                
-                // Update pixel data in grid
-                if (window.miniGrid && window.miniGrid.pixels.has(pixelId)) {
-                    const pixelData = window.miniGrid.pixels.get(pixelId);
-                    pixelData.imageUrl = cells[index];
-                    window.miniGrid.pixels.set(pixelId, pixelData);
-                }
-            });
+            }
 
             // Save to storage
             if (window.miniGrid) {
@@ -627,7 +632,7 @@ class MiniEditor {
         }
     }
 
-    // ИСПРАВЛЕННАЯ логика извлечения ячеек - теперь каждый пиксель получает свою часть изображения
+    // ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ логика извлечения ячеек - теперь точно как в canvas
     extractCells() {
         const cellSize = 30; // Размер для мини-апп
         const cells = [];
@@ -637,22 +642,34 @@ class MiniEditor {
         tempCanvas.width = cellSize;
         tempCanvas.height = cellSize;
         
-        // ВАЖНО: Разделяем изображение на части по сетке
-        const imageAreaWidth = this.currentImage.width * this.scale;
-        const imageAreaHeight = this.currentImage.height * this.scale;
+        // Получаем параметры как в основном canvas
+        const canvasAreaRect = this.areaRect;
+        const canvasCellSize = canvasAreaRect.cellSize;
         
-        // Размер одной ячейки в пикселях изображения
-        const imageCellWidth = imageAreaWidth / this.areaShape.width;
-        const imageCellHeight = imageAreaHeight / this.areaShape.height;
+        // ВАЖНО: Создаем матрицу пикселей по порядку (слева направо, сверху вниз)
+        const pixelMatrix = [];
+        for (let row = 0; row < this.areaShape.height; row++) {
+            for (let col = 0; col < this.areaShape.width; col++) {
+                const globalRow = this.areaShape.minRow + row;
+                const globalCol = this.areaShape.minCol + col;
+                const pixelId = globalRow * this.gridSize + globalCol;
+                
+                // Проверяем, есть ли этот пиксель в выбранных
+                if (this.selectedPixels.includes(pixelId)) {
+                    pixelMatrix.push({
+                        pixelId,
+                        row,
+                        col,
+                        localRow: row,
+                        localCol: col
+                    });
+                }
+            }
+        }
         
-        // Обрабатываем пиксели в том же порядке, что они выбраны
-        this.selectedPixels.forEach(pixelId => {
-            // Вычисляем позицию пикселя в области
-            const globalRow = Math.floor(pixelId / this.gridSize);
-            const globalCol = pixelId % this.gridSize;
-            
-            const localRow = globalRow - this.areaShape.minRow;
-            const localCol = globalCol - this.areaShape.minCol;
+        // Обрабатываем пиксели в матричном порядке
+        pixelMatrix.forEach(pixelInfo => {
+            const { localRow, localCol } = pixelInfo;
             
             // Очищаем временный canvas
             tempCtx.clearRect(0, 0, cellSize, cellSize);
@@ -660,29 +677,43 @@ class MiniEditor {
             if (this.currentImage) {
                 tempCtx.save();
                 
-                // Центр изображения с учетом смещений
-                const imageCenterX = this.areaRect.centerX + this.offsetX;
-                const imageCenterY = this.areaRect.centerY + this.offsetY;
+                // Вычисляем позицию ячейки на основном canvas
+                const cellCanvasX = canvasAreaRect.x + localCol * canvasCellSize;
+                const cellCanvasY = canvasAreaRect.y + localRow * canvasCellSize;
+                const cellCenterX = cellCanvasX + canvasCellSize / 2;
+                const cellCenterY = cellCanvasY + canvasCellSize / 2;
                 
-                // Вычисляем координаты части изображения для этой ячейки
-                const sourceX = (localCol - this.areaShape.width / 2 + 0.5) * imageCellWidth;
-                const sourceY = (localRow - this.areaShape.height / 2 + 0.5) * imageCellHeight;
+                // Центр изображения с учетом смещений (точно как в drawImage)
+                const imageCenterX = canvasAreaRect.centerX + this.offsetX;
+                const imageCenterY = canvasAreaRect.centerY + this.offsetY;
                 
-                // Применяем поворот к координатам
-                const radians = this.rotation * Math.PI / 180;
-                const rotatedX = sourceX * Math.cos(-radians) - sourceY * Math.sin(-radians);
-                const rotatedY = sourceX * Math.sin(-radians) + sourceY * Math.cos(-radians);
+                // Смещение от центра изображения до центра ячейки
+                const offsetX = cellCenterX - imageCenterX;
+                const offsetY = cellCenterY - imageCenterY;
                 
-                // Настраиваем временный canvas
+                // Применяем обратный поворот к смещению
+                const radians = -this.rotation * Math.PI / 180;
+                const rotatedOffsetX = offsetX * Math.cos(radians) - offsetY * Math.sin(radians);
+                const rotatedOffsetY = offsetX * Math.sin(radians) + offsetY * Math.cos(radians);
+                
+                // Настраиваем временный canvas точно как основной
                 tempCtx.translate(cellSize / 2, cellSize / 2);
-                tempCtx.rotate(radians);
+                tempCtx.rotate((this.rotation * Math.PI) / 180);
                 tempCtx.scale(this.scale, this.scale);
                 
-                // Рисуем соответствующую часть изображения
+                // Вычисляем где должно быть изображение относительно ячейки
+                const imageX = -this.currentImage.width / 2 - rotatedOffsetX / this.scale;
+                const imageY = -this.currentImage.height / 2 - rotatedOffsetY / this.scale;
+                
+                // Масштабируем для соответствия размеру ячейки мини-апп
+                const scaleFactor = cellSize / canvasCellSize;
+                tempCtx.scale(scaleFactor, scaleFactor);
+                
+                // Рисуем изображение
                 tempCtx.drawImage(
                     this.currentImage,
-                    -this.currentImage.width / 2 - rotatedX / this.scale,
-                    -this.currentImage.height / 2 - rotatedY / this.scale,
+                    imageX,
+                    imageY,
                     this.currentImage.width,
                     this.currentImage.height
                 );
@@ -693,7 +724,8 @@ class MiniEditor {
             cells.push(tempCanvas.toDataURL('image/png'));
         });
         
-        console.log('Извлечено ячеек:', cells.length, 'поворот:', this.rotation, 'масштаб:', this.scale);
+        console.log('Извлечено ячеек в порядке:', cells.length, 'поворот:', this.rotation, 'масштаб:', this.scale);
+        console.log('Canvas параметры:', { canvasAreaRect, canvasCellSize: canvasCellSize });
         return cells;
     }
 
