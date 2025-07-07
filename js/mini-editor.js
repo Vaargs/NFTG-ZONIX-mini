@@ -541,7 +541,7 @@ class MiniEditor {
                 const pixelId = globalRow * this.gridSize + globalCol;
                 
                 if (this.selectedPixels.includes(pixelId)) {
-                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
+                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: none;"></div>`;
                     cellIndex++;
                 } else {
                     previewHTML += `<div style="width: 24px; height: 24px; background: #111; border: 1px solid #333; opacity: 0.3;"></div>`;
@@ -558,7 +558,7 @@ class MiniEditor {
                 ${previewHTML}
             </div>
             <p style="margin-top: 15px; color: #9D4EDD; font-size: 12px; font-weight: bold;">
-                ✅ Готово к применению! Нажмите "Применить"
+                ✅ Готово к применению! Нажмите "Применить" для бесшовного изображения
             </p>
         `;
     }
@@ -616,8 +616,10 @@ class MiniEditor {
                 window.miniGrid.savePixelData();
             }
 
-            // Автоматически включаем бесшовный режим
-            this.enableSeamlessMode();
+            // ИЗМЕНЕНО: Автоматически обновляем бесшовный режим вместо включения
+            if (window.miniGrid) {
+                window.miniGrid.updateSeamlessMode();
+            }
 
             MiniUtils.showNotification(`Изображение применено к ${this.selectedPixels.length} пикселям!`, 'success');
             MiniUtils.vibrate([100, 50, 100]);
@@ -727,67 +729,6 @@ class MiniEditor {
         console.log('Извлечено ячеек в порядке:', cells.length, 'поворот:', this.rotation, 'масштаб:', this.scale);
         console.log('Canvas параметры:', { canvasAreaRect, canvasCellSize: canvasCellSize });
         return cells;
-    }
-
-    // Новый метод для включения бесшовного режима
-    enableSeamlessMode() {
-        const grid = document.getElementById('pixel-grid');
-        if (!grid) return;
-        
-        // Добавляем класс для бесшовного режима
-        grid.classList.add('seamless');
-        
-        // Добавляем границы для выделения областей
-        this.addImageBorders();
-        
-        MiniUtils.showNotification('Бесшовный режим включен!', 'success');
-        console.log('Seamless mode enabled');
-    }
-
-    // Улучшенное добавление границ для выделения областей с изображением
-    addImageBorders() {
-        // Сначала убираем все классы границ
-        document.querySelectorAll('.pixel').forEach(pixel => {
-            pixel.classList.remove('seamless-border-top', 'seamless-border-right', 'seamless-border-bottom', 'seamless-border-left');
-        });
-        
-        // Находим все пиксели с изображением
-        const imagePixels = new Set();
-        document.querySelectorAll('.pixel.with-image').forEach(pixel => {
-            imagePixels.add(parseInt(pixel.dataset.id));
-        });
-        
-        // Добавляем границы только на краях областей
-        imagePixels.forEach(pixelId => {
-            const pixel = document.querySelector(`[data-id="${pixelId}"]`);
-            if (!pixel) return;
-            
-            const row = Math.floor(pixelId / this.gridSize);
-            const col = pixelId % this.gridSize;
-            
-            // Проверяем соседей и добавляем границы там, где нет изображения
-            const topId = (row - 1) * this.gridSize + col;
-            const rightId = row * this.gridSize + (col + 1);
-            const bottomId = (row + 1) * this.gridSize + col;
-            const leftId = row * this.gridSize + (col - 1);
-            
-            // Добавляем границы только на краях областей
-            if (row === 0 || !imagePixels.has(topId)) {
-                pixel.classList.add('seamless-border-top');
-            }
-            
-            if (col === this.gridSize - 1 || !imagePixels.has(rightId)) {
-                pixel.classList.add('seamless-border-right');
-            }
-            
-            if (row === this.gridSize - 1 || !imagePixels.has(bottomId)) {
-                pixel.classList.add('seamless-border-bottom');
-            }
-            
-            if (col === 0 || !imagePixels.has(leftId)) {
-                pixel.classList.add('seamless-border-left');
-            }
-        });
     }
 
     enableControls() {
