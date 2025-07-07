@@ -1,851 +1,471 @@
-// === MINI GRID MANAGER ===
+// === MINI APP UTILITIES ===
 
-class MiniGrid {
-    constructor() {
-        this.gridSize = 10;
-        this.pixels = new Map();
-        this.selectedPixels = new Set();
-        this.massSelectedPixels = new Set();
-        this.editSelectedPixels = new Set();
-        
-        // Grid transform state
-        this.scale = 1;
-        this.translateX = 0;
-        this.translateY = 0;
-        
-        // Interaction state
-        this.isDragging = false;
-        this.lastX = 0;
-        this.lastY = 0;
-        this.lastTouchDistance = 0;
-        
-        // New drag mode state
-        this.dragMode = false; // Режим перетаскивания
-        
-        this.currentMode = 'view';
-        this.currentUser = '@demo_user';
-        
-        this.init();
-    }
-
-    init() {
-        this.createGrid();
-        this.setupEventListeners();
-        this.loadPixelData();
-        this.simulateOwnedPixels();
-        
-        console.log('✅ MiniGrid initialized');
-    }
-
-    createGrid() {
-        const gridContainer = document.getElementById('pixel-grid');
-        if (!gridContainer) {
-            console.error('Grid container not found');
-            return;
-        }
-        
-        gridContainer.innerHTML = '';
-        
-        for (let i = 0; i < this.gridSize * this.gridSize; i++) {
-            const pixel = document.createElement('div');
-            pixel.className = 'pixel';
-            pixel.dataset.id = i;
-            pixel.title = `Пиксель #${i}`;
-            
-            // Обычный клик для выбора пикселя
-            pixel.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!this.dragMode) {
-                    this.handlePixelClick(i, e);
-                }
-            });
-            
-            // Touch события для мобильных
-            pixel.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!this.dragMode && !this.isDragging) {
-                    // Обычный тап - обрабатываем как клик
-                    this.handlePixelClick(i, e);
-                }
-            });
-            
-            gridContainer.appendChild(pixel);
-        }
-        
-        this.updatePixelDisplay();
-        console.log(`Created ${this.gridSize * this.gridSize} pixels`);
-    }
-
-    setupEventListeners() {
-        const gridContainer = document.getElementById('grid-container');
-        if (!gridContainer) return;
-
-        // Mouse events для контейнера сетки
-        gridContainer.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        gridContainer.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        gridContainer.addEventListener('mouseup', () => this.handleMouseUp());
-        gridContainer.addEventListener('mouseleave', () => this.handleMouseUp());
-
-        // Touch events для контейнера сетки
-        gridContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        gridContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        gridContainer.addEventListener('touchend', () => this.handleTouchEnd(), { passive: false });
-
-        // Zoom controls - исправляем для мобильных
-        const zoomInBtn = document.getElementById('zoom-in');
-        const zoomOutBtn = document.getElementById('zoom-out');
-        const centerBtn = document.getElementById('center');
-
-        if (zoomInBtn) {
-            zoomInBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.zoomIn();
-            });
-            zoomInBtn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.zoomIn();
-            });
-        }
-
-        if (zoomOutBtn) {
-            zoomOutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.zoomOut();
-            });
-            zoomOutBtn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.zoomOut();
-            });
-        }
-
-        if (centerBtn) {
-            centerBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.centerGrid();
-            });
-            centerBtn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.centerGrid();
-            });
-        }
-
-        // Добавляем кнопку руки в плавающие элементы управления
-        this.addDragModeButton();
-
-        // Prevent context menu on grid
-        gridContainer.addEventListener('contextmenu', (e) => e.preventDefault());
-    }
-
-    addDragModeButton() {
-        const controlsContainer = document.querySelector('.floating-controls');
-        if (!controlsContainer) return;
-
-        const dragBtn = document.createElement('button');
-        dragBtn.className = 'control-btn drag-mode-btn';
-        dragBtn.id = 'drag-mode-btn';
-        dragBtn.innerHTML = '✋';
-        dragBtn.title = 'Режим перетаскивания';
-        
-        // Добавляем кнопку после кнопки центрирования
-        const centerBtn = document.getElementById('center');
-        if (centerBtn && centerBtn.parentNode) {
-            centerBtn.parentNode.insertBefore(dragBtn, centerBtn.nextSibling);
-        } else {
-            controlsContainer.appendChild(dragBtn);
-        }
-
-        // Обработчики событий для кнопки руки
-        dragBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleDragMode();
-        });
-        
-        dragBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleDragMode();
-        });
-    }
-
-    toggleDragMode() {
-        this.dragMode = !this.dragMode;
-        const dragBtn = document.getElementById('drag-mode-btn');
-        const gridContainer = document.getElementById('grid-container');
-        
-        if (this.dragMode) {
-            // Включаем режим перетаскивания
-            dragBtn.classList.add('active');
-            dragBtn.innerHTML = '✊';
-            dragBtn.title = 'Выключить режим перетаскивания';
-            if (gridContainer) {
-                gridContainer.style.cursor = 'grab';
-            }
-            MiniUtils.showNotification('Режим перетаскивания включен', 'info');
-        } else {
-            // Выключаем режим перетаскивания
-            dragBtn.classList.remove('active');
-            dragBtn.innerHTML = '✋';
-            dragBtn.title = 'Режим перетаскивания';
-            if (gridContainer) {
-                gridContainer.style.cursor = 'default';
-            }
-            MiniUtils.showNotification('Режим перетаскивания выключен', 'info');
-        }
-        
-        MiniUtils.vibrate([50]);
-    }
-
-    handlePixelClick(pixelId, event) {
-        // Вибрация для тактильной обратной связи
-        MiniUtils.vibrate([50]);
-        
-        switch (this.currentMode) {
-            case 'view':
-                this.handleViewMode(pixelId);
-                break;
-            case 'buy':
-                this.handleBuyMode(pixelId, event);
-                break;
-            case 'mass-buy':
-                this.handleMassBuyMode(pixelId, event);
-                break;
-            case 'edit':
-                this.handleEditMode(pixelId);
-                break;
-        }
-    }
-
-    handleViewMode(pixelId) {
-        // В режиме просмотра показываем информацию о пикселе
-        if (this.pixels.has(pixelId)) {
-            if (window.miniModals) {
-                window.miniModals.showPixelInfo(pixelId, this.pixels.get(pixelId));
-            }
-        }
-    }
-
-    handleBuyMode(pixelId, event) {
-        if (this.pixels.has(pixelId)) {
-            // Показать информацию о купленном пикселе
-            this.handleViewMode(pixelId);
-            return;
-        }
-
-        // Для свободных пикселей - выбираем и показываем кнопку покупки
-        if (event.ctrlKey || event.metaKey) {
-            // Multi-select с Ctrl/Cmd
-            this.togglePixelSelection(pixelId);
-        } else {
-            // Одиночный выбор
-            this.clearSelection();
-            this.selectedPixels.add(pixelId);
-        }
-        
-        this.updatePixelDisplay();
-        this.showActionButton('buy');
-        this.updateStatusInfo();
-    }
-
-    handleMassBuyMode(pixelId, event) {
-        if (this.pixels.has(pixelId)) {
-            // Показать информацию о купленном пикселе
-            this.handleViewMode(pixelId);
-            return;
-        }
-
-        // Массовое выделение
-        if (event.ctrlKey || event.metaKey) {
-            this.toggleMassPixelSelection(pixelId);
-        } else if (event.shiftKey && this.massSelectedPixels.size > 0) {
-            this.selectMassPixelRange(pixelId);
-        } else {
-            this.toggleMassPixelSelection(pixelId);
-        }
-        
-        this.updatePixelDisplay();
-        this.showActionButton('mass-buy');
-        this.updateStatusInfo();
-    }
-
-    handleEditMode(pixelId) {
-        const pixel = this.pixels.get(pixelId);
-        if (!pixel || pixel.owner !== this.currentUser) {
-            MiniUtils.showNotification('Можно редактировать только свои пиксели', 'info');
-            return;
-        }
-
-        // Автоматический выбор связанной области
-        this.autoSelectEditArea(pixelId);
-        this.updatePixelDisplay();
-        this.showActionButton('edit');
-        this.updateStatusInfo();
-    }
-
-    togglePixelSelection(pixelId) {
-        if (this.selectedPixels.has(pixelId)) {
-            this.selectedPixels.delete(pixelId);
-        } else {
-            this.selectedPixels.add(pixelId);
-        }
-    }
-
-    toggleMassPixelSelection(pixelId) {
-        if (this.massSelectedPixels.has(pixelId)) {
-            this.massSelectedPixels.delete(pixelId);
-        } else {
-            this.massSelectedPixels.add(pixelId);
-        }
-    }
-
-    selectMassPixelRange(endPixelId) {
-        const selectedArray = Array.from(this.massSelectedPixels);
-        if (selectedArray.length === 0) return;
-
-        const startPixelId = selectedArray[selectedArray.length - 1];
-        const minId = Math.min(startPixelId, endPixelId);
-        const maxId = Math.max(startPixelId, endPixelId);
-
-        for (let i = minId; i <= maxId; i++) {
-            if (!this.pixels.has(i)) {
-                this.massSelectedPixels.add(i);
-            }
-        }
-    }
-
-    autoSelectEditArea(startPixelId) {
-        this.clearEditSelection();
-        
-        // Находим все собственные пиксели
-        const ownedPixels = Array.from(this.pixels.keys())
-            .filter(id => this.pixels.get(id).owner === this.currentUser);
-        
-        // Находим связанную группу с выбранным пикселем
-        const groups = MiniUtils.findConnectedGroups(ownedPixels, this.gridSize);
-        const targetGroup = groups.find(group => group.includes(startPixelId));
-        
-        if (targetGroup) {
-            targetGroup.forEach(id => this.editSelectedPixels.add(id));
-        } else {
-            // Если пиксель не в группе, выбираем только его
-            this.editSelectedPixels.add(startPixelId);
-        }
-    }
-
-    clearSelection() {
-        this.selectedPixels.clear();
-        this.hideActionButton();
-    }
-
-    clearMassSelection() {
-        this.massSelectedPixels.clear();
-        this.hideActionButton();
-    }
-
-    clearEditSelection() {
-        this.editSelectedPixels.clear();
-        this.hideActionButton();
-    }
-
-    // Grid manipulation methods
-    handleMouseDown(e) {
-        // Проверяем режим перетаскивания или клик не на пикселе
-        if (this.dragMode || !e.target.closest('.pixel')) {
-            this.isDragging = true;
-            this.lastX = e.clientX;
-            this.lastY = e.clientY;
-            
-            const container = document.getElementById('grid-container');
-            if (container) {
-                container.style.cursor = 'grabbing';
-            }
-            
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }
-
-    handleMouseMove(e) {
-        if (!this.isDragging) return;
-        
-        const deltaX = e.clientX - this.lastX;
-        const deltaY = e.clientY - this.lastY;
-        
-        this.translateX += deltaX;
-        this.translateY += deltaY;
-        
-        this.lastX = e.clientX;
-        this.lastY = e.clientY;
-        
-        this.updateGridTransform();
-        
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    handleMouseUp() {
-        if (!this.isDragging) return;
-        
-        this.isDragging = false;
-        
-        const container = document.getElementById('grid-container');
-        if (container) {
-            container.style.cursor = this.dragMode ? 'grab' : 'default';
-        }
-    }
-
-    handleTouchStart(e) {
-        // Проверяем режим перетаскивания или касание не на пикселе
-        if (this.dragMode || !e.target.closest('.pixel')) {
-            if (e.touches.length === 1) {
-                this.isDragging = true;
-                this.lastX = e.touches[0].clientX;
-                this.lastY = e.touches[0].clientY;
-                e.preventDefault();
-                e.stopPropagation();
-            } else if (e.touches.length === 2) {
-                this.isDragging = false;
-                const touch1 = e.touches[0];
-                const touch2 = e.touches[1];
-                this.lastTouchDistance = Math.hypot(
-                    touch1.clientX - touch2.clientX,
-                    touch1.clientY - touch2.clientY
-                );
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        }
-    }
-
-    handleTouchMove(e) {
-        if (e.touches.length === 1 && this.isDragging) {
-            const deltaX = e.touches[0].clientX - this.lastX;
-            const deltaY = e.touches[0].clientY - this.lastY;
-            
-            this.translateX += deltaX;
-            this.translateY += deltaY;
-            
-            this.lastX = e.touches[0].clientX;
-            this.lastY = e.touches[0].clientY;
-            
-            this.updateGridTransform();
-            e.preventDefault();
-            e.stopPropagation();
-        } else if (e.touches.length === 2) {
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const distance = Math.hypot(
-                touch1.clientX - touch2.clientX,
-                touch1.clientY - touch2.clientY
-            );
-            
-            if (this.lastTouchDistance > 0) {
-                const scaleFactor = distance / this.lastTouchDistance;
-                this.scale = Math.max(0.5, Math.min(3, this.scale * scaleFactor));
-                this.updateGridTransform();
-            }
-            
-            this.lastTouchDistance = distance;
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }
-
-    handleTouchEnd() {
-        this.isDragging = false;
-        this.lastTouchDistance = 0;
-    }
-
-    zoomIn() {
-        this.scale = Math.min(3, this.scale * 1.2);
-        this.updateGridTransform();
-        MiniUtils.vibrate([30]);
-        console.log('Zoom in:', this.scale);
-    }
-
-    zoomOut() {
-        this.scale = Math.max(0.5, this.scale * 0.8);
-        this.updateGridTransform();
-        MiniUtils.vibrate([30]);
-        console.log('Zoom out:', this.scale);
-    }
-
-    centerGrid() {
-        console.log('Centering grid...');
-        
-        // Сбрасываем трансформацию к исходному состоянию
-        this.scale = 1;
-        this.translateX = 0;
-        this.translateY = 0;
-        
-        // Анимация центрирования
-        this.animateToTransform(0, 0, 1);
-        MiniUtils.vibrate([50]);
-        console.log('Grid centered to:', { x: this.translateX, y: this.translateY, scale: this.scale });
-    }
-
-    // Новый метод для плавной анимации трансформации
-    animateToTransform(targetX, targetY, targetScale, duration = 300) {
-        const startX = this.translateX;
-        const startY = this.translateY;
-        const startScale = this.scale;
-        
-        const startTime = performance.now();
-        
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Функция плавности (ease-out)
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            
-            this.translateX = startX + (targetX - startX) * easeOut;
-            this.translateY = startY + (targetY - startY) * easeOut;
-            this.scale = startScale + (targetScale - startScale) * easeOut;
-            
-            this.updateGridTransform();
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-        
-        requestAnimationFrame(animate);
-    }
-
-    updateGridTransform() {
-        const grid = document.getElementById('pixel-grid');
-        if (grid) {
-            // ИСПРАВЛЕНО: Правильное центрирование относительно центра сетки
-            grid.style.transformOrigin = '50% 50%'; // Центр сетки
-            grid.style.transform = `translate(calc(-50% + ${this.translateX}px), calc(-50% + ${this.translateY}px)) scale(${this.scale})`;
-        }
-    }
-
-    // Mode management
-    setMode(mode) {
-        // Очищаем все выделения при смене режима
-        this.clearSelection();
-        this.clearMassSelection();
-        this.clearEditSelection();
-        
-        this.currentMode = mode;
-        this.updatePixelDisplay();
-        this.updateStatusInfo();
-        
-        // Обновляем отображение режима в шапке
-        MiniUtils.updateModeDisplay(mode);
-        
-        console.log(`Mode changed to: ${mode}`);
-    }
-
-    // Action button management
-    showActionButton(type) {
-        const container = document.getElementById('action-button-container');
-        const button = document.getElementById('action-button');
-        
-        if (!container || !button) return;
-        
-        // Определяем текст и стиль кнопки
-        let buttonText = 'Действие';
-        let buttonClass = 'buy-mode';
-        
-        switch (type) {
-            case 'buy':
-                const selectedCount = this.selectedPixels.size;
-                buttonText = selectedCount > 1 ? `Купить ${selectedCount} пикселей` : 'Купить пиксель';
-                buttonClass = 'buy-mode';
-                break;
-            case 'mass-buy':
-                const massCount = this.massSelectedPixels.size;
-                buttonText = `Купить ${massCount} пикселей`;
-                buttonClass = 'mass-buy-mode';
-                break;
-            case 'edit':
-                const editCount = this.editSelectedPixels.size;
-                buttonText = editCount > 1 ? 'Редактировать область' : 'Редактировать пиксель';
-                buttonClass = 'edit-mode';
-                break;
-        }
-        
-        button.textContent = buttonText;
-        button.className = `action-button ${buttonClass}`;
-        container.classList.add('show');
-        
-        // Добавляем обработчик клика
-        button.onclick = () => this.handleActionButtonClick(type);
-    }
-
-    hideActionButton() {
-        const container = document.getElementById('action-button-container');
-        if (container) {
-            container.classList.remove('show');
-        }
-    }
-
-    handleActionButtonClick(type) {
-        switch (type) {
-            case 'buy':
-                if (this.selectedPixels.size === 1) {
-                    const pixelId = Array.from(this.selectedPixels)[0];
-                    if (window.miniModals) {
-                        window.miniModals.showPurchaseModal(pixelId, 5);
+class MiniUtils {
+    // Показ уведомлений через Telegram WebApp
+    static showNotification(message, type = 'info') {
+        // Используем Telegram WebApp API если доступно
+        if (window.Telegram?.WebApp) {
+            try {
+                // Проверяем версию API перед использованием
+                const version = window.Telegram.WebApp.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    if (type === 'error') {
+                        window.Telegram.WebApp.showAlert(message);
+                    } else {
+                        window.Telegram.WebApp.showPopup({
+                            title: 'NFTG-ZONIX',
+                            message: message,
+                            buttons: [{ type: 'ok' }]
+                        });
                     }
-                } else if (this.selectedPixels.size > 1) {
-                    if (window.miniModals) {
-                        window.miniModals.showMassPurchaseModal(this.selectedPixels, 5);
-                    }
+                } else {
+                    // Fallback для старых версий - используем toast
+                    this.createToast(message, type);
                 }
-                break;
-            case 'mass-buy':
-                if (window.miniModals) {
-                    window.miniModals.showMassPurchaseModal(this.massSelectedPixels, 5);
-                }
-                break;
-            case 'edit':
-                if (window.miniEditor) {
-                    window.miniEditor.openEditor(Array.from(this.editSelectedPixels));
-                }
-                break;
-        }
-    }
-
-    // Pixel data management
-    purchasePixel(pixelId, data) {
-        try {
-            this.pixels.set(pixelId, {
-                ...data,
-                purchaseDate: new Date().toISOString(),
-                price: 5,
-                pixelId
-            });
-
-            // Анимация покупки
-            const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
-            if (pixelElement) {
-                pixelElement.style.animation = 'pulse 0.6s ease-out';
-                setTimeout(() => {
-                    pixelElement.style.animation = '';
-                }, 600);
+            } catch (error) {
+                // Если API недоступен - используем toast
+                this.createToast(message, type);
             }
-
-            this.updatePixelDisplay();
-            this.updateStatusInfo();
-            
-            // Сохранение в localStorage
-            this.savePixelData();
-            
-            console.log(`Pixel ${pixelId} purchased`);
-        } catch (error) {
-            MiniUtils.handleError(error, 'Purchase pixel');
+        } else {
+            // Fallback для десктопа
+            this.createToast(message, type);
         }
     }
 
-    completeMassPurchase(purchaseData) {
-        const pixelsToUpdate = this.currentMode === 'buy' 
-            ? Array.from(this.selectedPixels)
-            : Array.from(this.massSelectedPixels);
-        
-        pixelsToUpdate.forEach(pixelId => {
-            this.pixels.set(pixelId, {
-                ...purchaseData,
-                purchaseDate: new Date().toISOString(),
-                price: 5,
-                pixelId,
-                isMassPurchase: true
-            });
+    // Создание toast уведомления для десктопа
+    static createToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: ${type === 'error' ? '#ff4444' : type === 'success' ? '#00FF88' : '#00D4FF'};
+            color: ${type === 'success' || type === 'info' ? '#000' : '#fff'};
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+            max-width: 250px;
+            word-wrap: break-word;
+        `;
 
-            // Анимация с задержкой
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
             setTimeout(() => {
-                const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
-                if (pixelElement) {
-                    pixelElement.style.animation = 'pulse 0.6s ease-out';
-                    setTimeout(() => {
-                        pixelElement.style.animation = '';
-                    }, 600);
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
                 }
-            }, Math.random() * 1000);
+            }, 300);
+        }, 3000);
+    }
+
+    // Валидация Telegram username
+    static validateTelegramUsername(input) {
+        if (!input || typeof input !== 'string') return false;
+        const trimmed = input.trim();
+        
+        // Проверяем ссылку на канал t.me
+        if (trimmed.includes('t.me/')) {
+            const username = trimmed.replace(/^(https?:\/\/)?t\.me\//, '');
+            return /^[a-zA-Z0-9_]{5,32}$/.test(username);
+        }
+        
+        // Проверяем @username формат
+        if (trimmed.startsWith('@')) {
+            return /^@[a-zA-Z0-9_]{5,32}$/.test(trimmed);
+        }
+        
+        // Проверяем простой username
+        return /^[a-zA-Z0-9_]{5,32}$/.test(trimmed);
+    }
+
+    // Нормализация Telegram ссылки
+    static normalizeTelegramLink(input) {
+        if (!input || typeof input !== 'string') return '';
+        const trimmed = input.trim();
+        
+        if (trimmed.startsWith('https://t.me/')) {
+            return trimmed;
+        }
+        
+        if (trimmed.startsWith('t.me/')) {
+            return `https://${trimmed}`;
+        }
+        
+        if (trimmed.startsWith('@')) {
+            return `https://t.me/${trimmed.slice(1)}`;
+        }
+        
+        return `https://t.me/${trimmed}`;
+    }
+
+    // Извлечение username из ссылки
+    static extractTelegramUsername(input) {
+        if (!input || typeof input !== 'string') return '';
+        const trimmed = input.trim();
+        
+        if (trimmed.includes('t.me/')) {
+            const username = trimmed.replace(/^(https?:\/\/)?t\.me\//, '');
+            return `@${username}`;
+        }
+        
+        if (trimmed.startsWith('@')) {
+            return trimmed;
+        }
+        
+        return `@${trimmed}`;
+    }
+
+    // Форматирование даты
+    static formatDate(dateString) {
+        if (!dateString) return 'Неизвестна';
+        try {
+            return new Date(dateString).toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'short'
+            });
+        } catch (error) {
+            return 'Неизвестна';
+        }
+    }
+
+    // Форматирование цены
+    static formatPrice(price, currency = 'TON') {
+        return `${price} ${currency}`;
+    }
+
+    // Генерация случайных пикселей
+    static generateRandomPixels(totalPixels, ownedPixels, count) {
+        const availablePixels = [];
+        for (let i = 0; i < totalPixels; i++) {
+            if (!ownedPixels.has(i)) {
+                availablePixels.push(i);
+            }
+        }
+
+        const selected = [];
+        const maxCount = Math.min(count, availablePixels.length);
+        
+        for (let i = 0; i < maxCount; i++) {
+            const randomIndex = Math.floor(Math.random() * availablePixels.length);
+            const pixelId = availablePixels.splice(randomIndex, 1)[0];
+            selected.push(pixelId);
+        }
+
+        return selected;
+    }
+
+    // Получение соседних пикселей
+    static getNeighbors(pixelId, gridSize) {
+        const row = Math.floor(pixelId / gridSize);
+        const col = pixelId % gridSize;
+        const neighbors = [];
+
+        if (row > 0) neighbors.push((row - 1) * gridSize + col); // top
+        if (row < gridSize - 1) neighbors.push((row + 1) * gridSize + col); // bottom
+        if (col > 0) neighbors.push(row * gridSize + (col - 1)); // left
+        if (col < gridSize - 1) neighbors.push(row * gridSize + (col + 1)); // right
+
+        return neighbors;
+    }
+
+    // Поиск связанных групп пикселей
+    static findConnectedGroups(pixelIds, gridSize) {
+        const visited = new Set();
+        const groups = [];
+
+        pixelIds.forEach(pixelId => {
+            if (!visited.has(pixelId)) {
+                const group = this.dfsConnectedPixels(pixelId, pixelIds, visited, gridSize);
+                if (group.length > 0) {
+                    groups.push(group);
+                }
+            }
         });
 
-        // Очищаем выделения
-        this.clearSelection();
-        this.clearMassSelection();
-        
-        this.updatePixelDisplay();
-        this.updateStatusInfo();
-        this.savePixelData();
-        
-        MiniUtils.showNotification(`Куплено ${pixelsToUpdate.length} пикселей!`, 'success');
+        return groups.sort((a, b) => b.length - a.length);
     }
 
-    updatePixelDisplay() {
-        for (let i = 0; i < this.gridSize * this.gridSize; i++) {
-            const pixel = document.querySelector(`[data-id="${i}"]`);
-            if (!pixel) continue;
-
-            // Удаляем все классы состояния
-            pixel.classList.remove('owned', 'selected', 'mass-selected', 'edit-selected', 'with-image');
-
-            // Добавляем соответствующие классы
-            if (this.pixels.has(i)) {
-                pixel.classList.add('owned');
-                
-                const data = this.pixels.get(i);
-                pixel.title = `Пиксель #${i}\nВладелец: ${data.owner}\nКатегория: ${data.category || 'Не указана'}`;
-                
-                // Если есть изображение
-                if (data.imageUrl) {
-                    pixel.style.backgroundImage = `url(${data.imageUrl})`;
-                    pixel.classList.add('with-image');
-                }
-            } else {
-                pixel.title = `Пиксель #${i} - Доступен для покупки`;
-                pixel.style.backgroundImage = '';
-            }
-            
-            if (this.selectedPixels.has(i)) {
-                pixel.classList.add('selected');
-            }
-            
-            if (this.massSelectedPixels.has(i)) {
-                pixel.classList.add('mass-selected');
-            }
-            
-            if (this.editSelectedPixels.has(i)) {
-                pixel.classList.add('edit-selected');
-            }
-        }
-    }
-
-    updateStatusInfo() {
-        const ownedCount = Array.from(this.pixels.keys())
-            .filter(id => this.pixels.get(id).owner === this.currentUser).length;
-        
-        let selectedCount = 0;
-        switch (this.currentMode) {
-            case 'buy':
-                selectedCount = this.selectedPixels.size;
-                break;
-            case 'mass-buy':
-                selectedCount = this.massSelectedPixels.size;
-                break;
-            case 'edit':
-                selectedCount = this.editSelectedPixels.size;
-                break;
+    // DFS для поиска связанных пикселей
+    static dfsConnectedPixels(pixelId, availablePixels, visited, gridSize) {
+        if (visited.has(pixelId) || !availablePixels.includes(pixelId)) {
+            return [];
         }
 
-        const ownedElement = document.getElementById('owned-count');
-        const selectedElement = document.getElementById('selected-count');
-        
-        if (ownedElement) ownedElement.textContent = `${ownedCount}/100`;
-        if (selectedElement) selectedElement.textContent = selectedCount;
+        visited.add(pixelId);
+        const group = [pixelId];
+
+        const neighbors = this.getNeighbors(pixelId, gridSize);
+        neighbors.forEach(neighborId => {
+            if (availablePixels.includes(neighborId)) {
+                group.push(...this.dfsConnectedPixels(neighborId, availablePixels, visited, gridSize));
+            }
+        });
+
+        return group;
     }
 
-    savePixelData() {
-        MiniUtils.saveToStorage('nftg-zonix-mini-pixels', Object.fromEntries(this.pixels));
-    }
-
-    loadPixelData() {
-        const saved = MiniUtils.loadFromStorage('nftg-zonix-mini-pixels', {});
-        this.pixels = new Map(Object.entries(saved).map(([id, data]) => [parseInt(id), data]));
-        this.updatePixelDisplay();
-        this.updateStatusInfo();
-    }
-
-    simulateOwnedPixels() {
-        // Создаем демо-данные только если нет сохраненных данных
-        if (this.pixels.size === 0) {
-            const demoPixels = [11, 12, 21, 22]; // 2x2 квадрат
-            
-            demoPixels.forEach(id => {
-                this.pixels.set(id, {
-                    owner: this.currentUser,
-                    purchaseDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-                    channel: '@demo_channel',
-                    telegramLink: 'https://t.me/demo_channel',
-                    category: 'Демо',
-                    description: 'Демо-пиксель для тестирования',
-                    price: 5
-                });
-            });
-
-            this.updatePixelDisplay();
-            this.savePixelData();
-            console.log('Created demo pixels');
-        }
-    }
-
-    // Utility methods
-    getOwnedPixels() {
-        return Array.from(this.pixels.keys())
-            .filter(id => this.pixels.get(id).owner === this.currentUser);
-    }
-
-    getPixelData(pixelId) {
-        return this.pixels.get(pixelId) || null;
-    }
-
-    getAllPixels() {
-        return Object.fromEntries(this.pixels);
-    }
-
-    clearAllData() {
-        this.pixels.clear();
-        this.clearSelection();
-        this.clearMassSelection();
-        this.clearEditSelection();
-        localStorage.removeItem('nftg-zonix-mini-pixels');
-        this.updatePixelDisplay();
-        this.updateStatusInfo();
-        MiniUtils.showNotification('Все данные очищены', 'info');
-    }
-
-    // Метод для центрирования на конкретном пикселе
-    centerOnPixel(pixelId) {
-        const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
-        const container = document.getElementById('grid-container');
-        
-        if (!pixelElement || !container) return;
-        
-        const containerRect = container.getBoundingClientRect();
-        const pixelRect = pixelElement.getBoundingClientRect();
-        
-        // Вычисляем необходимое смещение для центрирования пикселя
-        const targetX = (containerRect.width / 2) - (pixelRect.left + pixelRect.width / 2 - containerRect.left);
-        const targetY = (containerRect.height / 2) - (pixelRect.top + pixelRect.height / 2 - containerRect.top);
-        
-        // Анимируем к новой позиции
-        this.animateToTransform(targetX, targetY, this.scale);
-    }
-
-    // Debug method
-    getDebugInfo() {
+    // Преобразование пикселя в координаты
+    static pixelToCoords(pixelId, gridSize) {
         return {
-            gridSize: this.gridSize,
-            pixelCount: this.pixels.size,
-            transform: {
-                scale: this.scale,
-                translateX: this.translateX,
-                translateY: this.translateY
-            },
-            selections: {
-                normal: this.selectedPixels.size,
-                mass: this.massSelectedPixels.size,
-                edit: this.editSelectedPixels.size
-            },
-            mode: this.currentMode,
-            isDragging: this.isDragging,
-            dragMode: this.dragMode
+            row: Math.floor(pixelId / gridSize),
+            col: pixelId % gridSize
         };
+    }
+
+    // Преобразование координат в пиксель
+    static coordsToPixel(row, col, gridSize) {
+        return row * gridSize + col;
+    }
+
+    // Сохранение данных в localStorage
+    static saveToStorage(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+            return true;
+        } catch (error) {
+            console.warn('Failed to save to localStorage:', error);
+            return false;
+        }
+    }
+
+    // Загрузка данных из localStorage
+    static loadFromStorage(key, defaultValue = null) {
+        try {
+            const stored = localStorage.getItem(key);
+            return stored ? JSON.parse(stored) : defaultValue;
+        } catch (error) {
+            console.warn('Failed to load from localStorage:', error);
+            return defaultValue;
+        }
+    }
+
+    // Получение конфигурации Telegram WebApp
+    static getTelegramConfig() {
+        const telegram = window.Telegram?.WebApp || { 
+            ready: () => {}, 
+            initDataUnsafe: { user: null },
+            close: () => {},
+            expand: () => {},
+            enableClosingConfirmation: () => {},
+            disableClosingConfirmation: () => {},
+            showPopup: () => {},
+            showAlert: () => {}
+        };
+        
+        return {
+            telegram,
+            user: telegram.initDataUnsafe?.user,
+            isWebApp: !!window.Telegram?.WebApp,
+            theme: telegram.themeParams || {}
+        };
+    }
+
+    // Проверка мобильного устройства
+    static isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    // Генерация ID
+    static generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    // Дебаунс функция
+    static debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Обработка ошибок
+    static handleError(error, context = 'Unknown') {
+        console.error(`Error in ${context}:`, error);
+        
+        let message = 'Произошла ошибка';
+        if (error.message) {
+            message += `: ${error.message}`;
+        }
+        
+        this.showNotification(message, 'error');
+    }
+
+    // Вибрация для мобильных устройств
+    static vibrate(pattern = [100]) {
+        try {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                const version = window.Telegram.WebApp.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+            } else if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        } catch (error) {
+            // Игнорируем ошибки вибрации
+            console.log('Vibration not supported');
+        }
+    }
+
+    // Показать режим на индикаторе
+    static showModeIndicator(mode) {
+        const indicator = document.getElementById('mode-indicator');
+        if (!indicator) return;
+
+        const modeNames = {
+            'view': 'Просмотр',
+            'buy': 'Покупка',
+            'mass-buy': 'Массовая покупка',
+            'edit': 'Редактирование'
+        };
+
+        indicator.textContent = modeNames[mode] || mode;
+        indicator.classList.add('show');
+
+        // Скрыть через 2 секунды
+        setTimeout(() => {
+            indicator.classList.remove('show');
+        }, 2000);
+    }
+
+    // Обновить отображение текущего режима
+    static updateModeDisplay(mode) {
+        const display = document.getElementById('mode-display');
+        if (!display) return;
+
+        const modeNames = {
+            'view': 'Просмотр',
+            'buy': 'Покупка', 
+            'mass-buy': 'Массовая покупка',
+            'edit': 'Редактирование'
+        };
+
+        display.textContent = modeNames[mode] || mode;
+    }
+
+    // Копирование в буфер обмена
+    static async copyToClipboard(text) {
+        try {
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } else {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return true;
+            }
+        } catch (error) {
+            console.warn('Failed to copy to clipboard:', error);
+            return false;
+        }
+    }
+
+    // Проверка поддержки функций браузера
+    static checkBrowserSupport() {
+        return {
+            canvas: !!document.createElement('canvas').getContext,
+            fileReader: !!window.FileReader,
+            localStorage: !!window.localStorage,
+            touch: 'ontouchstart' in window
+        };
+    }
+
+    // Форматирование числа подписчиков
+    static formatSubscriberCount(count) {
+        if (count >= 1000000) {
+            return `${(count / 1000000).toFixed(1)}M`;
+        } else if (count >= 1000) {
+            return `${(count / 1000).toFixed(1)}K`;
+        } else {
+            return count.toString();
+        }
+    }
+
+    // Получение иконки категории
+    static getCategoryIcon(category) {
+        const icons = {
+            'Крипта': '💰',
+            'Игры': '🎮',
+            'Новости': '📰',
+            'Технологии': '💻',
+            'Бизнес': '💼',
+            'Образование': '📚',
+            'Спорт': '⚽',
+            'Развлечения': '🎬'
+        };
+        return icons[category] || '📁';
+    }
+
+    // Анимация элемента
+    static animateElement(element, animationName, duration = 300) {
+        return new Promise((resolve) => {
+            element.style.animation = `${animationName} ${duration}ms ease`;
+            
+            const handleAnimationEnd = () => {
+                element.style.animation = '';
+                element.removeEventListener('animationend', handleAnimationEnd);
+                resolve();
+            };
+            
+            element.addEventListener('animationend', handleAnimationEnd);
+        });
+    }
+
+    // Установка темы приложения
+    static setTheme(isDark = true) {
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    }
+
+    // Инициализация Telegram WebApp
+    static initTelegramWebApp() {
+        const config = this.getTelegramConfig();
+        
+        if (config.isWebApp) {
+            try {
+                // Настройка WebApp
+                config.telegram.ready();
+                config.telegram.expand();
+                
+                // Проверяем версию перед использованием методов
+                const version = config.telegram.version;
+                if (version && parseFloat(version) >= 6.1) {
+                    config.telegram.enableClosingConfirmation();
+                }
+                
+                // Применение темы Telegram
+                if (config.theme.bg_color) {
+                    document.documentElement.style.setProperty('--tg-bg-color', config.theme.bg_color);
+                }
+                
+                console.log('✅ Telegram WebApp initialized, version:', version);
+                return config;
+            } catch (error) {
+                console.log('⚠️ Some Telegram WebApp features not supported:', error.message);
+                return config;
+            }
+        } else {
+            console.log('ℹ️ Running in browser mode');
+            return config;
+        }
     }
 }
 
-// Глобальная инициализация
-window.MiniGrid = MiniGrid;
+// Экспорт для использования в других модулях
+window.MiniUtils = MiniUtils;

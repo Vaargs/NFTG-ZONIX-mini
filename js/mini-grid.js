@@ -540,8 +540,8 @@ class MiniGrid {
         this.updatePixelDisplay();
         this.updateStatusInfo();
         
-        // Показываем индикатор режима
-        MiniUtils.showModeIndicator(mode);
+        // Обновляем отображение режима в шапке
+        MiniUtils.updateModeDisplay(mode);
         
         console.log(`Mode changed to: ${mode}`);
     }
