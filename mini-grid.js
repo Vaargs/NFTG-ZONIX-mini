@@ -22,6 +22,9 @@ class MiniGrid {
         // New drag mode state
         this.dragMode = false; // Режим перетаскивания
         
+        // ДОБАВЛЕНО: Автоматический бесшовный режим
+        this.seamlessMode = true;
+        
         this.currentMode = 'view';
         this.currentUser = '@demo_user';
         
@@ -33,6 +36,11 @@ class MiniGrid {
         this.setupEventListeners();
         this.loadPixelData();
         this.simulateOwnedPixels();
+        
+        // ДОБАВЛЕНО: Автоматически включаем бесшовный режим при загрузке
+        setTimeout(() => {
+            this.updateSeamlessMode();
+        }, 100);
         
         console.log('✅ MiniGrid initialized');
     }
@@ -639,6 +647,9 @@ class MiniGrid {
             this.updatePixelDisplay();
             this.updateStatusInfo();
             
+            // ДОБАВЛЕНО: Обновляем бесшовный режим после покупки
+            this.updateSeamlessMode();
+            
             // Сохранение в localStorage
             this.savePixelData();
             
@@ -680,34 +691,45 @@ class MiniGrid {
         
         this.updatePixelDisplay();
         this.updateStatusInfo();
+        
+        // ДОБАВЛЕНО: Обновляем бесшовный режим после массовой покупки
+        this.updateSeamlessMode();
+        
         this.savePixelData();
         
         MiniUtils.showNotification(`Куплено ${pixelsToUpdate.length} пикселей!`, 'success');
     }
 
+    // ИСПРАВЛЕНО: Упрощенный updatePixelDisplay без обводки
     updatePixelDisplay() {
         for (let i = 0; i < this.gridSize * this.gridSize; i++) {
             const pixel = document.querySelector(`[data-id="${i}"]`);
             if (!pixel) continue;
 
-            // Удаляем все классы состояния
+            // УПРОЩЕНО: Удаляем только основные классы состояния
             pixel.classList.remove('owned', 'selected', 'mass-selected', 'edit-selected', 'with-image');
+            
+            // ИСПРАВЛЕНО: Сбрасываем стили фона
+            pixel.style.backgroundImage = '';
+            pixel.style.backgroundColor = '';
 
             // Добавляем соответствующие классы
             if (this.pixels.has(i)) {
+                const data = this.pixels.get(i);
                 pixel.classList.add('owned');
                 
-                const data = this.pixels.get(i);
                 pixel.title = `Пиксель #${i}\nВладелец: ${data.owner}\nКатегория: ${data.category || 'Не указана'}`;
                 
-                // Если есть изображение
+                // ИСПРАВЛЕНО: Если есть изображение, устанавливаем его правильно
                 if (data.imageUrl) {
-                    pixel.style.backgroundImage = `url(${data.imageUrl})`;
+                    pixel.style.backgroundImage = `url("${data.imageUrl}")`;
                     pixel.classList.add('with-image');
+                    console.log(`Applied image to pixel ${i}:`, data.imageUrl.substring(0, 50) + '...');
                 }
             } else {
                 pixel.title = `Пиксель #${i} - Доступен для покупки`;
-                pixel.style.backgroundImage = '';
+                // Возвращаем базовый стиль для пустых пикселей
+                pixel.style.backgroundColor = '#1a1a1a';
             }
             
             if (this.selectedPixels.has(i)) {
@@ -722,6 +744,44 @@ class MiniGrid {
                 pixel.classList.add('edit-selected');
             }
         }
+
+        // УПРОЩЕНО: Просто обновляем бесшовный режим
+        setTimeout(() => {
+            this.updateSeamlessMode();
+        }, 50);
+    }
+
+    // УПРОЩЕНО: Простой бесшовный режим без обводки
+    updateSeamlessMode() {
+        const grid = document.getElementById('pixel-grid');
+        if (!grid) return;
+
+        // Находим все пиксели с изображениями
+        const imagePixels = [];
+        for (let i = 0; i < this.gridSize * this.gridSize; i++) {
+            const pixelData = this.pixels.get(i);
+            if (pixelData && pixelData.imageUrl) {
+                imagePixels.push(i);
+            }
+        }
+
+        console.log('Found image pixels:', imagePixels);
+
+        if (imagePixels.length > 0) {
+            // Включаем бесшовный режим если есть изображения
+            grid.classList.add('seamless');
+            console.log('Seamless mode enabled with', imagePixels.length, 'image pixels');
+        } else {
+            // Выключаем бесшовный режим если нет изображений
+            grid.classList.remove('seamless');
+            console.log('Seamless mode disabled - no image pixels');
+        }
+    }
+
+    // ДОБАВЛЕНО: Удаление всех обводок групп (оставляем пустой метод для совместимости)
+    removeAllGroupBorders() {
+        // Метод оставлен для совместимости, но больше ничего не делает
+        console.log('Group borders removed (simplified)');
     }
 
     updateStatusInfo() {
@@ -757,6 +817,11 @@ class MiniGrid {
         this.pixels = new Map(Object.entries(saved).map(([id, data]) => [parseInt(id), data]));
         this.updatePixelDisplay();
         this.updateStatusInfo();
+        
+        // ДОБАВЛЕНО: Обновляем бесшовный режим после загрузки данных
+        setTimeout(() => {
+            this.updateSeamlessMode();
+        }, 100);
     }
 
     simulateOwnedPixels() {
@@ -804,6 +869,7 @@ class MiniGrid {
         localStorage.removeItem('nftg-zonix-mini-pixels');
         this.updatePixelDisplay();
         this.updateStatusInfo();
+        this.updateSeamlessMode();
         MiniUtils.showNotification('Все данные очищены', 'info');
     }
 
@@ -825,11 +891,38 @@ class MiniGrid {
         this.animateToTransform(targetX, targetY, this.scale);
     }
 
+    // ДОБАВЛЕНО: Публичные методы для управления бесшовным режимом
+    enableSeamlessMode() {
+        this.seamlessMode = true;
+        this.updateSeamlessMode();
+        console.log('Seamless mode enabled');
+    }
+
+    disableSeamlessMode() {
+        this.seamlessMode = false;
+        const grid = document.getElementById('pixel-grid');
+        if (grid) {
+            grid.classList.remove('seamless');
+        }
+        this.removeAllGroupBorders();
+        console.log('Seamless mode disabled');
+    }
+
+    toggleSeamlessMode() {
+        if (this.seamlessMode) {
+            this.disableSeamlessMode();
+        } else {
+            this.enableSeamlessMode();
+        }
+        return this.seamlessMode;
+    }
+
     // Debug method
     getDebugInfo() {
         return {
             gridSize: this.gridSize,
             pixelCount: this.pixels.size,
+            seamlessMode: this.seamlessMode,
             transform: {
                 scale: this.scale,
                 translateX: this.translateX,
@@ -842,7 +935,8 @@ class MiniGrid {
             },
             mode: this.currentMode,
             isDragging: this.isDragging,
-            dragMode: this.dragMode
+            dragMode: this.dragMode,
+            imagePixels: Array.from(this.pixels.keys()).filter(id => this.pixels.get(id).imageUrl).length
         };
     }
 }

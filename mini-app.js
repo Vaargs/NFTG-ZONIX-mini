@@ -74,26 +74,6 @@ class MiniApp {
         // Setup cross-module communication
         this.setupModuleCommunication();
         
-        // Отладка: проверяем кнопки
-        setTimeout(() => {
-            console.log('🔍 Debugging buttons:');
-            console.log('confirm-purchase:', document.getElementById('confirm-purchase'));
-            console.log('confirm-mass-purchase:', document.getElementById('confirm-mass-purchase'));
-            console.log('cancel-purchase:', document.getElementById('cancel-purchase'));
-            
-            // Если кнопки есть, но обработчики не работают - переподключаем
-            const confirmBtn = document.getElementById('confirm-purchase');
-            if (confirmBtn && !confirmBtn.onclick) {
-                console.log('🔧 Manually attaching purchase handler');
-                confirmBtn.addEventListener('click', () => {
-                    console.log('Purchase button clicked!');
-                    if (window.miniModals) {
-                        window.miniModals.confirmPurchase();
-                    }
-                });
-            }
-        }, 1000);
-        
         console.log('✅ All modules initialized');
     }
 
@@ -111,6 +91,18 @@ class MiniApp {
             originalCompleteMassPurchase(purchaseData);
             // Update channels after mass purchase
             this.channels.onPixelPurchased();
+        };
+
+        // ДОБАВЛЕНО: Хук для обновления бесшовного режима после применения изображений
+        const originalApplyToPixels = this.editor.applyToPixels.bind(this.editor);
+        this.editor.applyToPixels = () => {
+            originalApplyToPixels();
+            // Обновляем бесшовный режим после применения изображений
+            setTimeout(() => {
+                if (this.grid) {
+                    this.grid.updateSeamlessMode();
+                }
+            }, 100);
         };
 
         // Setup Telegram WebApp back button handling
@@ -181,6 +173,17 @@ class MiniApp {
                 case 'h':
                 case 'H':
                     this.channels.toggleMainSidebar();
+                    break;
+                case 's':
+                case 'S':
+                    // ДОБАВЛЕНО: Клавиша для переключения бесшовного режима
+                    if (this.grid) {
+                        const newMode = this.grid.toggleSeamlessMode();
+                        MiniUtils.showNotification(
+                            `Бесшовный режим ${newMode ? 'включен' : 'выключен'}`, 
+                            'info'
+                        );
+                    }
                     break;
                 case 'Escape':
                     this.handleEscapeKey();
@@ -352,6 +355,13 @@ class MiniApp {
             this.editor.setupCanvas();
         }
 
+        // ДОБАВЛЕНО: Обновляем бесшовный режим при изменении размера окна
+        if (this.grid) {
+            setTimeout(() => {
+                this.grid.updateSeamlessMode();
+            }, 100);
+        }
+
         console.log('📐 Resize handled');
     }
 
@@ -378,6 +388,13 @@ class MiniApp {
         // Refresh data when app comes to foreground
         if (this.channels) {
             this.channels.refreshChannels();
+        }
+
+        // ДОБАВЛЕНО: Обновляем бесшовный режим при возвращении в приложение
+        if (this.grid) {
+            setTimeout(() => {
+                this.grid.updateSeamlessMode();
+            }, 100);
         }
 
         console.log('▶️ App foregrounded');
@@ -428,6 +445,33 @@ class MiniApp {
         }
     }
 
+    // ДОБАВЛЕНО: Методы для управления бесшовным режимом
+    enableSeamlessMode() {
+        if (this.grid) {
+            this.grid.enableSeamlessMode();
+            MiniUtils.showNotification('Бесшовный режим включен', 'success');
+        }
+    }
+
+    disableSeamlessMode() {
+        if (this.grid) {
+            this.grid.disableSeamlessMode();
+            MiniUtils.showNotification('Бесшовный режим выключен', 'info');
+        }
+    }
+
+    toggleSeamlessMode() {
+        if (this.grid) {
+            const newMode = this.grid.toggleSeamlessMode();
+            MiniUtils.showNotification(
+                `Бесшовный режим ${newMode ? 'включен' : 'выключен'}`, 
+                newMode ? 'success' : 'info'
+            );
+            return newMode;
+        }
+        return false;
+    }
+
     // Debug and development methods
     getDebugInfo() {
         return {
@@ -440,6 +484,7 @@ class MiniApp {
                 editor: this.editor?.getState?.() || 'Not available'
             },
             selectedPixels: this.getSelectedPixels(),
+            seamlessMode: this.grid?.seamlessMode || false,
             performance: {
                 memory: performance.memory ? {
                     used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
@@ -464,6 +509,7 @@ class MiniApp {
         const data = {
             pixels: this.grid?.getAllPixels() || {},
             channels: this.channels?.channels || [],
+            seamlessMode: this.grid?.seamlessMode || false,
             exportDate: new Date().toISOString(),
             version: '1.0.0'
         };
@@ -541,9 +587,12 @@ function initMiniApp() {
             window.debugApp = () => window.miniApp.getDebugInfo();
             window.resetApp = () => window.miniApp.resetApp();
             window.exportApp = () => window.miniApp.exportAppData();
+            window.toggleSeamless = () => window.miniApp.toggleSeamlessMode();
+            window.enableSeamless = () => window.miniApp.enableSeamlessMode();
+            window.disableSeamless = () => window.miniApp.disableSeamlessMode();
             
             console.log('🛠️ Development mode active');
-            console.log('Available commands: debugApp(), resetApp(), exportApp()');
+            console.log('Available commands: debugApp(), resetApp(), exportApp(), toggleSeamless(), enableSeamless(), disableSeamless()');
         }
         
     } catch (error) {

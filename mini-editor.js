@@ -26,6 +26,11 @@ class MiniEditor {
         this.lastY = 0;
         this.rotationStartAngle = 0;
         
+        // НОВОЕ: Настройки качества
+        this.outputQuality = 0.95; // Качество JPEG (0.1 - 1.0)
+        this.outputSize = 60; // Размер финального пикселя (увеличено с 30)
+        this.useHighDPI = true; // Использовать высокое DPI
+        
         this.isOpen = false;
         
         this.init();
@@ -74,7 +79,6 @@ class MiniEditor {
         setTimeout(() => {
             this.setupCanvas();
             this.calculateAreaShape();
-            // Рисуем начальную сетку
             this.redraw();
         }, 100);
         
@@ -119,14 +123,23 @@ class MiniEditor {
         
         this.ctx = this.canvas.getContext('2d');
         
-        // Set canvas size responsively
+        // УЛУЧШЕНО: Настройка высококачественного рендеринга
         const containerWidth = this.canvas.parentElement.clientWidth - 20;
         const containerHeight = 200;
         
-        this.canvas.width = Math.min(containerWidth, 400);
-        this.canvas.height = containerHeight;
+        // Увеличиваем размер canvas для лучшего качества
+        const scale = this.useHighDPI ? (window.devicePixelRatio || 1) : 1;
+        this.canvas.width = Math.min(containerWidth, 400) * scale;
+        this.canvas.height = containerHeight * scale;
         
-        // Enable high quality rendering
+        // Устанавливаем CSS размеры
+        this.canvas.style.width = Math.min(containerWidth, 400) + 'px';
+        this.canvas.style.height = containerHeight + 'px';
+        
+        // Масштабируем контекст для высокого DPI
+        this.ctx.scale(scale, scale);
+        
+        // Включаем лучшее качество рендеринга
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
         
@@ -171,20 +184,29 @@ class MiniEditor {
     clearCanvas() {
         if (!this.ctx || !this.canvas) return;
         
+        // Учитываем масштаб для высокого DPI
+        const scale = this.useHighDPI ? (window.devicePixelRatio || 1) : 1;
+        const width = this.canvas.width / scale;
+        const height = this.canvas.height / scale;
+        
         this.ctx.fillStyle = '#2a2a2a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, width, height);
     }
 
     drawAreaGuide() {
         if (!this.ctx || !this.areaShape) return;
         
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
+        // Учитываем масштаб для высокого DPI
+        const scale = this.useHighDPI ? (window.devicePixelRatio || 1) : 1;
+        const canvasWidth = this.canvas.width / scale;
+        const canvasHeight = this.canvas.height / scale;
         
-        // Вычисляем оптимальный размер ячейки с учетом отступов
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        
         const padding = 40;
-        const availableWidth = this.canvas.width - padding;
-        const availableHeight = this.canvas.height - padding;
+        const availableWidth = canvasWidth - padding;
+        const availableHeight = canvasHeight - padding;
         
         const cellSize = Math.min(
             availableWidth / this.areaShape.width,
@@ -259,16 +281,10 @@ class MiniEditor {
             this.originalImage = image;
             this.currentImage = image;
             
-            // Сначала рисуем сетку, чтобы получить areaRect
             this.redraw();
-            
-            // Затем подгоняем изображение под размер области
             this.fitImageToCanvas();
-            
-            // Перерисовываем с изображением
             this.redraw();
             
-            // Enable controls
             this.enableControls();
             
             MiniUtils.showNotification('Изображение загружено!', 'success');
@@ -295,18 +311,15 @@ class MiniEditor {
     fitImageToCanvas() {
         if (!this.currentImage || !this.canvas || !this.areaRect) return;
         
-        // Используем размер области, а не всего canvas
         const areaWidth = this.areaRect.width;
         const areaHeight = this.areaRect.height;
         
         const scaleX = areaWidth / this.currentImage.width;
         const scaleY = areaHeight / this.currentImage.height;
-        const scale = Math.min(scaleX, scaleY) * 0.9; // 90% для удобства редактирования
+        const scale = Math.min(scaleX, scaleY) * 0.9;
         
         this.scale = Math.max(0.1, scale);
         this.rotation = 0;
-        
-        // Центрируем изображение в области (не в canvas)
         this.offsetX = 0;
         this.offsetY = 0;
         
@@ -453,19 +466,20 @@ class MiniEditor {
         this.clearCanvas();
 
         if (this.currentImage) {
-            // Сначала рисуем изображение
             this.drawImage();
-            // Затем рисуем сетку поверх изображения
             this.drawAreaGuide();
         } else {
-            // Если нет изображения, рисуем только сетку
             this.drawAreaGuide();
             
-            // Draw placeholder text
+            // Учитываем масштаб для высокого DPI
+            const scale = this.useHighDPI ? (window.devicePixelRatio || 1) : 1;
+            const canvasWidth = this.canvas.width / scale;
+            const canvasHeight = this.canvas.height / scale;
+            
             this.ctx.fillStyle = '#666';
             this.ctx.font = '14px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('Загрузите изображение', this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.fillText('Загрузите изображение', canvasWidth / 2, canvasHeight / 2);
         }
     }
 
@@ -474,12 +488,10 @@ class MiniEditor {
         
         this.ctx.save();
         
-        // Ограничиваем отрисовку изображения только областью сетки
         this.ctx.beginPath();
         this.ctx.rect(this.areaRect.x, this.areaRect.y, this.areaRect.width, this.areaRect.height);
         this.ctx.clip();
         
-        // Центр области (не canvas)
         const centerX = this.areaRect.centerX + this.offsetX;
         const centerY = this.areaRect.centerY + this.offsetY;
         
@@ -514,7 +526,6 @@ class MiniEditor {
     }
 
     displayPreview(cells) {
-        // Создаем контейнер для предпросмотра если его нет
         let previewContainer = document.getElementById('preview-container');
         if (!previewContainer) {
             previewContainer = document.createElement('div');
@@ -530,7 +541,6 @@ class MiniEditor {
             document.querySelector('.editor-content').appendChild(previewContainer);
         }
         
-        // ИСПРАВЛЕНО: Генерируем HTML для предпросмотра в правильном порядке
         let previewHTML = '';
         let cellIndex = 0;
         
@@ -541,7 +551,7 @@ class MiniEditor {
                 const pixelId = globalRow * this.gridSize + globalCol;
                 
                 if (this.selectedPixels.includes(pixelId)) {
-                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: 1px solid #555;"></div>`;
+                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: none;"></div>`;
                     cellIndex++;
                 } else {
                     previewHTML += `<div style="width: 24px; height: 24px; background: #111; border: 1px solid #333; opacity: 0.3;"></div>`;
@@ -558,7 +568,7 @@ class MiniEditor {
                 ${previewHTML}
             </div>
             <p style="margin-top: 15px; color: #9D4EDD; font-size: 12px; font-weight: bold;">
-                ✅ Готово к применению! Нажмите "Применить"
+                ✅ Готово к применению! Нажмите "Применить" для бесшовного изображения
             </p>
         `;
     }
@@ -570,10 +580,8 @@ class MiniEditor {
         }
 
         try {
-            // Извлекаем ячейки
             const cells = this.extractCells();
             
-            // ИСПРАВЛЕНО: Применяем изображение к пикселям в матричном порядке (слева направо, сверху вниз)
             let cellIndex = 0;
             for (let row = 0; row < this.areaShape.height; row++) {
                 for (let col = 0; col < this.areaShape.width; col++) {
@@ -581,7 +589,6 @@ class MiniEditor {
                     const globalCol = this.areaShape.minCol + col;
                     const pixelId = globalRow * this.gridSize + globalCol;
                     
-                    // Проверяем, есть ли этот пиксель в выбранных
                     if (this.selectedPixels.includes(pixelId)) {
                         const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
                         if (pixelElement && cells[cellIndex]) {
@@ -590,7 +597,6 @@ class MiniEditor {
                             pixelElement.style.backgroundPosition = 'center';
                             pixelElement.classList.add('with-image');
                             
-                            // Add animation
                             setTimeout(() => {
                                 pixelElement.style.animation = 'pulse 0.6s ease-out';
                                 setTimeout(() => {
@@ -599,7 +605,6 @@ class MiniEditor {
                             }, cellIndex * 50);
                         }
                         
-                        // Update pixel data in grid
                         if (window.miniGrid && window.miniGrid.pixels.has(pixelId)) {
                             const pixelData = window.miniGrid.pixels.get(pixelId);
                             pixelData.imageUrl = cells[cellIndex];
@@ -611,18 +616,14 @@ class MiniEditor {
                 }
             }
 
-            // Save to storage
             if (window.miniGrid) {
                 window.miniGrid.savePixelData();
+                window.miniGrid.updateSeamlessMode();
             }
-
-            // Автоматически включаем бесшовный режим
-            this.enableSeamlessMode();
 
             MiniUtils.showNotification(`Изображение применено к ${this.selectedPixels.length} пикселям!`, 'success');
             MiniUtils.vibrate([100, 50, 100]);
             
-            // Close editor after a short delay
             setTimeout(() => {
                 this.closeEditor();
             }, 1500);
@@ -632,21 +633,23 @@ class MiniEditor {
         }
     }
 
-    // ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ логика извлечения ячеек - теперь точно как в canvas
+    // УЛУЧШЕНО: Высококачественное извлечение ячеек
     extractCells() {
-        const cellSize = 30; // Размер для мини-апп
         const cells = [];
         
+        // УЛУЧШЕНО: Увеличенный размер для лучшего качества
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = cellSize;
-        tempCanvas.height = cellSize;
+        tempCanvas.width = this.outputSize;
+        tempCanvas.height = this.outputSize;
         
-        // Получаем параметры как в основном canvas
+        // Включаем высококачественное сглаживание
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.imageSmoothingQuality = 'high';
+        
         const canvasAreaRect = this.areaRect;
         const canvasCellSize = canvasAreaRect.cellSize;
         
-        // ВАЖНО: Создаем матрицу пикселей по порядку (слева направо, сверху вниз)
         const pixelMatrix = [];
         for (let row = 0; row < this.areaShape.height; row++) {
             for (let col = 0; col < this.areaShape.width; col++) {
@@ -654,7 +657,6 @@ class MiniEditor {
                 const globalCol = this.areaShape.minCol + col;
                 const pixelId = globalRow * this.gridSize + globalCol;
                 
-                // Проверяем, есть ли этот пиксель в выбранных
                 if (this.selectedPixels.includes(pixelId)) {
                     pixelMatrix.push({
                         pixelId,
@@ -667,12 +669,11 @@ class MiniEditor {
             }
         }
         
-        // Обрабатываем пиксели в матричном порядке
         pixelMatrix.forEach(pixelInfo => {
             const { localRow, localCol } = pixelInfo;
             
             // Очищаем временный canvas
-            tempCtx.clearRect(0, 0, cellSize, cellSize);
+            tempCtx.clearRect(0, 0, this.outputSize, this.outputSize);
             
             if (this.currentImage) {
                 tempCtx.save();
@@ -683,7 +684,7 @@ class MiniEditor {
                 const cellCenterX = cellCanvasX + canvasCellSize / 2;
                 const cellCenterY = cellCanvasY + canvasCellSize / 2;
                 
-                // Центр изображения с учетом смещений (точно как в drawImage)
+                // Центр изображения с учетом смещений
                 const imageCenterX = canvasAreaRect.centerX + this.offsetX;
                 const imageCenterY = canvasAreaRect.centerY + this.offsetY;
                 
@@ -696,8 +697,8 @@ class MiniEditor {
                 const rotatedOffsetX = offsetX * Math.cos(radians) - offsetY * Math.sin(radians);
                 const rotatedOffsetY = offsetX * Math.sin(radians) + offsetY * Math.cos(radians);
                 
-                // Настраиваем временный canvas точно как основной
-                tempCtx.translate(cellSize / 2, cellSize / 2);
+                // Настраиваем временный canvas
+                tempCtx.translate(this.outputSize / 2, this.outputSize / 2);
                 tempCtx.rotate((this.rotation * Math.PI) / 180);
                 tempCtx.scale(this.scale, this.scale);
                 
@@ -705,11 +706,11 @@ class MiniEditor {
                 const imageX = -this.currentImage.width / 2 - rotatedOffsetX / this.scale;
                 const imageY = -this.currentImage.height / 2 - rotatedOffsetY / this.scale;
                 
-                // Масштабируем для соответствия размеру ячейки мини-апп
-                const scaleFactor = cellSize / canvasCellSize;
+                // УЛУЧШЕНО: Масштабируем для финального размера
+                const scaleFactor = this.outputSize / canvasCellSize;
                 tempCtx.scale(scaleFactor, scaleFactor);
                 
-                // Рисуем изображение
+                // Рисуем изображение с высоким качеством
                 tempCtx.drawImage(
                     this.currentImage,
                     imageX,
@@ -721,73 +722,13 @@ class MiniEditor {
                 tempCtx.restore();
             }
             
-            cells.push(tempCanvas.toDataURL('image/png'));
+            // УЛУЧШЕНО: Экспортируем с высоким качеством
+            const dataUrl = tempCanvas.toDataURL('image/jpeg', this.outputQuality);
+            cells.push(dataUrl);
         });
         
-        console.log('Извлечено ячеек в порядке:', cells.length, 'поворот:', this.rotation, 'масштаб:', this.scale);
-        console.log('Canvas параметры:', { canvasAreaRect, canvasCellSize: canvasCellSize });
+        console.log(`Извлечено ${cells.length} ячеек высокого качества (${this.outputSize}x${this.outputSize}px, качество: ${this.outputQuality})`);
         return cells;
-    }
-
-    // Новый метод для включения бесшовного режима
-    enableSeamlessMode() {
-        const grid = document.getElementById('pixel-grid');
-        if (!grid) return;
-        
-        // Добавляем класс для бесшовного режима
-        grid.classList.add('seamless');
-        
-        // Добавляем границы для выделения областей
-        this.addImageBorders();
-        
-        MiniUtils.showNotification('Бесшовный режим включен!', 'success');
-        console.log('Seamless mode enabled');
-    }
-
-    // Улучшенное добавление границ для выделения областей с изображением
-    addImageBorders() {
-        // Сначала убираем все классы границ
-        document.querySelectorAll('.pixel').forEach(pixel => {
-            pixel.classList.remove('seamless-border-top', 'seamless-border-right', 'seamless-border-bottom', 'seamless-border-left');
-        });
-        
-        // Находим все пиксели с изображением
-        const imagePixels = new Set();
-        document.querySelectorAll('.pixel.with-image').forEach(pixel => {
-            imagePixels.add(parseInt(pixel.dataset.id));
-        });
-        
-        // Добавляем границы только на краях областей
-        imagePixels.forEach(pixelId => {
-            const pixel = document.querySelector(`[data-id="${pixelId}"]`);
-            if (!pixel) return;
-            
-            const row = Math.floor(pixelId / this.gridSize);
-            const col = pixelId % this.gridSize;
-            
-            // Проверяем соседей и добавляем границы там, где нет изображения
-            const topId = (row - 1) * this.gridSize + col;
-            const rightId = row * this.gridSize + (col + 1);
-            const bottomId = (row + 1) * this.gridSize + col;
-            const leftId = row * this.gridSize + (col - 1);
-            
-            // Добавляем границы только на краях областей
-            if (row === 0 || !imagePixels.has(topId)) {
-                pixel.classList.add('seamless-border-top');
-            }
-            
-            if (col === this.gridSize - 1 || !imagePixels.has(rightId)) {
-                pixel.classList.add('seamless-border-right');
-            }
-            
-            if (row === this.gridSize - 1 || !imagePixels.has(bottomId)) {
-                pixel.classList.add('seamless-border-bottom');
-            }
-            
-            if (col === 0 || !imagePixels.has(leftId)) {
-                pixel.classList.add('seamless-border-left');
-            }
-        });
     }
 
     enableControls() {
@@ -820,16 +761,36 @@ class MiniEditor {
         
         this.disableControls();
         
-        // Reset file input
         const imageInput = document.getElementById('image-input');
         if (imageInput) {
             imageInput.value = '';
         }
         
-        // Remove preview container if exists
         const previewContainer = document.getElementById('preview-container');
         if (previewContainer) {
             previewContainer.remove();
+        }
+    }
+
+    // НОВОЕ: Методы для настройки качества
+    setOutputQuality(quality) {
+        this.outputQuality = Math.max(0.1, Math.min(1.0, quality));
+        console.log('Output quality set to:', this.outputQuality);
+    }
+
+    setOutputSize(size) {
+        this.outputSize = Math.max(20, Math.min(200, size));
+        console.log('Output size set to:', this.outputSize);
+    }
+
+    toggleHighDPI(enabled) {
+        this.useHighDPI = enabled;
+        console.log('High DPI rendering:', this.useHighDPI ? 'enabled' : 'disabled');
+        
+        // Пересоздаем canvas с новыми настройками
+        if (this.isOpen) {
+            this.setupCanvas();
+            this.redraw();
         }
     }
 
@@ -846,8 +807,44 @@ class MiniEditor {
                 rotation: this.rotation,
                 offset: { x: this.offsetX, y: this.offsetY }
             },
+            quality: {
+                outputQuality: this.outputQuality,
+                outputSize: this.outputSize,
+                useHighDPI: this.useHighDPI
+            },
             canvasReady: !!(this.canvas && this.ctx)
         };
+    }
+
+    // НОВОЕ: Экспорт настроек качества для консольного доступа
+    getQualitySettings() {
+        return {
+            outputQuality: this.outputQuality,
+            outputSize: this.outputSize,
+            useHighDPI: this.useHighDPI
+        };
+    }
+
+    // НОВОЕ: Применение предустановок качества
+    applyQualityPreset(preset) {
+        const presets = {
+            'low': { quality: 0.7, size: 40, highDPI: false },
+            'medium': { quality: 0.85, size: 60, highDPI: true },
+            'high': { quality: 0.95, size: 80, highDPI: true },
+            'ultra': { quality: 1.0, size: 120, highDPI: true }
+        };
+
+        if (presets[preset]) {
+            const settings = presets[preset];
+            this.setOutputQuality(settings.quality);
+            this.setOutputSize(settings.size);
+            this.toggleHighDPI(settings.highDPI);
+            
+            MiniUtils.showNotification(`Качество установлено: ${preset}`, 'success');
+            console.log(`Applied ${preset} quality preset:`, settings);
+        } else {
+            console.log('Available presets:', Object.keys(presets));
+        }
     }
 }
 

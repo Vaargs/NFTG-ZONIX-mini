@@ -130,6 +130,7 @@ body {
     border-radius: 8px;
     padding: 10px;
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    transition: gap 0.3s ease, background 0.3s ease;
 }
 
 /* === PIXELS === */
@@ -171,22 +172,56 @@ body {
     animation: massSelectPulse 2s infinite;
 }
 
+/* НОВОЕ: Простая подсветка для режима редактирования */
 .pixel.edit-selected {
-    border: 2px solid #9D4EDD;
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.8);
-    animation: glow 2s infinite alternate;
+    position: relative;
 }
 
+.pixel.edit-selected::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: rgba(157, 78, 221, 0.3);
+    border: 1px solid rgba(157, 78, 221, 0.8);
+    border-radius: 1px;
+    z-index: 5;
+    pointer-events: none;
+    animation: editSelectGlow 2s infinite alternate;
+}
+
+/* ИСПРАВЛЕНО: Пиксели с изображениями */
 .pixel.with-image {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
-/* Стили для бесшовного режима - как в вашем редакторе */
+/* ИСПРАВЛЕНО: Убираем owned стили только в бесшовном режиме */
+.pixel-grid.seamless .pixel.owned.with-image {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* ИСПРАВЛЕНО: Hover эффекты только для пикселей без изображений или вне бесшовного режима */
+.pixel.with-image:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+.pixel-grid.seamless .pixel.with-image:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+/* БЕСШОВНЫЙ РЕЖИМ */
 .pixel-grid.seamless {
     gap: 0 !important;
-    background: #1a1a1a !important;
 }
 
 .pixel-grid.seamless .pixel.with-image {
@@ -195,35 +230,39 @@ body {
     margin: 0 !important;
 }
 
-.pixel-grid.seamless .pixel.with-image:hover {
-    transform: none !important;
+/* Убираем стандартные стили обводки для пикселей в группах */
+.pixel.group-border-top,
+.pixel.group-border-bottom,
+.pixel.group-border-left,
+.pixel.group-border-right {
     box-shadow: none !important;
+    border-radius: 0 !important;
 }
 
-/* Границы для выделения областей в бесшовном режиме */
-.pixel.seamless-border-top {
-    border-top: 2px solid #9D4EDD !important;
+.pixel.edit-group-border-top,
+.pixel.edit-group-border-bottom,
+.pixel.edit-group-border-left,
+.pixel.edit-group-border-right {
+    border-radius: 0 !important;
 }
 
-.pixel.seamless-border-right {
-    border-right: 2px solid #9D4EDD !important;
+/* Убираем обычные границы для пикселей в бесшовном режиме */
+.pixel-grid.seamless .pixel.group-border-top,
+.pixel-grid.seamless .pixel.group-border-bottom,
+.pixel-grid.seamless .pixel.group-border-left,
+.pixel-grid.seamless .pixel.group-border-right {
+    border: none !important;
 }
 
-.pixel.seamless-border-bottom {
-    border-bottom: 2px solid #9D4EDD !important;
+.pixel-grid.seamless .pixel.edit-group-border-top,
+.pixel-grid.seamless .pixel.edit-group-border-bottom {
+    border: none !important;
 }
 
-.pixel.seamless-border-left {
-    border-left: 2px solid #9D4EDD !important;
-}
-
-/* Дополнительные стили для плавного перехода в бесшовный режим */
-.pixel-grid {
-    transition: gap 0.3s ease, background 0.3s ease;
-}
-
-.pixel {
-    transition: border 0.3s ease, border-radius 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+/* Убираем стандартные boundaries между соседними пикселями одной группы */
+.pixel.seamless-connected {
+    border: none !important;
+    border-radius: 0 !important;
 }
 
 @keyframes pulse {
@@ -240,9 +279,30 @@ body {
     }
 }
 
-@keyframes glow {
-    from { box-shadow: 0 0 15px rgba(157, 78, 221, 0.8); }
-    to { box-shadow: 0 0 25px rgba(157, 78, 221, 1); }
+/* УПРОЩЕННЫЕ АНИМАЦИИ */
+@keyframes editSelectGlow {
+    from { 
+        background: rgba(157, 78, 221, 0.2);
+        border-color: rgba(157, 78, 221, 0.6);
+    }
+    to { 
+        background: rgba(157, 78, 221, 0.4);
+        border-color: rgba(157, 78, 221, 1);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes massSelectPulse {
+    0%, 100% { 
+        box-shadow: 0 0 12px rgba(255, 107, 53, 0.8);
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(255, 107, 53, 1);
+    }
 }
 
 /* === FLOATING CONTROLS === */
