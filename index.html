@@ -2,11 +2,45 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>NFTG-ZONIX Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <link rel="stylesheet" href="mini-style.css">
+
+    <!-- Telegram WebApp поддержка -->
+    <script>
+    // Проверяем что мы в Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+        console.log('Running in Telegram WebApp');
+        // Настраиваем WebApp
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        
+        // Устанавливаем тему
+        document.documentElement.style.setProperty('--tg-theme-bg-color', window.Telegram.WebApp.backgroundColor || '#1a1a2e');
+        document.documentElement.style.setProperty('--tg-theme-text-color', window.Telegram.WebApp.textColor || '#ffffff');
+        
+        // Отключаем предупреждения о закрытии
+        window.Telegram.WebApp.enableClosingConfirmation();
+    } else {
+        console.log('Running in regular browser');
+    }
+
+    // Исправляем ошибки загрузки
+    window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+        // Не показываем ошибки пользователю в Telegram
+    });
+
+    window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        e.preventDefault();
+    });
+    </script>
 </head>
 <body>
     <!-- Header -->

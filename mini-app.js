@@ -1,3 +1,39 @@
+// === TELEGRAM WEBAPP COMPATIBILITY ===
+
+// Проверяем совместимость с Telegram WebApp
+function checkTelegramCompatibility() {
+    if (window.Telegram?.WebApp) {
+        console.log('✅ Telegram WebApp detected');
+        
+        // Настраиваем Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        // Применяем тему Telegram
+        if (tg.colorScheme === 'dark') {
+            document.body.classList.add('telegram-dark');
+        }
+        
+        // Обрабатываем кнопку назад
+        tg.BackButton.onClick(() => {
+            if (window.miniApp) {
+                window.miniApp.handleEscapeKey();
+            }
+        });
+        
+        return true;
+    }
+    return false;
+}
+
+// Инициализируем совместимость при загрузке
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkTelegramCompatibility);
+} else {
+    checkTelegramCompatibility();
+}
+
 // === MINI APP MAIN ===
 
 class MiniApp {

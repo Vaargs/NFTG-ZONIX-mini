@@ -1127,7 +1127,9 @@ tc-root tc-button {
     .wallet-connect-item:active {
         transform: scale(0.98);
     }
-}/* === RESET & BASE === */
+}
+
+/* === RESET & BASE === */
 * {
     margin: 0;
     padding: 0;
@@ -1641,11 +1643,3 @@ body {
         filter: brightness(1.2);
     }
 }
-
-/* Статус подключения */
-.connection-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 12px;
