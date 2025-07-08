@@ -36,10 +36,7 @@ class MiniModals {
         // Form validation
         this.setupFormValidation();
         
-        // Добавляем отладочные логи
         console.log('✅ Modal event listeners setup completed');
-        console.log('confirm-purchase button:', document.getElementById('confirm-purchase'));
-        console.log('confirm-mass-purchase button:', document.getElementById('confirm-mass-purchase'));
     }
 
     setupFormValidation() {
@@ -115,11 +112,13 @@ class MiniModals {
         // Reset form
         this.resetPurchaseForm();
         
+        // Показываем информацию о кошельке если подключен
+        this.updateWalletInfoInModal('purchase');
+        
         this.activeModal = 'purchase-modal';
         const modal = document.getElementById('purchase-modal');
         if (modal) {
             modal.classList.add('active');
-            // Добавляем вибрацию для обратной связи
             MiniUtils.vibrate([100]);
         }
     }
@@ -146,7 +145,7 @@ class MiniModals {
         });
     }
 
-    confirmPurchase() {
+    async confirmPurchase() {
         const purchasePixelId = document.getElementById('purchase-pixel-id');
         const categorySelect = document.getElementById('category-select');
         const telegramLink = document.getElementById('telegram-link');
@@ -165,6 +164,25 @@ class MiniModals {
         // Validation
         if (!this.validatePurchaseForm(category, telegramLinkValue)) {
             return;
+        }
+
+        // Проверяем кошелек если подключен
+        if (window.miniWallet && window.miniWallet.isConnected) {
+            this.showLoadingState('purchase-modal', true);
+            
+            try {
+                const success = await window.miniWallet.purchasePixel(pixelId, 5);
+                if (!success) {
+                    this.showLoadingState('purchase-modal', false);
+                    return;
+                }
+            } catch (error) {
+                this.showLoadingState('purchase-modal', false);
+                MiniUtils.showNotification('Ошибка платежа', 'error');
+                return;
+            }
+            
+            this.showLoadingState('purchase-modal', false);
         }
 
         const purchaseData = {
@@ -218,6 +236,9 @@ class MiniModals {
         // Reset form
         this.resetMassPurchaseForm();
         
+        // Показываем информацию о кошельке если подключен
+        this.updateWalletInfoInModal('mass-purchase');
+        
         this.activeModal = 'mass-purchase-modal';
         const modal = document.getElementById('mass-purchase-modal');
         if (modal) {
@@ -246,9 +267,10 @@ class MiniModals {
         });
     }
 
-    confirmMassPurchase() {
+    async confirmMassPurchase() {
         const massCategorySelect = document.getElementById('mass-category-select');
         const massTelegramLink = document.getElementById('mass-telegram-link');
+        const massCount = document.getElementById('mass-count');
         
         if (!massCategorySelect || !massTelegramLink) {
             MiniUtils.showNotification('Ошибка формы', 'error');
@@ -257,10 +279,31 @@ class MiniModals {
         
         const category = massCategorySelect.value;
         const telegramLink = massTelegramLink.value.trim();
+        const count = parseInt(massCount.textContent || '0');
+        const total = count * 5;
 
         // Validation
         if (!this.validateMassPurchaseForm(category, telegramLink)) {
             return;
+        }
+
+        // Проверяем кошелек если подключен
+        if (window.miniWallet && window.miniWallet.isConnected) {
+            this.showLoadingState('mass-purchase-modal', true);
+            
+            try {
+                const success = await window.miniWallet.purchasePixel(null, total);
+                if (!success) {
+                    this.showLoadingState('mass-purchase-modal', false);
+                    return;
+                }
+            } catch (error) {
+                this.showLoadingState('mass-purchase-modal', false);
+                MiniUtils.showNotification('Ошибка платежа', 'error');
+                return;
+            }
+            
+            this.showLoadingState('mass-purchase-modal', false);
         }
 
         // Call mass purchase method from grid
@@ -297,6 +340,72 @@ class MiniModals {
         }
 
         return isValid;
+    }
+
+    // === WALLET INTEGRATION ===
+    updateWalletInfoInModal(modalType) {
+        if (!window.miniWallet) return;
+
+        const isConnected = window.miniWallet.isConnected;
+        const balance = window.miniWallet.balance;
+        
+        // Добавляем информацию о кошельке в модальные окна
+        const modalId = modalType === 'purchase' ? 'purchase-modal' : 'mass-purchase-modal';
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        // Ищем существующий блок с информацией о кошельке
+        let walletInfo = modal.querySelector('.wallet-info-block');
+        
+        if (!walletInfo) {
+            walletInfo = document.createElement('div');
+            walletInfo.className = 'wallet-info-block';
+            
+            // Вставляем перед кнопками действий
+            const modalActions = modal.querySelector('.modal-actions');
+            if (modalActions) {
+                modalActions.parentNode.insertBefore(walletInfo, modalActions);
+            }
+        }
+
+        if (isConnected) {
+            const price = modalType === 'purchase' ? 5 : parseInt(document.getElementById('mass-total')?.textContent || '0');
+            const canAfford = balance >= price;
+            
+            walletInfo.innerHTML = `
+                <div style="background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 8px; padding: 12px; margin: 16px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="font-size: 16px;">💎</span>
+                        <span style="color: #00D4FF; font-weight: 600; font-size: 12px;">TON Кошелек подключен</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                        <span style="color: rgba(255,255,255,0.7);">Баланс:</span>
+                        <span style="color: ${canAfford ? '#00FF88' : '#FFB800'}; font-weight: 600;">${balance.toFixed(2)} TON</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                        <span style="color: rgba(255,255,255,0.7);">К оплате:</span>
+                        <span style="color: #fff; font-weight: 600;">${price} TON</span>
+                    </div>
+                    ${!canAfford ? '<div style="color: #FFB800; font-size: 10px; margin-top: 4px; text-align: center;">⚠️ Недостаточно средств</div>' : ''}
+                </div>
+            `;
+        } else {
+            walletInfo.innerHTML = `
+                <div style="background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.3); border-radius: 8px; padding: 12px; margin: 16px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="font-size: 16px;">👛</span>
+                        <span style="color: #FFB800; font-weight: 600; font-size: 12px;">Кошелек не подключен</span>
+                    </div>
+                    <div style="color: rgba(255,184,0,0.8); font-size: 10px; text-align: center;">
+                        Подключите TON кошелек для покупки пикселей
+                    </div>
+                    <button onclick="window.miniChannels?.openMainSidebar(); setTimeout(() => document.getElementById('wallet-connect-btn')?.click(), 300);" 
+                            style="width: 100%; margin-top: 8px; padding: 6px 12px; background: linear-gradient(45deg, #FFB800, #FF9500); color: #000; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;">
+                        Подключить кошелек
+                    </button>
+                </div>
+            `;
+        }
     }
 
     // === PIXEL INFO MODAL ===
@@ -408,7 +517,12 @@ class MiniModals {
             buttons.forEach(btn => {
                 btn.disabled = true;
                 if (btn.classList.contains('btn-success')) {
-                    btn.textContent = 'Обработка...';
+                    btn.innerHTML = `
+                        <div class="transaction-loader">
+                            <div class="spinner"></div>
+                            <span>Обработка...</span>
+                        </div>
+                    `;
                 }
             });
             inputs.forEach(input => input.disabled = true);
@@ -417,9 +531,9 @@ class MiniModals {
                 btn.disabled = false;
                 if (btn.classList.contains('btn-success')) {
                     if (modalId === 'purchase-modal') {
-                        btn.textContent = '💰 Купить';
+                        btn.innerHTML = '💰 Купить';
                     } else if (modalId === 'mass-purchase-modal') {
-                        btn.textContent = '🛒 Купить все';
+                        btn.innerHTML = '🛒 Купить все';
                     }
                 }
             });
@@ -568,7 +682,11 @@ class MiniModals {
 
     trackPurchase(pixelCount, totalCost) {
         console.log(`Purchase completed: ${pixelCount} pixels for ${totalCost} TON`);
-        // Здесь можно добавить отправку аналитики
+        
+        // Обновляем статистику кошелька если подключен
+        if (window.miniWallet && window.miniWallet.isConnected) {
+            window.miniWallet.updateUsageStats(totalCost, pixelCount);
+        }
     }
 
     // Error handling для форм
@@ -635,6 +753,36 @@ class MiniModals {
         document.querySelectorAll('.modal').forEach(modal => {
             observer.observe(modal, { attributes: true });
         });
+    }
+
+    // Методы для тестирования
+    async testPurchaseFlow() {
+        console.log('🧪 Testing purchase flow...');
+        
+        // Открываем модал покупки
+        this.showPurchaseModal(42, 5);
+        
+        // Заполняем форму
+        setTimeout(() => {
+            const categorySelect = document.getElementById('category-select');
+            const telegramLink = document.getElementById('telegram-link');
+            const description = document.getElementById('pixel-description');
+            
+            if (categorySelect) categorySelect.value = 'Крипта';
+            if (telegramLink) telegramLink.value = '@test_channel';
+            if (description) description.value = 'Тестовый канал';
+            
+            console.log('✅ Form filled');
+        }, 500);
+    }
+
+    getModalStats() {
+        return {
+            activeModal: this.activeModal,
+            isOpen: this.isModalOpen(),
+            walletConnected: window.miniWallet?.isConnected || false,
+            walletBalance: window.miniWallet?.balance || 0
+        };
     }
 }
 

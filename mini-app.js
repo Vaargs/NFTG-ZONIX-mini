@@ -6,6 +6,7 @@ class MiniApp {
         this.modals = null;
         this.channels = null;
         this.editor = null;
+        this.wallet = null;
         this.telegramConfig = null;
         
         this.currentMode = 'view';
@@ -71,10 +72,34 @@ class MiniApp {
         this.editor = new MiniEditor();
         window.miniEditor = this.editor;
         
+        // Initialize wallet (after TON Connect UI loads)
+        this.initializeWallet();
+        
         // Setup cross-module communication
         this.setupModuleCommunication();
         
         console.log('✅ All modules initialized');
+    }
+
+    initializeWallet() {
+        // Проверяем что TON Connect UI загружен
+        const checkTonConnect = () => {
+            if (typeof TON_CONNECT_UI !== 'undefined') {
+                try {
+                    this.wallet = new MiniWallet();
+                    window.miniWallet = this.wallet;
+                    console.log('✅ Wallet module initialized');
+                } catch (error) {
+                    console.warn('⚠️ Wallet initialization failed:', error);
+                    // Продолжаем работу без кошелька
+                }
+            } else {
+                // Повторяем попытку через 500ms
+                setTimeout(checkTonConnect, 500);
+            }
+        };
+        
+        checkTonConnect();
     }
 
     setupModuleCommunication() {
@@ -93,7 +118,7 @@ class MiniApp {
             this.channels.onPixelPurchased();
         };
 
-        // ДОБАВЛЕНО: Хук для обновления бесшовного режима после применения изображений
+        // Hook для обновления бесшовного режима после применения изображений
         const originalApplyToPixels = this.editor.applyToPixels.bind(this.editor);
         this.editor.applyToPixels = () => {
             originalApplyToPixels();
@@ -176,13 +201,23 @@ class MiniApp {
                     break;
                 case 's':
                 case 'S':
-                    // ДОБАВЛЕНО: Клавиша для переключения бесшовного режима
+                    // Клавиша для переключения бесшовного режима
                     if (this.grid) {
                         const newMode = this.grid.toggleSeamlessMode();
                         MiniUtils.showNotification(
                             `Бесшовный режим ${newMode ? 'включен' : 'выключен'}`, 
                             'info'
                         );
+                    }
+                    break;
+                case 'w':
+                case 'W':
+                    // Клавиша для открытия кошелька
+                    if (this.wallet) {
+                        this.channels.openMainSidebar();
+                        setTimeout(() => {
+                            document.getElementById('wallet-connect-btn')?.click();
+                        }, 300);
                     }
                     break;
                 case 'Escape':
@@ -355,7 +390,7 @@ class MiniApp {
             this.editor.setupCanvas();
         }
 
-        // ДОБАВЛЕНО: Обновляем бесшовный режим при изменении размера окна
+        // Обновляем бесшовный режим при изменении размера окна
         if (this.grid) {
             setTimeout(() => {
                 this.grid.updateSeamlessMode();
@@ -390,11 +425,16 @@ class MiniApp {
             this.channels.refreshChannels();
         }
 
-        // ДОБАВЛЕНО: Обновляем бесшовный режим при возвращении в приложение
+        // Обновляем бесшовный режим при возвращении в приложение
         if (this.grid) {
             setTimeout(() => {
                 this.grid.updateSeamlessMode();
             }, 100);
+        }
+
+        // Обновляем баланс кошелька
+        if (this.wallet && this.wallet.isConnected) {
+            this.wallet.loadBalance();
         }
 
         console.log('▶️ App foregrounded');
@@ -445,7 +485,7 @@ class MiniApp {
         }
     }
 
-    // ДОБАВЛЕНО: Методы для управления бесшовным режимом
+    // Методы для управления бесшовным режимом
     enableSeamlessMode() {
         if (this.grid) {
             this.grid.enableSeamlessMode();
@@ -472,6 +512,33 @@ class MiniApp {
         return false;
     }
 
+    // Методы для управления кошельком
+    connectWallet() {
+        if (this.wallet) {
+            return this.wallet.connectWallet();
+        } else {
+            MiniUtils.showNotification('Кошелек не инициализирован', 'error');
+            return Promise.resolve(false);
+        }
+    }
+
+    disconnectWallet() {
+        if (this.wallet) {
+            return this.wallet.disconnectWallet();
+        }
+    }
+
+    getWalletInfo() {
+        if (this.wallet) {
+            return {
+                isConnected: this.wallet.isConnected,
+                address: this.wallet.walletAddress,
+                balance: this.wallet.balance
+            };
+        }
+        return { isConnected: false, address: null, balance: 0 };
+    }
+
     // Debug and development methods
     getDebugInfo() {
         return {
@@ -481,10 +548,12 @@ class MiniApp {
             modules: {
                 grid: this.grid?.getDebugInfo?.() || 'Not available',
                 channels: this.channels?.getDebugInfo?.() || 'Not available',
-                editor: this.editor?.getState?.() || 'Not available'
+                editor: this.editor?.getState?.() || 'Not available',
+                wallet: this.wallet?.getDebugInfo?.() || 'Not available'
             },
             selectedPixels: this.getSelectedPixels(),
             seamlessMode: this.grid?.seamlessMode || false,
+            walletInfo: this.getWalletInfo(),
             performance: {
                 memory: performance.memory ? {
                     used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
@@ -500,6 +569,11 @@ class MiniApp {
             // Clear all data
             localStorage.clear();
             
+            // Disconnect wallet if connected
+            if (this.wallet && this.wallet.isConnected) {
+                this.wallet.disconnectWallet();
+            }
+            
             // Reload the page
             window.location.reload();
         }
@@ -510,8 +584,9 @@ class MiniApp {
             pixels: this.grid?.getAllPixels() || {},
             channels: this.channels?.channels || [],
             seamlessMode: this.grid?.seamlessMode || false,
+            walletConnected: this.wallet?.isConnected || false,
             exportDate: new Date().toISOString(),
-            version: '1.0.0'
+            version: '1.1.0'
         };
 
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -562,6 +637,42 @@ class MiniApp {
         
         MiniUtils.showNotification('Произошла ошибка', 'error');
     }
+
+    // Wallet integration helpers
+    async purchaseWithWallet(pixelId, price) {
+        if (!this.wallet) {
+            MiniUtils.showNotification('Кошелек не доступен', 'error');
+            return false;
+        }
+
+        if (!this.wallet.isConnected) {
+            MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
+            return false;
+        }
+
+        try {
+            const success = await this.wallet.purchasePixel(pixelId, price);
+            return success;
+        } catch (error) {
+            this.handleGlobalError(error, 'Wallet purchase');
+            return false;
+        }
+    }
+
+    async massPurchaseWithWallet(pixelIds, totalPrice) {
+        if (!this.wallet || !this.wallet.isConnected) {
+            MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
+            return false;
+        }
+
+        try {
+            const success = await this.wallet.purchasePixel(null, totalPrice);
+            return success;
+        } catch (error) {
+            this.handleGlobalError(error, 'Wallet mass purchase');
+            return false;
+        }
+    }
 }
 
 // Global error handlers
@@ -590,9 +701,12 @@ function initMiniApp() {
             window.toggleSeamless = () => window.miniApp.toggleSeamlessMode();
             window.enableSeamless = () => window.miniApp.enableSeamlessMode();
             window.disableSeamless = () => window.miniApp.disableSeamlessMode();
+            window.connectWallet = () => window.miniApp.connectWallet();
+            window.disconnectWallet = () => window.miniApp.disconnectWallet();
+            window.walletInfo = () => window.miniApp.getWalletInfo();
             
             console.log('🛠️ Development mode active');
-            console.log('Available commands: debugApp(), resetApp(), exportApp(), toggleSeamless(), enableSeamless(), disableSeamless()');
+            console.log('Available commands: debugApp(), resetApp(), exportApp(), toggleSeamless(), enableSeamless(), disableSeamless(), connectWallet(), disconnectWallet(), walletInfo()');
         }
         
     } catch (error) {

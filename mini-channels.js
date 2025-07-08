@@ -906,6 +906,18 @@ class MiniChannels {
         return stats;
     }
 
+    refreshChannels() {
+        console.log('Refreshing channels data...');
+        
+        // Перезагружаем каналы из пикселей
+        this.loadChannelsFromPixels();
+        
+        // Применяем текущие фильтры
+        this.applyFilters();
+        
+        console.log('Channels refreshed');
+    }
+
     // Helper method for debugging
     getDebugInfo() {
         return {
