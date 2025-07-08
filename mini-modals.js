@@ -102,7 +102,7 @@ class MiniModals {
     }
 
     // === PURCHASE MODAL ===
-    showPurchaseModal(pixelId, pixelPrice = 5) {
+    showPurchaseModal(pixelId, pixelPrice = 0.01) {
         const purchasePixelId = document.getElementById('purchase-pixel-id');
         const purchasePrice = document.getElementById('purchase-price');
         
@@ -171,7 +171,7 @@ class MiniModals {
             this.showLoadingState('purchase-modal', true);
             
             try {
-                const success = await window.miniWallet.purchasePixel(pixelId, 5);
+                const success = await window.miniWallet.purchasePixel(pixelId, 0.01);
                 if (!success) {
                     this.showLoadingState('purchase-modal', false);
                     return;
@@ -223,7 +223,7 @@ class MiniModals {
     }
 
     // === MASS PURCHASE MODAL ===
-    showMassPurchaseModal(selectedPixels, pixelPrice = 5) {
+    showMassPurchaseModal(selectedPixels, pixelPrice = 0.01) {
         const count = selectedPixels.size;
         const total = count * pixelPrice;
 
@@ -280,7 +280,7 @@ class MiniModals {
         const category = massCategorySelect.value;
         const telegramLink = massTelegramLink.value.trim();
         const count = parseInt(massCount.textContent || '0');
-        const total = count * 5;
+        const total = count * 0.01;
 
         // Validation
         if (!this.validateMassPurchaseForm(category, telegramLink)) {
@@ -369,7 +369,7 @@ class MiniModals {
         }
 
         if (isConnected) {
-            const price = modalType === 'purchase' ? 5 : parseInt(document.getElementById('mass-total')?.textContent || '0');
+            const price = modalType === 'purchase' ? 0.01 : parseFloat(document.getElementById('mass-total')?.textContent || '0');
             const canAfford = balance >= price;
             
             walletInfo.innerHTML = `
@@ -420,7 +420,7 @@ class MiniModals {
         if (infoOwner) infoOwner.textContent = pixelData.channel || pixelData.owner || '@unknown';
         if (infoCategory) infoCategory.textContent = pixelData.category || 'Не указана';
         if (infoDate) infoDate.textContent = MiniUtils.formatDate(pixelData.purchaseDate);
-        if (infoPrice) infoPrice.textContent = MiniUtils.formatPrice(pixelData.price || 5);
+        if (infoPrice) infoPrice.textContent = MiniUtils.formatPrice(pixelData.price || 0.01);
 
         // Store channel link for visit button
         this.currentChannelLink = pixelData.telegramLink || MiniUtils.normalizeTelegramLink(pixelData.channel || '');
@@ -539,241 +539,6 @@ class MiniModals {
             });
             inputs.forEach(input => input.disabled = false);
         }
-    }
-
-    // Telegram WebApp specific methods
-    initTelegramWebAppHandlers() {
-        const config = MiniUtils.getTelegramConfig();
-        
-        if (config.isWebApp) {
-            // Обработка кнопки "Назад" в Telegram
-            config.telegram.onEvent('backButtonClicked', () => {
-                if (this.isModalOpen()) {
-                    this.closeAllModals();
-                } else {
-                    config.telegram.close();
-                }
-            });
-
-            // Показываем кнопку назад когда открыта модалка
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        const modal = mutation.target;
-                        if (modal.classList.contains('active')) {
-                            config.telegram.BackButton.show();
-                        } else if (!this.isModalOpen()) {
-                            config.telegram.BackButton.hide();
-                        }
-                    }
-                });
-            });
-
-            // Наблюдаем за всеми модальными окнами
-            document.querySelectorAll('.modal').forEach(modal => {
-                observer.observe(modal, { attributes: true });
-            });
-        }
-    }
-
-    // Validation helpers
-    highlightInvalidField(fieldId, message) {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.classList.add('invalid');
-            field.focus();
-            
-            // Создаем временную подсказку
-            const hint = document.createElement('div');
-            hint.className = 'validation-hint';
-            hint.textContent = message;
-            hint.style.cssText = `
-                position: absolute;
-                top: 100%;
-                left: 0;
-                background: #ff4444;
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 11px;
-                z-index: 1000;
-                margin-top: 2px;
-            `;
-            
-            field.style.position = 'relative';
-            field.parentNode.appendChild(hint);
-            
-            // Удаляем подсказку через 3 секунды
-            setTimeout(() => {
-                if (hint.parentNode) {
-                    hint.parentNode.removeChild(hint);
-                }
-            }, 3000);
-        }
-    }
-
-    removeValidationHighlight(fieldId) {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.classList.remove('invalid');
-            
-            // Удаляем подсказку если есть
-            const hint = field.parentNode.querySelector('.validation-hint');
-            if (hint) {
-                hint.parentNode.removeChild(hint);
-            }
-        }
-    }
-
-    // Auto-save form data (для улучшения UX)
-    setupAutoSave() {
-        const forms = ['purchase-modal', 'mass-purchase-modal'];
-        
-        forms.forEach(formId => {
-            const form = document.getElementById(formId);
-            if (form) {
-                const inputs = form.querySelectorAll('input, select, textarea');
-                
-                inputs.forEach(input => {
-                    input.addEventListener('input', MiniUtils.debounce(() => {
-                        this.saveFormData(formId);
-                    }, 500));
-                });
-            }
-        });
-    }
-
-    saveFormData(formId) {
-        const form = document.getElementById(formId);
-        if (!form) return;
-
-        const formData = {};
-        const inputs = form.querySelectorAll('input, select, textarea');
-        
-        inputs.forEach(input => {
-            if (input.id) {
-                formData[input.id] = input.value;
-            }
-        });
-
-        MiniUtils.saveToStorage(`form-${formId}`, formData);
-    }
-
-    loadFormData(formId) {
-        const formData = MiniUtils.loadFromStorage(`form-${formId}`, {});
-        
-        Object.keys(formData).forEach(inputId => {
-            const input = document.getElementById(inputId);
-            if (input && formData[inputId]) {
-                input.value = formData[inputId];
-            }
-        });
-    }
-
-    clearFormData(formId) {
-        localStorage.removeItem(`form-${formId}`);
-    }
-
-    // Analytics/metrics helpers (для будущего использования)
-    trackModalOpen(modalType) {
-        console.log(`Modal opened: ${modalType}`);
-        // Здесь можно добавить отправку аналитики
-    }
-
-    trackPurchase(pixelCount, totalCost) {
-        console.log(`Purchase completed: ${pixelCount} pixels for ${totalCost} TON`);
-        
-        // Обновляем статистику кошелька если подключен
-        if (window.miniWallet && window.miniWallet.isConnected) {
-            window.miniWallet.updateUsageStats(totalCost, pixelCount);
-        }
-    }
-
-    // Error handling для форм
-    handleFormError(error, formId) {
-        console.error(`Form error in ${formId}:`, error);
-        
-        this.showLoadingState(formId, false);
-        
-        let message = 'Произошла ошибка при отправке формы';
-        if (error.message) {
-            message += `: ${error.message}`;
-        }
-        
-        MiniUtils.showNotification(message, 'error');
-    }
-
-    // Accessibility helpers
-    setupAccessibility() {
-        // Добавляем поддержку навигации по клавиатуре
-        document.addEventListener('keydown', (e) => {
-            if (!this.isModalOpen()) return;
-
-            // Tab навигация внутри модальных окон
-            if (e.key === 'Tab') {
-                const modal = document.querySelector('.modal.active');
-                if (modal) {
-                    const focusableElements = modal.querySelectorAll(
-                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                    );
-                    
-                    const firstElement = focusableElements[0];
-                    const lastElement = focusableElements[focusableElements.length - 1];
-
-                    if (e.shiftKey) {
-                        if (document.activeElement === firstElement) {
-                            lastElement.focus();
-                            e.preventDefault();
-                        }
-                    } else {
-                        if (document.activeElement === lastElement) {
-                            firstElement.focus();
-                            e.preventDefault();
-                        }
-                    }
-                }
-            }
-        });
-
-        // Автофокус на первый элемент при открытии модального окна
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    const modal = mutation.target;
-                    if (modal.classList.contains('active')) {
-                        const firstInput = modal.querySelector('input, select, textarea, button');
-                        if (firstInput) {
-                            setTimeout(() => firstInput.focus(), 100);
-                        }
-                    }
-                }
-            });
-        });
-
-        document.querySelectorAll('.modal').forEach(modal => {
-            observer.observe(modal, { attributes: true });
-        });
-    }
-
-    // Методы для тестирования
-    async testPurchaseFlow() {
-        console.log('🧪 Testing purchase flow...');
-        
-        // Открываем модал покупки
-        this.showPurchaseModal(42, 5);
-        
-        // Заполняем форму
-        setTimeout(() => {
-            const categorySelect = document.getElementById('category-select');
-            const telegramLink = document.getElementById('telegram-link');
-            const description = document.getElementById('pixel-description');
-            
-            if (categorySelect) categorySelect.value = 'Крипта';
-            if (telegramLink) telegramLink.value = '@test_channel';
-            if (description) description.value = 'Тестовый канал';
-            
-            console.log('✅ Form filled');
-        }, 500);
     }
 
     getModalStats() {

@@ -604,17 +604,17 @@ class MiniGrid {
                 if (this.selectedPixels.size === 1) {
                     const pixelId = Array.from(this.selectedPixels)[0];
                     if (window.miniModals) {
-                        window.miniModals.showPurchaseModal(pixelId, 5);
+                        window.miniModals.showPurchaseModal(pixelId, 0.01);
                     }
                 } else if (this.selectedPixels.size > 1) {
                     if (window.miniModals) {
-                        window.miniModals.showMassPurchaseModal(this.selectedPixels, 5);
+                        window.miniModals.showMassPurchaseModal(this.selectedPixels, 0.01);
                     }
                 }
                 break;
             case 'mass-buy':
                 if (window.miniModals) {
-                    window.miniModals.showMassPurchaseModal(this.massSelectedPixels, 5);
+                    window.miniModals.showMassPurchaseModal(this.massSelectedPixels, 0.01);
                 }
                 break;
             case 'edit':
@@ -631,7 +631,7 @@ class MiniGrid {
             this.pixels.set(pixelId, {
                 ...data,
                 purchaseDate: new Date().toISOString(),
-                price: 5,
+                price: 0.01,
                 pixelId
             });
 
@@ -668,7 +668,7 @@ class MiniGrid {
             this.pixels.set(pixelId, {
                 ...purchaseData,
                 purchaseDate: new Date().toISOString(),
-                price: 5,
+                price: 0.01,
                 pixelId,
                 isMassPurchase: true
             });
@@ -837,7 +837,7 @@ class MiniGrid {
                     telegramLink: 'https://t.me/demo_channel',
                     category: 'Демо',
                     description: 'Демо-пиксель для тестирования',
-                    price: 5
+                    price: 0.01
                 });
             });
 
