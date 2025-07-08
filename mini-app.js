@@ -74,26 +74,6 @@ class MiniApp {
         // Setup cross-module communication
         this.setupModuleCommunication();
         
-        // Отладка: проверяем кнопки
-        setTimeout(() => {
-            console.log('🔍 Debugging buttons:');
-            console.log('confirm-purchase:', document.getElementById('confirm-purchase'));
-            console.log('confirm-mass-purchase:', document.getElementById('confirm-mass-purchase'));
-            console.log('cancel-purchase:', document.getElementById('cancel-purchase'));
-            
-            // Если кнопки есть, но обработчики не работают - переподключаем
-            const confirmBtn = document.getElementById('confirm-purchase');
-            if (confirmBtn && !confirmBtn.onclick) {
-                console.log('🔧 Manually attaching purchase handler');
-                confirmBtn.addEventListener('click', () => {
-                    console.log('Purchase button clicked!');
-                    if (window.miniModals) {
-                        window.miniModals.confirmPurchase();
-                    }
-                });
-            }
-        }, 1000);
-        
         console.log('✅ All modules initialized');
     }
 

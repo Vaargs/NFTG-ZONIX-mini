@@ -172,10 +172,24 @@ body {
     animation: massSelectPulse 2s infinite;
 }
 
+/* НОВОЕ: Простая подсветка для режима редактирования */
 .pixel.edit-selected {
-    border: 2px solid #9D4EDD;
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.8);
-    animation: glow 2s infinite alternate;
+    position: relative;
+}
+
+.pixel.edit-selected::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: rgba(157, 78, 221, 0.3);
+    border: 1px solid rgba(157, 78, 221, 0.8);
+    border-radius: 1px;
+    z-index: 5;
+    pointer-events: none;
+    animation: editSelectGlow 2s infinite alternate;
 }
 
 /* ИСПРАВЛЕНО: Пиксели с изображениями */
@@ -216,13 +230,36 @@ body {
     margin: 0 !important;
 }
 
-/* ИСПРАВЛЕНО: Границы только для групп изображений */
-.pixel.image-group-border {
-    box-shadow: 0 0 0 2px rgba(157, 78, 221, 0.8) !important;
-    border-radius: 4px !important;
+/* Убираем стандартные стили обводки для пикселей в группах */
+.pixel.group-border-top,
+.pixel.group-border-bottom,
+.pixel.group-border-left,
+.pixel.group-border-right {
+    box-shadow: none !important;
+    border-radius: 0 !important;
 }
 
-/* Убираем boundaries между соседними пикселями одной группы */
+.pixel.edit-group-border-top,
+.pixel.edit-group-border-bottom,
+.pixel.edit-group-border-left,
+.pixel.edit-group-border-right {
+    border-radius: 0 !important;
+}
+
+/* Убираем обычные границы для пикселей в бесшовном режиме */
+.pixel-grid.seamless .pixel.group-border-top,
+.pixel-grid.seamless .pixel.group-border-bottom,
+.pixel-grid.seamless .pixel.group-border-left,
+.pixel-grid.seamless .pixel.group-border-right {
+    border: none !important;
+}
+
+.pixel-grid.seamless .pixel.edit-group-border-top,
+.pixel-grid.seamless .pixel.edit-group-border-bottom {
+    border: none !important;
+}
+
+/* Убираем стандартные boundaries между соседними пикселями одной группы */
 .pixel.seamless-connected {
     border: none !important;
     border-radius: 0 !important;
@@ -242,9 +279,30 @@ body {
     }
 }
 
-@keyframes glow {
-    from { box-shadow: 0 0 15px rgba(157, 78, 221, 0.8); }
-    to { box-shadow: 0 0 25px rgba(157, 78, 221, 1); }
+/* УПРОЩЕННЫЕ АНИМАЦИИ */
+@keyframes editSelectGlow {
+    from { 
+        background: rgba(157, 78, 221, 0.2);
+        border-color: rgba(157, 78, 221, 0.6);
+    }
+    to { 
+        background: rgba(157, 78, 221, 0.4);
+        border-color: rgba(157, 78, 221, 1);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes massSelectPulse {
+    0%, 100% { 
+        box-shadow: 0 0 12px rgba(255, 107, 53, 0.8);
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(255, 107, 53, 1);
+    }
 }
 
 /* === FLOATING CONTROLS === */

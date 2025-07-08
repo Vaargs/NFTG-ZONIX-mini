@@ -700,13 +700,13 @@ class MiniGrid {
         MiniUtils.showNotification(`Куплено ${pixelsToUpdate.length} пикселей!`, 'success');
     }
 
-    // ИСПРАВЛЕНО: Улучшенный updatePixelDisplay для правильного отображения изображений
+    // ИСПРАВЛЕНО: Упрощенный updatePixelDisplay без обводки
     updatePixelDisplay() {
         for (let i = 0; i < this.gridSize * this.gridSize; i++) {
             const pixel = document.querySelector(`[data-id="${i}"]`);
             if (!pixel) continue;
 
-            // Удаляем все классы состояния
+            // УПРОЩЕНО: Удаляем только основные классы состояния
             pixel.classList.remove('owned', 'selected', 'mass-selected', 'edit-selected', 'with-image');
             
             // ИСПРАВЛЕНО: Сбрасываем стили фона
@@ -745,13 +745,13 @@ class MiniGrid {
             }
         }
 
-        // ДОБАВЛЕНО: Обновляем бесшовный режим после обновления отображения
+        // УПРОЩЕНО: Просто обновляем бесшовный режим
         setTimeout(() => {
             this.updateSeamlessMode();
         }, 50);
     }
 
-    // ДОБАВЛЕНО: Новый метод для управления бесшовным режимом
+    // УПРОЩЕНО: Простой бесшовный режим без обводки
     updateSeamlessMode() {
         const grid = document.getElementById('pixel-grid');
         if (!grid) return;
@@ -770,101 +770,18 @@ class MiniGrid {
         if (imagePixels.length > 0) {
             // Включаем бесшовный режим если есть изображения
             grid.classList.add('seamless');
-            this.applySeamlessStyles(imagePixels);
             console.log('Seamless mode enabled with', imagePixels.length, 'image pixels');
         } else {
             // Выключаем бесшовный режим если нет изображений
             grid.classList.remove('seamless');
-            this.removeSeamlessStyles();
             console.log('Seamless mode disabled - no image pixels');
         }
     }
 
-    // ДОБАВЛЕНО: Применение бесшовных стилей
-    applySeamlessStyles(imagePixels) {
-        // Сначала убираем все специальные классы
-        document.querySelectorAll('.pixel').forEach(pixel => {
-            pixel.classList.remove('seamless-connected', 'image-group-border');
-        });
-
-        // Группируем соседние пиксели с изображениями
-        const groups = this.findImageGroups(imagePixels);
-        console.log('Found image groups:', groups);
-
-        groups.forEach((group, groupIndex) => {
-            if (group.length === 1) {
-                // Одиночный пиксель - добавляем рамку
-                const pixel = document.querySelector(`[data-id="${group[0]}"]`);
-                if (pixel) {
-                    pixel.classList.add('image-group-border');
-                }
-            } else {
-                // Группа пикселей - делаем их бесшовными внутри группы
-                group.forEach(pixelId => {
-                    const pixel = document.querySelector(`[data-id="${pixelId}"]`);
-                    if (pixel) {
-                        pixel.classList.add('seamless-connected');
-                    }
-                });
-
-                // Добавляем рамку только по внешнему периметру группы
-                this.addGroupBorder(group);
-            }
-        });
-    }
-
-    // ДОБАВЛЕНО: Поиск групп соседних пикселей с изображениями
-    findImageGroups(imagePixels) {
-        const visited = new Set();
-        const groups = [];
-
-        imagePixels.forEach(pixelId => {
-            if (!visited.has(pixelId)) {
-                const group = this.dfsImageGroup(pixelId, imagePixels, visited);
-                if (group.length > 0) {
-                    groups.push(group);
-                }
-            }
-        });
-
-        return groups;
-    }
-
-    // ДОБАВЛЕНО: DFS для поиска связанных пикселей с изображениями
-    dfsImageGroup(pixelId, imagePixels, visited) {
-        if (visited.has(pixelId) || !imagePixels.includes(pixelId)) {
-            return [];
-        }
-
-        visited.add(pixelId);
-        const group = [pixelId];
-
-        const neighbors = MiniUtils.getNeighbors(pixelId, this.gridSize);
-        neighbors.forEach(neighborId => {
-            if (imagePixels.includes(neighborId)) {
-                group.push(...this.dfsImageGroup(neighborId, imagePixels, visited));
-            }
-        });
-
-        return group;
-    }
-
-    // ДОБАВЛЕНО: Добавление рамки вокруг группы
-    addGroupBorder(group) {
-        // Для всех пикселей группы добавляем общую рамку
-        group.forEach(pixelId => {
-            const pixel = document.querySelector(`[data-id="${pixelId}"]`);
-            if (pixel) {
-                pixel.classList.add('image-group-border');
-            }
-        });
-    }
-
-    // ДОБАВЛЕНО: Удаление бесшовных стилей
-    removeSeamlessStyles() {
-        document.querySelectorAll('.pixel').forEach(pixel => {
-            pixel.classList.remove('seamless-connected', 'image-group-border');
-        });
+    // ДОБАВЛЕНО: Удаление всех обводок групп (оставляем пустой метод для совместимости)
+    removeAllGroupBorders() {
+        // Метод оставлен для совместимости, но больше ничего не делает
+        console.log('Group borders removed (simplified)');
     }
 
     updateStatusInfo() {
@@ -987,7 +904,7 @@ class MiniGrid {
         if (grid) {
             grid.classList.remove('seamless');
         }
-        this.removeSeamlessStyles();
+        this.removeAllGroupBorders();
         console.log('Seamless mode disabled');
     }
 
