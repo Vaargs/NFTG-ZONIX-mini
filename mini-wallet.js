@@ -1,12 +1,30 @@
 // === MINI WALLET MANAGER ===
 
+// === КОНФИГУРАЦИЯ ПЛАТЕЖЕЙ ===
+class PaymentConfig {
+    static RECIPIENT_ADDRESS = "UQAeXSRClDQ5Xcx9WoKKfT9zn_pyk-Uep7fnSdnd_-4dUTHQ"; // ВАШ TON КОШЕЛЕК
+    static PIXEL_PRICE = 5; // Цена за пиксель в TON
+    static TRANSACTION_COMMENT = "NFTG-ZONIX Pixel Purchase"; // Комментарий к транзакции
+    
+    // Для тестирования можете использовать тестнет адрес
+    static TEST_RECIPIENT = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
+    
+    static getRecipientAddress(isTestnet = false) {
+        if (isTestnet) {
+            return this.TEST_RECIPIENT;
+        }
+        
+        return this.RECIPIENT_ADDRESS;
+    }
+}
+
 class MiniWallet {
     constructor() {
         this.tonConnect = null;
         this.isConnected = false;
         this.walletAddress = null;
         this.balance = 0;
-        this.isTestnet = true; // Для тестирования
+        this.isTestnet = false; // Установлено в false для реальных платежей
         
         this.init();
     }
@@ -51,9 +69,12 @@ class MiniWallet {
         } catch (error) {
             console.error('❌ Failed to initialize TON wallet:', error);
             
-            // Если ошибка связана с уже существующим компонентом, пробуем демо режим
-            if (error.message.includes('already been used') || error.message.includes('tc-root')) {
-                console.log('🔄 TON Connect already initialized, switching to demo mode');
+            // Если ошибка связана с манифестом или уже существующим компонентом
+            if (error.message.includes('already been used') || 
+                error.message.includes('tc-root') || 
+                error.message.includes('422') ||
+                error.message.includes('manifest')) {
+                console.log('🔄 TON Connect initialization failed, switching to demo mode');
                 this.initDemoMode();
             } else {
                 this.handleWalletError(error);
@@ -67,20 +88,50 @@ class MiniWallet {
         // Создаем кнопку подключения
         this.createConnectButton();
         
-        // В демо режиме сразу показываем как подключенный
+        // В демо режиме сразу показываем как подключенный через 2 секунды
         setTimeout(() => {
-            this.forceConnect();
-        }, 1000);
+            MiniUtils.showNotification('Демо режим кошелька активирован', 'info');
+        }, 500);
         
-        MiniUtils.showNotification('Демо режим кошелька активирован', 'info');
+        // Предлагаем ручное подключение
+        this.isDemoMode = true;
     }
 
     getManifestUrl() {
-        // В продакшене заменить на реальный URL
+        // Для localhost - создаем inline манифест
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json';
+            return this.createInlineManifest();
         }
-        return 'https://your-domain.com/tonconnect-manifest.json';
+        
+        // Для вашего Vercel домена - используем статический файл (более надежно)
+        if (window.location.hostname === 'nftg-zonix-mini.vercel.app') {
+            return `${window.location.origin}/tonconnect-manifest.json`;
+        }
+        
+        // Для продакшена - если у вас будет собственный домен
+        if (window.location.hostname.includes('nftg-zonix.com')) {
+            return `${window.location.origin}/tonconnect-manifest.json`;
+        }
+        
+        // Fallback: используем проверенный тестовый манифест
+        return 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json';
+    }
+
+    createInlineManifest() {
+        // Создаем blob URL с манифестом для localhost
+        const manifest = {
+            url: window.location.origin,
+            name: "NFTG-ZONIX Mini App",
+            iconUrl: "https://ton.org/download/ton_symbol.png", // Используем стандартную иконку TON
+            termsOfUseUrl: `${window.location.origin}`,
+            privacyPolicyUrl: `${window.location.origin}`
+        };
+        
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        console.log('Created inline manifest for localhost:', manifest);
+        return url;
     }
 
     createConnectButton() {
@@ -145,7 +196,7 @@ class MiniWallet {
 
     async checkExistingConnection() {
         try {
-            if (this.tonConnect) {
+            if (this.tonConnect && !this.isDemoMode) {
                 const currentWallet = this.tonConnect.wallet;
                 if (currentWallet?.account?.address) {
                     this.onWalletConnected(currentWallet);
@@ -168,26 +219,100 @@ class MiniWallet {
 
     async connectWallet() {
         try {
-            if (!this.tonConnect) {
-                // Если TON Connect недоступен, используем демо режим
-                this.forceConnect();
+            // Если демо режим или TON Connect недоступен
+            if (this.isDemoMode || !this.tonConnect) {
+                this.showDemoConnectOptions();
                 return;
             }
 
             MiniUtils.showNotification('Подключение кошелька...', 'info');
             
-            // Открываем модальное окно подключения
+            // Пробуем открыть модальное окно подключения
             await this.tonConnect.openModal();
             
         } catch (error) {
             console.error('Failed to connect wallet:', error);
-            MiniUtils.showNotification('Ошибка подключения кошелька', 'error');
+            
+            // Если ошибка подключения - предлагаем демо режим
+            this.showConnectionErrorOptions(error);
+        }
+    }
+
+    showDemoConnectOptions() {
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.showPopup({
+                title: 'Подключение кошелька',
+                message: 'Выберите способ подключения:',
+                buttons: [
+                    { id: 'demo', type: 'default', text: '🧪 Демо кошелек' },
+                    { id: 'real', type: 'default', text: '💎 Реальный кошелек' },
+                    { type: 'cancel' }
+                ]
+            }, (buttonId) => {
+                this.handleConnectOption(buttonId);
+            });
+        } else {
+            // Fallback для браузера
+            const options = `
+Демо режим кошелька активен.
+
+Опции:
+1. Подключить демо кошелек (demo)
+2. Попробовать реальный кошелек (real)
+
+Введите команду:`;
+            
+            const choice = prompt(options);
+            this.handleConnectOption(choice);
+        }
+    }
+
+    showConnectionErrorOptions(error) {
+        const errorMsg = error.message?.includes('manifest') ? 
+            'Ошибка загрузки манифеста кошелька' : 
+            'Ошибка подключения кошелька';
+
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.showPopup({
+                title: 'Ошибка подключения',
+                message: `${errorMsg}\n\nИспользовать демо режим?`,
+                buttons: [
+                    { id: 'demo', type: 'default', text: 'Да, демо режим' },
+                    { type: 'cancel', text: 'Отмена' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'demo') {
+                    this.forceConnect();
+                }
+            });
+        } else {
+            if (confirm(`${errorMsg}\n\nИспользовать демо режим для тестирования?`)) {
+                this.forceConnect();
+            }
+        }
+    }
+
+    handleConnectOption(option) {
+        switch (option) {
+            case 'demo':
+                this.forceConnect();
+                break;
+            case 'real':
+                if (this.tonConnect) {
+                    this.tonConnect.openModal().catch(error => {
+                        MiniUtils.showNotification('Не удалось открыть кошелек', 'error');
+                        console.error('Real wallet connection failed:', error);
+                    });
+                } else {
+                    MiniUtils.showNotification('TON Connect недоступен', 'error');
+                }
+                break;
         }
     }
 
     async disconnectWallet() {
         try {
-            if (this.tonConnect) {
+            if (this.tonConnect && !this.isDemoMode) {
                 await this.tonConnect.disconnect();
             } else {
                 // Для демо режима
@@ -195,6 +320,8 @@ class MiniWallet {
             }
         } catch (error) {
             console.error('Failed to disconnect wallet:', error);
+            // Принудительно отключаем
+            this.onWalletDisconnected();
         }
     }
 
@@ -209,16 +336,19 @@ class MiniWallet {
         // Загружаем баланс
         this.loadBalance();
         
-        MiniUtils.showNotification('Кошелек подключен!', 'success');
+        const walletType = this.isDemoMode ? 'Демо кошелек' : 'Кошелек';
+        MiniUtils.showNotification(`${walletType} подключен!`, 'success');
         MiniUtils.vibrate([100, 50, 100]);
         
         console.log('Wallet connected:', this.walletAddress);
+        console.log('Payments will go to:', PaymentConfig.RECIPIENT_ADDRESS);
     }
 
     onWalletDisconnected() {
         this.isConnected = false;
         this.walletAddress = null;
         this.balance = 0;
+        this.isDemoMode = false;
         
         // Обновляем UI
         this.updateWalletButton(false);
@@ -235,7 +365,8 @@ class MiniWallet {
         const walletButton = document.getElementById('wallet-connect-btn');
 
         if (connected) {
-            if (walletTitle) walletTitle.textContent = 'TON Кошелек';
+            const prefix = this.isDemoMode ? '🧪 ' : '💎 ';
+            if (walletTitle) walletTitle.textContent = `${prefix}TON Кошелек`;
             if (walletSubtitle) walletSubtitle.textContent = this.formatAddress(this.walletAddress);
             if (walletButton) walletButton.classList.add('connected');
         } else {
@@ -267,7 +398,8 @@ class MiniWallet {
         const balanceValue = document.getElementById('balance-value');
         if (balanceValue) {
             if (this.isConnected) {
-                balanceValue.textContent = `${this.balance.toFixed(2)} TON`;
+                const suffix = this.isDemoMode ? ' 🧪' : '';
+                balanceValue.textContent = `${this.balance.toFixed(2)} TON${suffix}`;
                 balanceValue.style.color = this.balance > 0 ? '#00FF88' : '#FFB800';
             } else {
                 balanceValue.textContent = '-';
@@ -282,11 +414,12 @@ class MiniWallet {
 
         // Добавляем индикатор TON к кнопке покупки
         const currentText = actionButton.textContent;
-        if (!currentText.includes('💎')) {
+        const icon = this.isDemoMode ? '🧪' : '💎';
+        if (!currentText.includes(icon)) {
             const originalHTML = actionButton.innerHTML;
             actionButton.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 6px;">
-                    <span>💎</span>
+                    <span>${icon}</span>
                     <span>${currentText}</span>
                 </div>
             `;
@@ -297,17 +430,29 @@ class MiniWallet {
         try {
             if (!this.walletAddress) return;
 
-            // Для тестирования используем mock баланс
-            if (this.isTestnet) {
+            // Для демо режима используем mock баланс
+            if (this.isDemoMode) {
                 this.balance = 100 + Math.random() * 50; // 100-150 TON для теста
                 this.updateStatusInfo();
                 return;
             }
 
-            // В продакшене здесь будет реальный запрос к API TON
-            // const response = await fetch(`https://tonapi.io/v2/accounts/${this.walletAddress}`);
-            // const data = await response.json();
-            // this.balance = data.balance / 1000000000; // Convert from nanoTON
+            // Для реального кошелька попробуем загрузить баланс через API
+            try {
+                const response = await fetch(`https://tonapi.io/v2/accounts/${this.walletAddress}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.balance = parseFloat(data.balance) / 1000000000; // Convert from nanoTON
+                } else {
+                    // Если API недоступен, используем mock
+                    this.balance = 50 + Math.random() * 100;
+                }
+            } catch (error) {
+                console.log('Could not load real balance, using mock');
+                this.balance = 50 + Math.random() * 100;
+            }
+            
+            this.updateStatusInfo();
             
         } catch (error) {
             console.error('Failed to load balance:', error);
@@ -317,12 +462,18 @@ class MiniWallet {
     }
 
     showWalletMenu() {
+        const walletType = this.isDemoMode ? 'Демо кошелек' : 'TON Кошелек';
+        const balanceText = this.isDemoMode ? 
+            `${this.balance.toFixed(2)} TON (тестовые)` : 
+            `${this.balance.toFixed(2)} TON`;
+
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.showPopup({
-                title: 'TON Кошелек',
-                message: `Адрес: ${this.formatAddress(this.walletAddress)}\nБаланс: ${this.balance.toFixed(2)} TON`,
+                title: walletType,
+                message: `Адрес: ${this.formatAddress(this.walletAddress)}\nБаланс: ${balanceText}\n\nПлатежи идут на:\n${this.formatAddress(PaymentConfig.RECIPIENT_ADDRESS)}`,
                 buttons: [
                     { id: 'copy', type: 'default', text: 'Копировать адрес' },
+                    ...(this.isDemoMode ? [{ id: 'add_balance', type: 'default', text: 'Добавить баланс' }] : []),
                     { id: 'disconnect', type: 'destructive', text: 'Отключить' },
                     { type: 'cancel' }
                 ]
@@ -331,7 +482,8 @@ class MiniWallet {
             });
         } else {
             // Fallback для браузера
-            const action = prompt(`TON Кошелек\nАдрес: ${this.formatAddress(this.walletAddress)}\nБаланс: ${this.balance.toFixed(2)} TON\n\nВведите 'copy' для копирования или 'disconnect' для отключения:`);
+            const demoOptions = this.isDemoMode ? '\n\'add\' - добавить баланс' : '';
+            const action = prompt(`${walletType}\nАдрес: ${this.formatAddress(this.walletAddress)}\nБаланс: ${balanceText}\n\nПлатежи идут на: ${this.formatAddress(PaymentConfig.RECIPIENT_ADDRESS)}\n\nВведите команду:\n'copy' - копировать адрес${demoOptions}\n'disconnect' - отключить:`);
             if (action) {
                 this.handleWalletMenuAction(action);
             }
@@ -343,6 +495,12 @@ class MiniWallet {
             case 'copy':
                 MiniUtils.copyToClipboard(this.walletAddress);
                 MiniUtils.showNotification('Адрес скопирован', 'success');
+                break;
+            case 'add_balance':
+            case 'add':
+                if (this.isDemoMode) {
+                    this.addBalance(50);
+                }
                 break;
             case 'disconnect':
                 this.disconnectWallet();
@@ -368,14 +526,27 @@ class MiniWallet {
         }
 
         try {
-            // В продакшене здесь будет реальная транзакция
-            if (this.isTestnet) {
+            // В демо режиме используем mock транзакцию
+            if (this.isDemoMode) {
                 return await this.mockTransaction(price);
             }
 
             // Реальная транзакция TON
-            // const transaction = await this.sendTransaction(price);
-            // return transaction.success;
+            MiniUtils.showNotification('Отправка транзакции...', 'info');
+            
+            const transaction = await this.sendTransaction(price, pixelId);
+            
+            if (transaction.success) {
+                // Обновляем баланс (приблизительно)
+                this.balance -= price;
+                this.updateStatusInfo();
+                
+                MiniUtils.showNotification(`Транзакция отправлена! ${price} TON → ${this.formatAddress(PaymentConfig.RECIPIENT_ADDRESS)}`, 'success');
+                return true;
+            } else {
+                MiniUtils.showNotification('Транзакция отклонена', 'error');
+                return false;
+            }
 
         } catch (error) {
             console.error('Purchase failed:', error);
@@ -387,40 +558,90 @@ class MiniWallet {
     async mockTransaction(amount) {
         // Имитация транзакции для тестирования
         return new Promise((resolve) => {
-            MiniUtils.showNotification('Обработка платежа...', 'info');
+            const transactionType = this.isDemoMode ? 'демо' : 'тестовый';
+            MiniUtils.showNotification(`Обработка ${transactionType} платежа...`, 'info');
             
             setTimeout(() => {
                 this.balance -= amount;
                 this.updateStatusInfo();
-                MiniUtils.showNotification(`Платеж ${amount} TON выполнен!`, 'success');
+                MiniUtils.showNotification(`${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)} платеж ${amount} TON выполнен!`, 'success');
                 resolve(true);
             }, 2000);
         });
     }
 
-    async sendTransaction(amount, toAddress = null) {
+    async sendTransaction(amount, pixelId = null, toAddress = null) {
         try {
             if (!this.tonConnect) {
                 throw new Error('TON Connect not available');
+            }
+
+            // Используем настроенный адрес получателя (ВАШ КОШЕЛЕК!)
+            const recipientAddress = toAddress || PaymentConfig.getRecipientAddress(this.isTestnet);
+            
+            // Создаем комментарий с информацией о покупке
+            let comment = PaymentConfig.TRANSACTION_COMMENT;
+            if (pixelId !== null) {
+                comment += ` - Pixel #${pixelId}`;
             }
 
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
                 messages: [
                     {
-                        address: toAddress || "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c", // placeholder
+                        address: recipientAddress,
                         amount: (amount * 1000000000).toString(), // Convert to nanoTON
-                        payload: "Pixel purchase" // comment
+                        payload: comment // Комментарий к транзакции
                     }
                 ]
             };
 
+            console.log('Sending transaction:', {
+                recipient: recipientAddress,
+                amount: `${amount} TON`,
+                comment: comment
+            });
+
             const result = await this.tonConnect.sendTransaction(transaction);
+            
+            // Сохраняем информацию о транзакции
+            this.saveTransactionInfo(amount, pixelId, recipientAddress, result);
+            
             return { success: true, result };
+            
         } catch (error) {
             console.error('Transaction failed:', error);
             return { success: false, error };
         }
+    }
+
+    saveTransactionInfo(amount, pixelId, recipient, transactionResult) {
+        const transactions = MiniUtils.loadFromStorage('nftg-transaction-history', []);
+        
+        const transaction = {
+            id: MiniUtils.generateId(),
+            amount: amount,
+            pixelId: pixelId,
+            recipient: recipient,
+            timestamp: new Date().toISOString(),
+            status: 'sent',
+            comment: `${PaymentConfig.TRANSACTION_COMMENT}${pixelId ? ` - Pixel #${pixelId}` : ''}`,
+            transactionResult: transactionResult
+        };
+        
+        transactions.push(transaction);
+        
+        // Сохраняем только последние 100 транзакций
+        if (transactions.length > 100) {
+            transactions.splice(0, transactions.length - 100);
+        }
+        
+        MiniUtils.saveToStorage('nftg-transaction-history', transactions);
+        console.log('Transaction saved to history:', transaction);
+    }
+
+    getTransactionHistory() {
+        return MiniUtils.loadFromStorage('nftg-transaction-history', []);
     }
 
     // Интеграция с существующими модалами покупки
@@ -432,7 +653,7 @@ class MiniWallet {
                 if (this.isConnected) {
                     const pixelIdElement = document.getElementById('purchase-pixel-id');
                     const pixelId = pixelIdElement ? parseInt(pixelIdElement.textContent) : null;
-                    const success = await this.purchasePixel(pixelId, 5); // 5 TON
+                    const success = await this.purchasePixel(pixelId, PaymentConfig.PIXEL_PRICE);
                     if (success) {
                         originalConfirmPurchase();
                     }
@@ -448,7 +669,7 @@ class MiniWallet {
             window.miniModals.confirmMassPurchase = async () => {
                 if (this.isConnected) {
                     const count = parseInt(document.getElementById('mass-count')?.textContent || '0');
-                    const total = count * 5;
+                    const total = count * PaymentConfig.PIXEL_PRICE;
                     const success = await this.purchasePixel(null, total);
                     if (success) {
                         originalConfirmMassPurchase();
@@ -492,6 +713,8 @@ class MiniWallet {
             message = 'Подключение отменено';
         } else if (error.message?.includes('Network')) {
             message = 'Проблема с сетью';
+        } else if (error.message?.includes('manifest')) {
+            message = 'Ошибка конфигурации кошелька';
         }
         
         MiniUtils.showNotification(message, 'error');
@@ -500,6 +723,7 @@ class MiniWallet {
     // Методы для управления из консоли
     async forceConnect() {
         this.isConnected = true;
+        this.isDemoMode = true;
         this.walletAddress = "UQDemoWalletAddressForTestingPurposes123456789";
         this.balance = 150;
         
@@ -508,6 +732,7 @@ class MiniWallet {
         
         MiniUtils.showNotification('Демо кошелек подключен!', 'success');
         console.log('Demo wallet connected for testing');
+        console.log('Real payments will go to:', PaymentConfig.RECIPIENT_ADDRESS);
     }
 
     async forceDisconnect() {
@@ -519,7 +744,8 @@ class MiniWallet {
         if (this.isConnected) {
             this.balance += amount;
             this.updateStatusInfo();
-            MiniUtils.showNotification(`Добавлено ${amount} TON`, 'success');
+            const prefix = this.isDemoMode ? 'Демо: ' : '';
+            MiniUtils.showNotification(`${prefix}Добавлено ${amount} TON`, 'success');
             console.log(`Added ${amount} TON, new balance: ${this.balance}`);
         } else {
             console.log('Wallet not connected');
@@ -533,8 +759,10 @@ class MiniWallet {
             walletAddress: this.walletAddress,
             balance: this.balance,
             isTestnet: this.isTestnet,
+            isDemoMode: this.isDemoMode || false,
             tonConnectReady: !!this.tonConnect,
-            manifestUrl: this.getManifestUrl()
+            manifestUrl: this.getManifestUrl(),
+            recipientAddress: PaymentConfig.RECIPIENT_ADDRESS
         };
     }
 
@@ -563,7 +791,8 @@ class MiniWallet {
             totalTransactions: 0,
             totalSpent: 0,
             pixelsPurchased: 0,
-            lastTransaction: null
+            lastTransaction: null,
+            demoMode: this.isDemoMode || false
         });
         
         return stats;
@@ -576,6 +805,7 @@ class MiniWallet {
         stats.totalSpent += amount;
         stats.pixelsPurchased += pixelCount;
         stats.lastTransaction = new Date().toISOString();
+        stats.demoMode = this.isDemoMode || false;
         
         MiniUtils.saveToStorage('nftg-wallet-stats', stats);
         
@@ -588,6 +818,8 @@ class MiniWallet {
             address: this.walletAddress,
             stats: this.getUsageStats(),
             isTestnet: this.isTestnet,
+            isDemoMode: this.isDemoMode || false,
+            recipientAddress: PaymentConfig.RECIPIENT_ADDRESS,
             exportDate: new Date().toISOString()
         };
         
@@ -628,6 +860,7 @@ function initWallet() {
                     
                     console.log('🛠️ Wallet development mode active');
                     console.log('Available commands: connectDemoWallet(), disconnectDemoWallet(), addBalance(amount), testPurchase(amount), walletStats(), exportWallet(), setTestMode(true/false)');
+                    console.log('💰 Payments will go to:', PaymentConfig.RECIPIENT_ADDRESS);
                 }
             } else {
                 console.log('Wallet already initialized');
