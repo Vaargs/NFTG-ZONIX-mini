@@ -98,23 +98,18 @@ class MiniWallet {
     }
 
     getManifestUrl() {
+        // Для вашего Vercel домена - используем статический файл
+        if (window.location.hostname === 'nftg-zonix-mini.vercel.app') {
+            return `${window.location.origin}/tonconnect-manifest.json`;
+        }
+        
         // Для localhost - создаем inline манифест
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return this.createInlineManifest();
         }
         
-        // Для вашего Vercel домена - используем статический файл (более надежно)
-        if (window.location.hostname === 'nftg-zonix-mini.vercel.app') {
-            return `${window.location.origin}/tonconnect-manifest.json`;
-        }
-        
-        // Для продакшена - если у вас будет собственный домен
-        if (window.location.hostname.includes('nftg-zonix.com')) {
-            return `${window.location.origin}/tonconnect-manifest.json`;
-        }
-        
-        // Fallback: используем проверенный тестовый манифест
-        return 'https://raw.githubusercontent.com/ton-community/tutorials/main/03-client/test/public/tonconnect-manifest.json';
+        // Для других доменов - используем статический файл
+        return `${window.location.origin}/tonconnect-manifest.json`;
     }
 
     createInlineManifest() {

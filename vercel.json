@@ -1,15 +1,7 @@
 {
-  "functions": {
-    "api/tonconnect-manifest.js": {
-      "maxDuration": 10
-    },
-    "api/payment-webhook.js": {
-      "maxDuration": 10
-    }
-  },
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/tonconnect-manifest.json",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
@@ -18,6 +10,19 @@
         {
           "key": "Content-Type",
           "value": "application/json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "ALLOWALL"
         }
       ]
     }
