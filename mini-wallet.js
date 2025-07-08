@@ -530,8 +530,8 @@ class MiniWallet {
                 messages: [
                     {
                         address: recipientAddress,
-                        amount: amountInNano,
-                        payload: comment
+                        amount: amountInNano
+                        // Убрали payload чтобы избежать ошибки формата
                     }
                 ]
             };
