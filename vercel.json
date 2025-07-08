@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/tonconnect-manifest.js": {
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/tonconnect-manifest.json",
@@ -8,12 +13,25 @@
           "value": "*"
         },
         {
-          "key": "Content-Type",
+          "key": "Content-Type", 
           "value": "application/json"
         },
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json"
         }
       ]
     },
