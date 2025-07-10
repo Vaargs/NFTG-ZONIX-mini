@@ -143,9 +143,8 @@ class MiniWallet {
             };
         }
 
-        setTimeout(() => {
-            this.enhancePurchaseModals();
-        }, 1000);
+        // УБРАНО: Удаляем дублирующую логику enhancePurchaseModals
+        // Теперь вся логика покупки находится в mini-modals.js
     }
 
     async checkExistingConnection() {
@@ -456,6 +455,7 @@ class MiniWallet {
         return `${address.slice(0, 6)}...${address.slice(-6)}`;
     }
 
+    // ОСНОВНОЙ МЕТОД ПОКУПКИ - вызывается из mini-modals.js
     async purchasePixel(pixelId, price) {
         if (!this.isConnected) {
             MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
@@ -580,40 +580,6 @@ class MiniWallet {
 
     getTransactionHistory() {
         return MiniUtils.loadFromStorage('nftg-transaction-history', []);
-    }
-
-    enhancePurchaseModals() {
-        const originalConfirmPurchase = window.miniModals?.confirmPurchase?.bind(window.miniModals);
-        if (originalConfirmPurchase) {
-            window.miniModals.confirmPurchase = async () => {
-                if (this.isConnected) {
-                    const pixelIdElement = document.getElementById('purchase-pixel-id');
-                    const pixelId = pixelIdElement ? parseInt(pixelIdElement.textContent) : null;
-                    const success = await this.purchasePixel(pixelId, PaymentConfig.PIXEL_PRICE);
-                    if (success) {
-                        originalConfirmPurchase();
-                    }
-                } else {
-                    MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
-                }
-            };
-        }
-
-        const originalConfirmMassPurchase = window.miniModals?.confirmMassPurchase?.bind(window.miniModals);
-        if (originalConfirmMassPurchase) {
-            window.miniModals.confirmMassPurchase = async () => {
-                if (this.isConnected) {
-                    const count = parseInt(document.getElementById('mass-count')?.textContent || '0');
-                    const total = count * PaymentConfig.PIXEL_PRICE;
-                    const success = await this.purchasePixel(null, total);
-                    if (success) {
-                        originalConfirmMassPurchase();
-                    }
-                } else {
-                    MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
-                }
-            };
-        }
     }
 
     isWalletConnected() {
