@@ -557,38 +557,39 @@ class MiniGrid {
     // Action button management
     showActionButton(type) {
         const container = document.getElementById('action-button-container');
-        const button = document.getElementById('action-button');
         
-        if (!container || !button) return;
+        if (!container) return;
         
-        // Определяем текст и стиль кнопки
-        let buttonText = 'Действие';
-        let buttonClass = 'buy-mode';
+        // Очищаем контейнер
+        container.innerHTML = '';
         
         switch (type) {
             case 'buy':
                 const selectedCount = this.selectedPixels.size;
-                buttonText = selectedCount > 1 ? `Купить ${selectedCount} пикселей` : 'Купить пиксель';
-                buttonClass = 'buy-mode';
+                const buttonText = selectedCount > 1 ? `Купить ${selectedCount} пикселей` : 'Купить пиксель';
+                this.createActionButton(container, buttonText, 'buy-mode', () => this.handleActionButtonClick('buy'));
                 break;
             case 'mass-buy':
                 const massCount = this.massSelectedPixels.size;
-                buttonText = `Купить ${massCount} пикселей`;
-                buttonClass = 'mass-buy-mode';
+                this.createActionButton(container, `Купить ${massCount} пикселей`, 'mass-buy-mode', () => this.handleActionButtonClick('mass-buy'));
                 break;
             case 'edit':
                 const editCount = this.editSelectedPixels.size;
-                buttonText = editCount > 1 ? 'Редактировать область' : 'Редактировать пиксель';
-                buttonClass = 'edit-mode';
+                // Создаем две кнопки для режима редактирования
+                this.createActionButton(container, editCount > 1 ? 'Редактировать область' : 'Редактировать пиксель', 'edit-mode', () => this.handleActionButtonClick('edit'));
+                this.createActionButton(container, 'Редактировать информацию', 'edit-info-mode', () => this.handleActionButtonClick('edit-info'));
                 break;
         }
         
-        button.textContent = buttonText;
-        button.className = `action-button ${buttonClass}`;
         container.classList.add('show');
-        
-        // Добавляем обработчик клика
-        button.onclick = () => this.handleActionButtonClick(type);
+    }
+
+    createActionButton(container, text, className, onClick) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.className = `action-button ${className}`;
+        button.onclick = onClick;
+        container.appendChild(button);
     }
 
     hideActionButton() {
@@ -620,6 +621,12 @@ class MiniGrid {
             case 'edit':
                 if (window.miniEditor) {
                     window.miniEditor.openEditor(Array.from(this.editSelectedPixels));
+                }
+                break;
+            case 'edit-info':
+                // НОВОЕ: Открываем модальное окно редактирования информации
+                if (window.miniModals) {
+                    window.miniModals.showPixelInfoEditModal(Array.from(this.editSelectedPixels));
                 }
                 break;
         }

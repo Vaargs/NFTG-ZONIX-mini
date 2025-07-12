@@ -3,17 +3,23 @@
 class MiniModals {
     constructor() {
         this.activeModal = null;
+        this.selectedCategories = [];
+        this.currentPixelIds = [];
         this.setupEventListeners();
     }
 
     setupEventListeners() {
-        // Purchase Modal
+        // Purchase Modal (БЕЗ КАТЕГОРИЙ)
         document.getElementById('confirm-purchase')?.addEventListener('click', () => this.confirmPurchase());
         document.getElementById('cancel-purchase')?.addEventListener('click', () => this.closePurchaseModal());
 
-        // Mass Purchase Modal
+        // Mass Purchase Modal (БЕЗ КАТЕГОРИЙ)
         document.getElementById('confirm-mass-purchase')?.addEventListener('click', () => this.confirmMassPurchase());
         document.getElementById('cancel-mass-purchase')?.addEventListener('click', () => this.closeMassPurchaseModal());
+
+        // НОВОЕ: Pixel Info Edit Modal
+        document.getElementById('save-pixel-info')?.addEventListener('click', () => this.savePixelInfo());
+        document.getElementById('cancel-pixel-info-edit')?.addEventListener('click', () => this.closePixelInfoEditModal());
 
         // Pixel Info Modal
         document.getElementById('visit-channel')?.addEventListener('click', () => this.visitChannel());
@@ -36,12 +42,15 @@ class MiniModals {
         // Form validation
         this.setupFormValidation();
         
+        // НОВОЕ: Category selection for pixel info edit
+        this.setupCategorySelection();
+        
         console.log('✅ Modal event listeners setup completed');
     }
 
     setupFormValidation() {
         // Real-time validation for Telegram links
-        const telegramInputs = ['telegram-link', 'mass-telegram-link'];
+        const telegramInputs = ['telegram-link', 'mass-telegram-link', 'edit-telegram-link'];
 
         telegramInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
@@ -51,14 +60,63 @@ class MiniModals {
             }
         });
 
-        // Category validation
-        const categorySelects = ['category-select', 'mass-category-select'];
-        categorySelects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (select) {
-                select.addEventListener('change', this.validateCategory);
+        // Character counter for description
+        const descriptionTextarea = document.getElementById('edit-description');
+        const charCounter = document.getElementById('edit-description-chars');
+        if (descriptionTextarea && charCounter) {
+            descriptionTextarea.addEventListener('input', (e) => {
+                charCounter.textContent = e.target.value.length;
+            });
+        }
+    }
+
+    // НОВОЕ: Настройка выбора категорий
+    setupCategorySelection() {
+        const categorySelector = document.getElementById('edit-categories');
+        if (categorySelector) {
+            categorySelector.addEventListener('click', (e) => {
+                if (e.target.classList.contains('category-tag')) {
+                    this.toggleCategory(e.target);
+                }
+            });
+        }
+    }
+
+    // НОВОЕ: Переключение категории
+    toggleCategory(categoryElement) {
+        const category = categoryElement.dataset.category;
+        
+        if (categoryElement.classList.contains('selected')) {
+            // Убираем категорию
+            categoryElement.classList.remove('selected');
+            this.selectedCategories = this.selectedCategories.filter(c => c !== category);
+        } else {
+            // Добавляем категорию (максимум 3)
+            if (this.selectedCategories.length < 3) {
+                categoryElement.classList.add('selected');
+                this.selectedCategories.push(category);
+            } else {
+                MiniUtils.showNotification('Максимум 3 категории', 'info');
+                return;
             }
-        });
+        }
+        
+        this.updateSelectedCategoriesDisplay();
+        MiniUtils.vibrate([30]);
+    }
+
+    // НОВОЕ: Обновление отображения выбранных категорий
+    updateSelectedCategoriesDisplay() {
+        const displayElement = document.getElementById('selected-categories-text');
+        if (displayElement) {
+            if (this.selectedCategories.length === 0) {
+                displayElement.textContent = 'Нет';
+                displayElement.style.color = '#666';
+            } else {
+                displayElement.textContent = this.selectedCategories.join(', ');
+                displayElement.style.color = '#00FF88';
+            }
+        }
     }
 
     validateTelegramLink(e) {
@@ -86,22 +144,7 @@ class MiniModals {
         return isValid;
     }
 
-    validateCategory(e) {
-        const select = e.target;
-        const isValid = select.value !== '';
-        
-        if (isValid) {
-            select.classList.remove('invalid');
-            select.classList.add('valid');
-        } else {
-            select.classList.remove('valid');
-            select.classList.add('invalid');
-        }
-        
-        return isValid;
-    }
-
-    // === PURCHASE MODAL ===
+    // === PURCHASE MODAL (БЕЗ КАТЕГОРИЙ) ===
     showPurchaseModal(pixelId, pixelPrice = 0.01) {
         const purchasePixelId = document.getElementById('purchase-pixel-id');
         const purchasePrice = document.getElementById('purchase-price');
@@ -130,11 +173,9 @@ class MiniModals {
     }
 
     resetPurchaseForm() {
-        const categorySelect = document.getElementById('category-select');
         const telegramLink = document.getElementById('telegram-link');
         const pixelDescription = document.getElementById('pixel-description');
         
-        if (categorySelect) categorySelect.value = '';
         if (telegramLink) telegramLink.value = '';
         if (pixelDescription) pixelDescription.value = '';
         
@@ -147,22 +188,20 @@ class MiniModals {
 
     async confirmPurchase() {
         const purchasePixelId = document.getElementById('purchase-pixel-id');
-        const categorySelect = document.getElementById('category-select');
         const telegramLink = document.getElementById('telegram-link');
         const pixelDescription = document.getElementById('pixel-description');
         
-        if (!purchasePixelId || !categorySelect || !telegramLink) {
+        if (!purchasePixelId || !telegramLink) {
             MiniUtils.showNotification('Ошибка формы', 'error');
             return;
         }
         
         const pixelId = parseInt(purchasePixelId.textContent);
-        const category = categorySelect.value;
         const telegramLinkValue = telegramLink.value.trim();
         const description = pixelDescription ? pixelDescription.value.trim() : '';
 
         // Validation
-        if (!this.validatePurchaseForm(category, telegramLinkValue)) {
+        if (!this.validatePurchaseForm(telegramLinkValue)) {
             return;
         }
 
@@ -186,7 +225,7 @@ class MiniModals {
         }
 
         const purchaseData = {
-            category,
+            categories: ['Общее'], // Дефолтная категория
             channel: MiniUtils.extractTelegramUsername(telegramLinkValue),
             telegramLink: MiniUtils.normalizeTelegramLink(telegramLinkValue),
             description,
@@ -202,15 +241,8 @@ class MiniModals {
         this.closePurchaseModal();
     }
 
-    validatePurchaseForm(category, telegramLink) {
+    validatePurchaseForm(telegramLink) {
         let isValid = true;
-
-        if (!category) {
-            MiniUtils.showNotification('Выберите категорию канала', 'error');
-            const categorySelect = document.getElementById('category-select');
-            if (categorySelect) categorySelect.focus();
-            isValid = false;
-        }
 
         if (!telegramLink || !MiniUtils.validateTelegramUsername(telegramLink)) {
             MiniUtils.showNotification('Введите корректный Telegram канал', 'error');
@@ -222,7 +254,7 @@ class MiniModals {
         return isValid;
     }
 
-    // === MASS PURCHASE MODAL ===
+    // === MASS PURCHASE MODAL (БЕЗ КАТЕГОРИЙ) ===
     showMassPurchaseModal(selectedPixels, pixelPrice = 0.01) {
         const count = selectedPixels.size;
         const total = count * pixelPrice;
@@ -254,11 +286,11 @@ class MiniModals {
     }
 
     resetMassPurchaseForm() {
-        const massCategorySelect = document.getElementById('mass-category-select');
         const massTelegramLink = document.getElementById('mass-telegram-link');
+        const massPixelDescription = document.getElementById('mass-pixel-description');
         
-        if (massCategorySelect) massCategorySelect.value = '';
         if (massTelegramLink) massTelegramLink.value = '';
+        if (massPixelDescription) massPixelDescription.value = '';
         
         // Reset validation classes
         document.querySelectorAll('#mass-purchase-modal .form-control').forEach(input => {
@@ -268,22 +300,22 @@ class MiniModals {
     }
 
     async confirmMassPurchase() {
-        const massCategorySelect = document.getElementById('mass-category-select');
         const massTelegramLink = document.getElementById('mass-telegram-link');
+        const massPixelDescription = document.getElementById('mass-pixel-description');
         const massCount = document.getElementById('mass-count');
         
-        if (!massCategorySelect || !massTelegramLink) {
+        if (!massTelegramLink) {
             MiniUtils.showNotification('Ошибка формы', 'error');
             return;
         }
         
-        const category = massCategorySelect.value;
         const telegramLink = massTelegramLink.value.trim();
+        const description = massPixelDescription ? massPixelDescription.value.trim() : '';
         const count = parseInt(massCount.textContent || '0');
         const total = count * 0.01;
 
         // Validation
-        if (!this.validateMassPurchaseForm(category, telegramLink)) {
+        if (!this.validateMassPurchaseForm(telegramLink)) {
             return;
         }
 
@@ -309,10 +341,10 @@ class MiniModals {
         // Call mass purchase method from grid
         if (window.miniGrid) {
             const purchaseData = {
-                category,
+                categories: ['Общее'], // Дефолтная категория
                 channel: MiniUtils.extractTelegramUsername(telegramLink),
                 telegramLink: MiniUtils.normalizeTelegramLink(telegramLink),
-                description: `Массовая покупка пикселей`,
+                description: description || `Массовая покупка пикселей`,
                 owner: window.miniGrid.currentUser
             };
 
@@ -322,15 +354,8 @@ class MiniModals {
         this.closeMassPurchaseModal();
     }
 
-    validateMassPurchaseForm(category, telegramLink) {
+    validateMassPurchaseForm(telegramLink) {
         let isValid = true;
-
-        if (!category) {
-            MiniUtils.showNotification('Выберите категорию', 'error');
-            const massCategorySelect = document.getElementById('mass-category-select');
-            if (massCategorySelect) massCategorySelect.focus();
-            isValid = false;
-        }
 
         if (!telegramLink || !MiniUtils.validateTelegramUsername(telegramLink)) {
             MiniUtils.showNotification('Введите корректный Telegram канал', 'error');
@@ -340,6 +365,176 @@ class MiniModals {
         }
 
         return isValid;
+    }
+
+    // === НОВОЕ: PIXEL INFO EDIT MODAL ===
+    showPixelInfoEditModal(pixelIds) {
+        this.currentPixelIds = [...pixelIds];
+        this.selectedCategories = [];
+        
+        const editPixelCount = document.getElementById('edit-pixel-count');
+        if (editPixelCount) editPixelCount.textContent = pixelIds.length;
+        
+        // Load existing data from first pixel
+        this.loadExistingPixelData(pixelIds[0]);
+        
+        // Reset form
+        this.resetPixelInfoEditForm();
+        
+        this.activeModal = 'pixel-info-edit-modal';
+        const modal = document.getElementById('pixel-info-edit-modal');
+        if (modal) {
+            modal.classList.add('active');
+            MiniUtils.vibrate([100]);
+            
+            // Show Telegram back button
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.BackButton.show();
+            }
+        }
+    }
+
+    closePixelInfoEditModal() {
+        const modal = document.getElementById('pixel-info-edit-modal');
+        if (modal) modal.classList.remove('active');
+        
+        this.activeModal = null;
+        this.currentPixelIds = [];
+        this.selectedCategories = [];
+        
+        // Hide Telegram back button if no other modals open
+        if (window.Telegram?.WebApp && !this.isModalOpen()) {
+            window.Telegram.WebApp.BackButton.hide();
+        }
+    }
+
+    loadExistingPixelData(pixelId) {
+        if (!window.miniGrid || !window.miniGrid.pixels.has(pixelId)) return;
+        
+        const pixelData = window.miniGrid.pixels.get(pixelId);
+        
+        // Load categories
+        if (pixelData.categories && Array.isArray(pixelData.categories)) {
+            this.selectedCategories = [...pixelData.categories];
+            this.updateCategorySelection();
+        }
+        
+        // Load telegram link
+        const telegramInput = document.getElementById('edit-telegram-link');
+        if (telegramInput && pixelData.telegramLink) {
+            telegramInput.value = pixelData.telegramLink;
+        }
+        
+        // Load description
+        const descriptionInput = document.getElementById('edit-description');
+        if (descriptionInput && pixelData.description) {
+            descriptionInput.value = pixelData.description;
+            // Update character counter
+            const charCounter = document.getElementById('edit-description-chars');
+            if (charCounter) charCounter.textContent = pixelData.description.length;
+        }
+        
+        this.updateSelectedCategoriesDisplay();
+    }
+
+    updateCategorySelection() {
+        // Reset all categories
+        document.querySelectorAll('#edit-categories .category-tag').forEach(tag => {
+            tag.classList.remove('selected');
+        });
+        
+        // Select current categories
+        this.selectedCategories.forEach(category => {
+            const tagElement = document.querySelector(`#edit-categories .category-tag[data-category="${category}"]`);
+            if (tagElement) {
+                tagElement.classList.add('selected');
+            }
+        });
+    }
+
+    resetPixelInfoEditForm() {
+        // Reset categories
+        this.selectedCategories = [];
+        document.querySelectorAll('#edit-categories .category-tag').forEach(tag => {
+            tag.classList.remove('selected');
+        });
+        
+        // Reset form fields
+        const telegramInput = document.getElementById('edit-telegram-link');
+        const descriptionInput = document.getElementById('edit-description');
+        const charCounter = document.getElementById('edit-description-chars');
+        
+        if (telegramInput) telegramInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (charCounter) charCounter.textContent = '0';
+        
+        this.updateSelectedCategoriesDisplay();
+        
+        // Reset validation classes
+        document.querySelectorAll('#pixel-info-edit-modal .form-control').forEach(input => {
+            input.classList.remove('valid', 'invalid');
+            input.setCustomValidity('');
+        });
+    }
+
+    savePixelInfo() {
+        const telegramLink = document.getElementById('edit-telegram-link');
+        const description = document.getElementById('edit-description');
+        
+        if (!telegramLink) {
+            MiniUtils.showNotification('Ошибка формы', 'error');
+            return;
+        }
+        
+        const telegramLinkValue = telegramLink.value.trim();
+        const descriptionValue = description ? description.value.trim() : '';
+        
+        // Validation
+        if (telegramLinkValue && !MiniUtils.validateTelegramUsername(telegramLinkValue)) {
+            MiniUtils.showNotification('Введите корректный Telegram канал', 'error');
+            telegramLink.focus();
+            return;
+        }
+        
+        if (this.selectedCategories.length === 0) {
+            MiniUtils.showNotification('Выберите хотя бы одну категорию', 'error');
+            return;
+        }
+        
+        // Update pixel data
+        if (window.miniGrid) {
+            this.currentPixelIds.forEach(pixelId => {
+                if (window.miniGrid.pixels.has(pixelId)) {
+                    const pixelData = window.miniGrid.pixels.get(pixelId);
+                    
+                    // Update data
+                    pixelData.categories = [...this.selectedCategories];
+                    if (telegramLinkValue) {
+                        pixelData.channel = MiniUtils.extractTelegramUsername(telegramLinkValue);
+                        pixelData.telegramLink = MiniUtils.normalizeTelegramLink(telegramLinkValue);
+                    }
+                    if (descriptionValue) {
+                        pixelData.description = descriptionValue;
+                    }
+                    
+                    window.miniGrid.pixels.set(pixelId, pixelData);
+                }
+            });
+            
+            // Save and update display
+            window.miniGrid.savePixelData();
+            window.miniGrid.updatePixelDisplay();
+            
+            // Update channels if needed
+            if (window.miniChannels) {
+                window.miniChannels.onPixelPurchased();
+            }
+        }
+        
+        MiniUtils.showNotification(`Информация обновлена для ${this.currentPixelIds.length} пикселей!`, 'success');
+        MiniUtils.vibrate([100, 50, 100]);
+        
+        this.closePixelInfoEditModal();
     }
 
     // === WALLET INTEGRATION ===
@@ -412,13 +607,18 @@ class MiniModals {
     showPixelInfo(pixelId, pixelData) {
         const infoPixelId = document.getElementById('info-pixel-id');
         const infoOwner = document.getElementById('info-owner');
-        const infoCategory = document.getElementById('info-category');
+        const infoCategories = document.getElementById('info-categories');
         const infoDate = document.getElementById('info-date');
         const infoPrice = document.getElementById('info-price');
         
         if (infoPixelId) infoPixelId.textContent = pixelId;
         if (infoOwner) infoOwner.textContent = pixelData.channel || pixelData.owner || '@unknown';
-        if (infoCategory) infoCategory.textContent = pixelData.category || 'Не указана';
+        if (infoCategories) {
+            const categories = pixelData.categories && Array.isArray(pixelData.categories) 
+                ? pixelData.categories.join(', ') 
+                : (pixelData.category || 'Не указаны');
+            infoCategories.textContent = categories;
+        }
         if (infoDate) infoDate.textContent = MiniUtils.formatDate(pixelData.purchaseDate);
         if (infoPrice) infoPrice.textContent = MiniUtils.formatPrice(pixelData.price || 0.01);
 
@@ -461,6 +661,13 @@ class MiniModals {
         });
         this.activeModal = null;
         this.currentChannelLink = null;
+        this.currentPixelIds = [];
+        this.selectedCategories = [];
+        
+        // Hide Telegram back button
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.BackButton.hide();
+        }
     }
 
     isModalOpen() {
@@ -473,34 +680,41 @@ class MiniModals {
 
     // Form data helpers
     getPurchaseFormData() {
-        const categorySelect = document.getElementById('category-select');
         const telegramLink = document.getElementById('telegram-link');
         const pixelDescription = document.getElementById('pixel-description');
         
         return {
-            category: categorySelect ? categorySelect.value : '',
             telegramLink: telegramLink ? telegramLink.value.trim() : '',
             description: pixelDescription ? pixelDescription.value.trim() : ''
         };
     }
 
     getMassPurchaseFormData() {
-        const massCategorySelect = document.getElementById('mass-category-select');
         const massTelegramLink = document.getElementById('mass-telegram-link');
+        const massPixelDescription = document.getElementById('mass-pixel-description');
         
         return {
-            category: massCategorySelect ? massCategorySelect.value : '',
-            telegramLink: massTelegramLink ? massTelegramLink.value.trim() : ''
+            telegramLink: massTelegramLink ? massTelegramLink.value.trim() : '',
+            description: massPixelDescription ? massPixelDescription.value.trim() : ''
+        };
+    }
+
+    getPixelInfoEditFormData() {
+        const telegramLink = document.getElementById('edit-telegram-link');
+        const description = document.getElementById('edit-description');
+        
+        return {
+            categories: [...this.selectedCategories],
+            telegramLink: telegramLink ? telegramLink.value.trim() : '',
+            description: description ? description.value.trim() : ''
         };
     }
 
     // Populate forms with existing data
     populatePurchaseForm(data) {
-        const categorySelect = document.getElementById('category-select');
         const telegramLink = document.getElementById('telegram-link');
         const pixelDescription = document.getElementById('pixel-description');
         
-        if (data.category && categorySelect) categorySelect.value = data.category;
         if (data.channel && telegramLink) telegramLink.value = data.channel;
         if (data.description && pixelDescription) pixelDescription.value = data.description;
     }
@@ -546,7 +760,9 @@ class MiniModals {
             activeModal: this.activeModal,
             isOpen: this.isModalOpen(),
             walletConnected: window.miniWallet?.isConnected || false,
-            walletBalance: window.miniWallet?.balance || 0
+            walletBalance: window.miniWallet?.balance || 0,
+            selectedCategories: this.selectedCategories.length,
+            currentPixelIds: this.currentPixelIds.length
         };
     }
 }

@@ -211,25 +211,12 @@
         </div>
     </div>
 
-    <!-- Purchase Modal -->
+    <!-- Purchase Modal (БЕЗ КАТЕГОРИЙ) -->
     <div class="modal" id="purchase-modal">
         <div class="modal-content">
             <h3>💰 Покупка пикселя #<span id="purchase-pixel-id">0</span></h3>
             <p>Цена: <span id="purchase-price">0.01</span> TON</p>
             
-            <div class="form-group">
-                <label for="category-select">📂 Категория канала:</label>
-                <select id="category-select" class="form-control">
-                    <option value="">Выберите категорию</option>
-                    <option value="Крипта">💰 Крипта</option>
-                    <option value="Игры">🎮 Игры</option>
-                    <option value="Новости">📰 Новости</option>
-                    <option value="Технологии">💻 Технологии</option>
-                    <option value="Бизнес">💼 Бизнес</option>
-                    <option value="Образование">📚 Образование</option>
-                </select>
-            </div>
-
             <div class="form-group">
                 <label for="telegram-link">🔗 Telegram канал:</label>
                 <input type="text" id="telegram-link" class="form-control" 
@@ -249,7 +236,7 @@
         </div>
     </div>
 
-    <!-- Mass Purchase Modal -->
+    <!-- Mass Purchase Modal (БЕЗ КАТЕГОРИЙ) -->
     <div class="modal" id="mass-purchase-modal">
         <div class="modal-content">
             <h3>🛒 Массовая покупка</h3>
@@ -257,20 +244,15 @@
             <p>Общая цена: <span id="mass-total">0</span> TON</p>
             
             <div class="form-group">
-                <label for="mass-category-select">📂 Категория:</label>
-                <select id="mass-category-select" class="form-control">
-                    <option value="">Выберите категорию</option>
-                    <option value="Крипта">💰 Крипта</option>
-                    <option value="Игры">🎮 Игры</option>
-                    <option value="Новости">📰 Новости</option>
-                    <option value="Технологии">💻 Технологии</option>
-                </select>
-            </div>
-
-            <div class="form-group">
                 <label for="mass-telegram-link">🔗 Telegram канал:</label>
                 <input type="text" id="mass-telegram-link" class="form-control" 
                        placeholder="@username или https://t.me/username">
+            </div>
+
+            <div class="form-group">
+                <label for="mass-pixel-description">📝 Описание (опционально):</label>
+                <input type="text" id="mass-pixel-description" class="form-control" 
+                       placeholder="Краткое описание канала" maxlength="100">
             </div>
 
             <div class="modal-actions">
@@ -306,6 +288,51 @@
             <div class="editor-controls">
                 <button class="btn btn-primary" id="preview-editor">👁️ Предпросмотр</button>
                 <button class="btn btn-success" id="apply-editor">✅ Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- НОВЫЙ: Модальное окно редактирования информации -->
+    <div class="modal" id="pixel-info-edit-modal">
+        <div class="modal-content">
+            <h3>📝 Редактировать информацию пикселей</h3>
+            <p>Пикселей: <span id="edit-pixel-count">0</span></p>
+            
+            <div class="form-group">
+                <label for="edit-categories">📂 Категории (до 3-х):</label>
+                <div class="category-selector" id="edit-categories">
+                    <div class="category-tag" data-category="Крипта">💰 Крипта</div>
+                    <div class="category-tag" data-category="Игры">🎮 Игры</div>
+                    <div class="category-tag" data-category="Новости">📰 Новости</div>
+                    <div class="category-tag" data-category="Технологии">💻 Технологии</div>
+                    <div class="category-tag" data-category="Бизнес">💼 Бизнес</div>
+                    <div class="category-tag" data-category="Образование">📚 Образование</div>
+                    <div class="category-tag" data-category="Спорт">⚽ Спорт</div>
+                    <div class="category-tag" data-category="Развлечения">🎬 Развлечения</div>
+                </div>
+                <div class="selected-categories" id="selected-categories-display">
+                    Выбрано: <span id="selected-categories-text">Нет</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-telegram-link">🔗 Telegram канал:</label>
+                <input type="text" id="edit-telegram-link" class="form-control" 
+                       placeholder="@username или https://t.me/username">
+            </div>
+
+            <div class="form-group">
+                <label for="edit-description">📝 Описание:</label>
+                <textarea id="edit-description" class="form-control" 
+                         placeholder="Описание канала" maxlength="200" rows="3"></textarea>
+                <div class="char-counter">
+                    <span id="edit-description-chars">0</span>/200
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-success" id="save-pixel-info">💾 Сохранить</button>
+                <button class="btn btn-secondary" id="cancel-pixel-info-edit">❌ Отмена</button>
             </div>
         </div>
     </div>
@@ -369,8 +396,8 @@
                     <span class="info-value" id="info-owner">@username</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">📂 Категория:</span>
-                    <span class="info-value" id="info-category">Не указана</span>
+                    <span class="info-label">📂 Категории:</span>
+                    <span class="info-value" id="info-categories">Не указаны</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">📅 Дата:</span>

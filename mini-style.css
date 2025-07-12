@@ -1,3 +1,70 @@
+/* === НОВЫЕ СТИЛИ ДЛЯ РЕДАКТИРОВАНИЯ ИНФОРМАЦИИ === */
+
+/* Category selector */
+.category-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.category-tag {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.category-tag:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.category-tag.selected {
+    background: linear-gradient(45deg, #00D4FF, #0099CC);
+    color: #000;
+    border-color: #00D4FF;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.selected-categories {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+#selected-categories-text {
+    font-weight: 600;
+}
+
+/* Character counter styling */
+.char-counter {
+    text-align: right;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 4px;
+}
+
+/* Textarea для описания */
+textarea.form-control {
+    resize: vertical;
+    min-height: 60px;
+    max-height: 120px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
 /* Статус подключения */
 .connection-status {
     display: inline-flex;
@@ -83,6 +150,10 @@ tc-root tc-button {
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
 }
 
 .action-button-container.show {
@@ -109,6 +180,7 @@ tc-root tc-button {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    white-space: nowrap;
 }
 
 .action-button:hover {
@@ -133,6 +205,13 @@ tc-root tc-button {
 .action-button.edit-mode {
     background: linear-gradient(45deg, #9D4EDD, #7209B7);
     color: #fff;
+}
+
+.action-button.edit-info-mode {
+    background: linear-gradient(45deg, #00D4FF, #0099CC);
+    color: #000;
+    font-size: 14px;
+    padding: 12px 20px;
 }
 
 /* === MAIN SIDEBAR === */
@@ -344,13 +423,6 @@ tc-root tc-button {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.6);
     margin-top: 8px;
-}
-
-.char-counter {
-    text-align: right;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 4px;
 }
 
 .verification-notice {
@@ -922,64 +994,6 @@ tc-root tc-button {
         font-size: 16px;
     }
     
-    .mode-display {
-        font-size: 12px;
-    }
-    
-    .hamburger-menu {
-        width: 28px;
-        height: 28px;
-    }
-    
-    .hamburger-line {
-        width: 14px;
-    }
-    
-    .grid-container {
-        height: calc(100vh - 110px);
-    }
-    
-    .pixel-grid {
-        grid-template-columns: repeat(10, 25px);
-        grid-template-rows: repeat(10, 25px);
-        padding: 8px;
-    }
-    
-    .pixel {
-        width: 25px;
-        height: 25px;
-    }
-    
-    .floating-controls {
-        top: 15px;
-        right: 15px;
-        gap: 6px;
-    }
-    
-    .control-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-    }
-    
-    .drag-mode-btn {
-        font-size: 18px;
-    }
-    
-    .bottom-bar {
-        padding: 8px 12px;
-        height: 50px;
-    }
-    
-    .mode-tabs {
-        gap: 4px;
-    }
-    
-    .mode-tab {
-        min-width: 60px;
-        height: 44px;
-    }
-    
     .mode-tab .mode-icon {
         font-size: 14px;
     }
@@ -1011,12 +1025,19 @@ tc-root tc-button {
     
     .action-button-container {
         bottom: 70px;
+        gap: 6px;
     }
     
     .action-button {
         padding: 12px 20px;
         font-size: 14px;
         min-width: 100px;
+    }
+    
+    .action-button.edit-info-mode {
+        font-size: 12px;
+        padding: 10px 16px;
+        min-width: 90px;
     }
     
     .channel-sidebar {
@@ -1050,6 +1071,16 @@ tc-root tc-button {
     
     #editor-canvas {
         max-height: 120px;
+    }
+    
+    /* Category selector на мобильных */
+    .category-selector {
+        gap: 6px;
+    }
+    
+    .category-tag {
+        padding: 6px 10px;
+        font-size: 11px;
     }
 }
 
@@ -1089,6 +1120,12 @@ tc-root tc-button {
         min-width: 90px;
     }
     
+    .action-button.edit-info-mode {
+        font-size: 11px;
+        padding: 8px 12px;
+        min-width: 80px;
+    }
+    
     .mode-tab {
         min-width: 50px;
         height: 40px;
@@ -1101,6 +1138,12 @@ tc-root tc-button {
     .mode-tab .mode-label {
         font-size: 7px;
     }
+    
+    /* Category selector на маленьких экранах */
+    .category-tag {
+        padding: 5px 8px;
+        font-size: 10px;
+    }
 }
 
 /* === УТИЛИТЫ ДЛЯ МОБИЛЬНЫХ === */
@@ -1110,7 +1153,9 @@ tc-root tc-button {
     .action-button:hover,
     .btn:hover,
     .menu-item:hover,
-    .wallet-connect-item:hover {
+    .wallet-connect-item:hover,
+    .category-tag:hover,
+    .filter-tag:hover {
         transform: none;
         box-shadow: none;
         background: inherit;
@@ -1120,7 +1165,8 @@ tc-root tc-button {
     .mode-tab:active,
     .action-button:active,
     .btn:active,
-    .menu-item:active {
+    .menu-item:active,
+    .category-tag:active {
         transform: scale(0.95);
     }
     

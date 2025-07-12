@@ -23,6 +23,7 @@ class MiniChannels {
         this.loadChannelsFromPixels();
         this.loadUserVerification();
         this.loadUserRatings();
+        console.log('✅ MiniChannels initialized');
     }
 
     setupEventListeners() {
@@ -263,24 +264,28 @@ class MiniChannels {
                     const existingChannel = pixelChannels.find(ch => ch.channel === channelName);
                     
                     if (!existingChannel) {
-                        const subscribers = this.generateSubscriberCount(pixelData.category || 'Разное', pixelId);
+                        const subscribers = this.generateSubscriberCount(
+                            this.getFirstCategory(pixelData) || 'Разное', 
+                            pixelId
+                        );
                         
                         pixelChannels.push({
                             id: `pixel_${pixelId}`,
                             channel: channelName,
                             name: channelName.replace('@', ''),
                             description: pixelData.description || 'Канал из пиксель-сетки',
-                            category: pixelData.category || 'Разное',
+                            category: this.getFirstCategory(pixelData) || 'Разное',
+                            categories: pixelData.categories || [pixelData.category || 'Разное'],
                             telegramLink: pixelData.telegramLink || MiniUtils.normalizeTelegramLink(channelName),
                             owner: pixelData.owner,
                             purchaseDate: pixelData.purchaseDate,
                             pixelId: pixelId,
                             isOwned: pixelData.owner === (window.miniGrid ? window.miniGrid.currentUser : '@demo_user'),
-                            price: pixelData.price || 5,
+                            price: pixelData.price || 0.01,
                             subscribers: subscribers,
                             rating: this.generateRating(pixelId),
                             postsPerMonth: this.generatePostsPerMonth(pixelId),
-                            verified: Math.random() > 0.7, // 30% verified channels
+                            verified: Math.random() > 0.7,
                             userRating: this.userRatings.get(channelName) || null
                         });
                     } else {
@@ -296,30 +301,43 @@ class MiniChannels {
 
         // Add demo channels if no pixel channels exist
         if (pixelChannels.length === 0) {
-            pixelChannels.push(
-                {
-                    id: 'demo_1',
-                    channel: '@demo_channel',
-                    name: 'demo_channel',
-                    description: 'Демо-канал для тестирования функций приложения',
-                    category: 'Демо',
-                    telegramLink: 'https://t.me/demo_channel',
-                    owner: '@demo_user',
-                    purchaseDate: new Date().toISOString(),
-                    pixelId: 11,
-                    isOwned: true,
-                    price: 5,
-                    subscribers: 1250,
-                    rating: 4.2,
-                    postsPerMonth: 45,
-                    verified: true,
-                    userRating: null
-                }
-            );
+            pixelChannels.push({
+                id: 'demo_1',
+                channel: '@demo_channel',
+                name: 'demo_channel',
+                description: 'Демо-канал для тестирования функций приложения',
+                category: 'Демо',
+                categories: ['Демо'],
+                telegramLink: 'https://t.me/demo_channel',
+                owner: '@demo_user',
+                purchaseDate: new Date().toISOString(),
+                pixelId: 11,
+                isOwned: true,
+                price: 0.01,
+                subscribers: 1250,
+                rating: 4.2,
+                postsPerMonth: 45,
+                verified: true,
+                userRating: null
+            });
         }
 
         this.channels = pixelChannels;
         console.log('Loaded channels:', this.channels.length);
+    }
+
+    getFirstCategory(pixelData) {
+        if (pixelData.categories && Array.isArray(pixelData.categories) && pixelData.categories.length > 0) {
+            return pixelData.categories[0];
+        }
+        return pixelData.category || null;
+    }
+
+    formatCategories(categories) {
+        if (!categories || !Array.isArray(categories)) {
+            return 'Не указана';
+        }
+        return categories.join(', ');
     }
 
     generateSubscriberCount(category, pixelId) {
@@ -330,12 +348,12 @@ class MiniChannels {
             'Игры': { min: 8000, max: 120000 },
             'Бизнес': { min: 2000, max: 50000 },
             'Образование': { min: 1500, max: 40000 },
+            'Спорт': { min: 2000, max: 60000 },
+            'Развлечения': { min: 5000, max: 100000 },
             'Демо': { min: 500, max: 2000 }
         };
 
         const range = baseRanges[category] || { min: 1000, max: 25000 };
-        
-        // Use pixelId as seed for consistent results
         const seed = pixelId * 137;
         const random = Math.abs(Math.sin(seed)) * (range.max - range.min) + range.min;
         
@@ -343,28 +361,24 @@ class MiniChannels {
     }
 
     generateRating(pixelId) {
-        // Generate consistent rating based on pixel ID
         const seed = pixelId * 73;
         const random = Math.abs(Math.sin(seed));
-        return Math.round((3 + random * 2) * 10) / 10; // Rating between 3.0 and 5.0
+        return Math.round((3 + random * 2) * 10) / 10;
     }
 
     generatePostsPerMonth(pixelId) {
-        // Generate consistent posts per month based on pixel ID
         const seed = pixelId * 89;
         const random = Math.abs(Math.sin(seed));
-        return Math.floor(random * 120 + 5); // Between 5 and 125 posts per month
+        return Math.floor(random * 120 + 5);
     }
 
     toggleCategoryFilter(element) {
         const category = element.dataset.category;
         
         if (element.classList.contains('active')) {
-            // Remove filter
             this.activeFilters = this.activeFilters.filter(f => f !== category);
             element.classList.remove('active');
         } else {
-            // Add filter (max 3)
             if (this.activeFilters.length < 3) {
                 this.activeFilters.push(category);
                 element.classList.add('active');
@@ -385,15 +399,23 @@ class MiniChannels {
             filtered = filtered.filter(channel => 
                 channel.name.toLowerCase().includes(this.searchTerm) ||
                 channel.description.toLowerCase().includes(this.searchTerm) ||
-                channel.category.toLowerCase().includes(this.searchTerm)
+                channel.category.toLowerCase().includes(this.searchTerm) ||
+                (channel.categories && channel.categories.some(cat => 
+                    cat.toLowerCase().includes(this.searchTerm)
+                ))
             );
         }
 
         // Apply category filters
         if (this.activeFilters.length > 0) {
-            filtered = filtered.filter(channel => 
-                this.activeFilters.includes(channel.category)
-            );
+            filtered = filtered.filter(channel => {
+                if (channel.categories && Array.isArray(channel.categories)) {
+                    return this.activeFilters.some(filter => 
+                        channel.categories.includes(filter)
+                    );
+                }
+                return this.activeFilters.includes(channel.category);
+            });
         }
 
         // Apply sorting
@@ -447,6 +469,9 @@ class MiniChannels {
                     </div>
                 </div>
                 <div class="channel-description">${channel.description}</div>
+                <div class="channel-categories" style="margin: 8px 0; font-size: 10px; color: rgba(255,255,255,0.7);">
+                    📂 ${this.formatCategories(channel.categories)}
+                </div>
                 <div class="channel-footer">
                     <div class="channel-category">${MiniUtils.getCategoryIcon(channel.category)} ${channel.category}</div>
                     <div class="channel-actions">
@@ -484,14 +509,11 @@ class MiniChannels {
     viewChannel(channelId) {
         const channel = this.channels.find(ch => ch.id === channelId);
         if (channel) {
-            // Close sidebar and highlight pixel
             this.closeSidebar();
             
             if (window.miniGrid) {
-                // Scroll to pixel and highlight it
                 const pixelElement = document.querySelector(`[data-id="${channel.pixelId}"]`);
                 if (pixelElement) {
-                    // Center the grid on the pixel
                     const rect = pixelElement.getBoundingClientRect();
                     const containerRect = document.getElementById('grid-container').getBoundingClientRect();
                     
@@ -502,14 +524,14 @@ class MiniChannels {
                     window.miniGrid.translateY = offsetY;
                     window.miniGrid.updateGridTransform();
                     
-                    // Highlight animation
                     pixelElement.style.animation = 'pulse 2s ease-in-out 3';
                     setTimeout(() => {
                         pixelElement.style.animation = '';
                     }, 6000);
                 }
                 
-                MiniUtils.showNotification(`Пиксель #${channel.pixelId} (${this.formatSubscriberCount(channel.subscribers)} подписчиков)`, 'success');
+                const categoriesText = this.formatCategories(channel.categories);
+                MiniUtils.showNotification(`Пиксель #${channel.pixelId} (${this.formatSubscriberCount(channel.subscribers)} подписчиков, ${categoriesText})`, 'success');
             }
             
             MiniUtils.vibrate([100, 50, 100]);
@@ -518,7 +540,6 @@ class MiniChannels {
 
     openChannel(telegramLink) {
         if (telegramLink && telegramLink !== '#') {
-            // Use Telegram WebApp API if available
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.openTelegramLink(telegramLink);
             } else {
@@ -531,7 +552,6 @@ class MiniChannels {
         }
     }
 
-    // Channel rating functionality
     rateChannel(channelId) {
         const channel = this.channels.find(ch => ch.id === channelId);
         if (!channel) return;
@@ -546,12 +566,10 @@ class MiniChannels {
     }
 
     showRatingModal(channel, canRate = true) {
-        // Populate channel info
         document.getElementById('rating-channel-name').textContent = channel.channel;
         document.getElementById('rating-channel-description').textContent = channel.description;
         document.querySelector('.rating-value').textContent = channel.rating;
 
-        // Show/hide verification notice
         const verificationNotice = document.querySelector('.verification-notice');
         const submitButton = document.getElementById('submit-rating');
         const verifyButton = document.getElementById('verify-account');
@@ -566,24 +584,18 @@ class MiniChannels {
             verifyButton.style.display = 'inline-block';
         }
 
-        // Reset rating selection
         this.resetRatingSelection();
         
-        // Show existing user rating if any
         if (channel.userRating) {
             this.setRatingSelection(channel.userRating);
         }
 
-        // Store current channel for rating
         this.currentRatingChannel = channel;
-
-        // Show modal
         document.getElementById('channel-rating-modal').classList.add('active');
         MiniUtils.vibrate([100]);
     }
 
     setupRatingModalEvents() {
-        // Star rating selection
         const starRating = document.getElementById('star-rating');
         if (starRating) {
             starRating.addEventListener('click', (e) => {
@@ -594,7 +606,6 @@ class MiniChannels {
             });
         }
 
-        // Comment character counter
         const commentTextarea = document.getElementById('rating-comment');
         const charCounter = document.getElementById('comment-chars');
         if (commentTextarea && charCounter) {
@@ -603,12 +614,10 @@ class MiniChannels {
             });
         }
 
-        // Modal buttons
         document.getElementById('submit-rating')?.addEventListener('click', () => this.submitRating());
         document.getElementById('verify-account')?.addEventListener('click', () => this.startVerification());
         document.getElementById('cancel-rating')?.addEventListener('click', () => this.closeRatingModal());
 
-        // Close on escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeRatingModal();
@@ -659,26 +668,19 @@ class MiniChannels {
         const comment = document.getElementById('rating-comment').value.trim();
         const channel = this.currentRatingChannel;
 
-        // Save user rating
         this.userRatings.set(channel.channel, {
             rating: this.selectedRating,
             comment: comment,
             date: new Date().toISOString()
         });
 
-        // Update channel data
         const channelIndex = this.channels.findIndex(ch => ch.id === channel.id);
         if (channelIndex !== -1) {
             this.channels[channelIndex].userRating = this.selectedRating;
         }
 
-        // Save to storage
         this.saveUserRatings();
-
-        // Update display
         this.applyFilters();
-
-        // Close modal
         this.closeRatingModal();
 
         MiniUtils.showNotification(`Канал ${channel.channel} оценен на ${this.selectedRating} звезд!`, 'success');
@@ -691,15 +693,13 @@ class MiniChannels {
         this.selectedRating = 0;
     }
 
-    // Main menu actions
     openMarket() {
         this.closeMainSidebar();
         MiniUtils.showNotification('Маркет будет доступен в следующем обновлении', 'info');
-        // TODO: Implement market functionality
     }
 
     openWebsite() {
-        const websiteUrl = 'https://nftg-zonix.com'; // Replace with actual website
+        const websiteUrl = 'https://nftg-zonix.com';
         
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.openLink(websiteUrl);
@@ -712,11 +712,9 @@ class MiniChannels {
     }
 
     startVerification() {
-        // Close any open modals/sidebars
         this.closeRatingModal();
         this.closeMainSidebar();
         
-        // TODO: Replace with actual bot link
         const botLink = 'https://t.me/nftg_zonix_bot';
         
         if (window.Telegram?.WebApp) {
@@ -744,29 +742,33 @@ class MiniChannels {
         
         if (activeChannels.length > 0) {
             statsMessage += `🔥 Самые активные:\n`;
-            activeChannels.forEach((channel, index) => {
-                statsMessage += `${index + 1}. ${channel.name} - ${channel.postsPerMonth} постов/мес\n`;
+            activeChannels.forEach(channel => {
+                statsMessage += `• ${channel.name} (${channel.postsPerMonth}/мес)\n`;
             });
-            statsMessage += `\n`;
+            statsMessage += '\n';
         }
         
         if (trendingChannels.length > 0) {
-            statsMessage += `📈 В тренде:\n`;
-            trendingChannels.forEach((channel, index) => {
-                statsMessage += `${index + 1}. ${channel.name} - ${channel.rating}⭐ (${channel.postsPerMonth}/мес)\n`;
+            statsMessage += `📈 Популярные:\n`;
+            trendingChannels.forEach(channel => {
+                statsMessage += `• ${channel.name} (${this.formatSubscriberCount(channel.subscribers)})\n`;
             });
-            statsMessage += `\n`;
+            statsMessage += '\n';
         }
         
-        statsMessage += `По категориям:\n`;
-        Object.keys(categoryStats).forEach(category => {
-            const stat = categoryStats[category];
-            statsMessage += `${MiniUtils.getCategoryIcon(category)} ${category}: ${stat.count} каналов\n`;
-        });
+        if (Object.keys(categoryStats).length > 0) {
+            statsMessage += `📂 По категориям:\n`;
+            Object.entries(categoryStats)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .forEach(([category, count]) => {
+                    statsMessage += `• ${MiniUtils.getCategoryIcon(category)} ${category}: ${count}\n`;
+                });
+        }
 
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.showPopup({
-                title: 'Статистика',
+                title: 'Статистика каналов',
                 message: statsMessage,
                 buttons: [{ type: 'ok' }]
             });
@@ -775,184 +777,349 @@ class MiniChannels {
         }
     }
 
-    // Method to be called when new pixels are purchased
-    onPixelPurchased() {
-        if (this.isOpen) {
-            this.loadChannelsFromPixels();
-            this.applyFilters();
-            console.log('Channels updated after purchase');
-        }
+    getChannelStats() {
+        const total = this.channels.length;
+        const owned = this.channels.filter(ch => ch.isOwned).length;
+        const totalSubscribers = this.channels.reduce((sum, ch) => sum + ch.subscribers, 0);
+        const avgSubscribers = total > 0 ? Math.round(totalSubscribers / total) : 0;
+        const totalRating = this.channels.reduce((sum, ch) => sum + (ch.rating || 0), 0);
+        const avgRating = total > 0 ? (totalRating / total).toFixed(1) : '0.0';
+        
+        return {
+            total,
+            owned,
+            avgSubscribers,
+            avgRating
+        };
     }
 
-    // Get most active channels
-    getMostActiveChannels(limit = 10) {
-        return this.channels
+    getCategoryStats() {
+        const stats = {};
+        this.channels.forEach(channel => {
+            if (channel.categories && Array.isArray(channel.categories)) {
+                channel.categories.forEach(category => {
+                    stats[category] = (stats[category] || 0) + 1;
+                });
+            } else if (channel.category) {
+                stats[channel.category] = (stats[channel.category] || 0) + 1;
+            }
+        });
+        return stats;
+    }
+
+    getMostActiveChannels(limit = 5) {
+        return [...this.channels]
             .sort((a, b) => b.postsPerMonth - a.postsPerMonth)
             .slice(0, limit);
     }
 
-    // Get trending channels (high activity + good rating)
     getTrendingChannels(limit = 5) {
-        return this.channels
-            .filter(channel => channel.rating >= 4.0 && channel.postsPerMonth >= 30)
-            .sort((a, b) => {
-                const scoreA = (a.rating * 0.6) + (a.postsPerMonth * 0.004);
-                const scoreB = (b.rating * 0.6) + (b.postsPerMonth * 0.004);
-                return scoreB - scoreA;
-            })
+        return [...this.channels]
+            .sort((a, b) => b.subscribers - a.subscribers)
             .slice(0, limit);
     }
 
-    // API methods for real channel data (placeholder for future implementation)
-    async fetchRealChannelData(channelUsername) {
-        try {
-            const response = await fetch(`/api/channel/${channelUsername}`);
-            if (response.ok) {
-                return await response.json();
-            }
-            return null;
-        } catch (error) {
-            console.log('Real channel data not available, using generated data');
-            return null;
-        }
-    }
-
-    async updateChannelWithRealData(channel) {
-        const realData = await this.fetchRealChannelData(channel.name);
-        
-        if (realData) {
-            return {
-                ...channel,
-                subscribers: realData.subscribers || channel.subscribers,
-                description: realData.description || channel.description,
-                verified: realData.verified || channel.verified,
-                postsPerMonth: realData.postsPerMonth || channel.postsPerMonth
-            };
-        }
-        
-        return channel;
-    }
-
-    // Data persistence
-    loadUserVerification() {
-        this.userVerified = MiniUtils.loadFromStorage('nftg-zonix-user-verified', false);
-    }
-
-    saveUserVerification() {
-        MiniUtils.saveToStorage('nftg-zonix-user-verified', this.userVerified);
-    }
-
     loadUserRatings() {
-        const ratings = MiniUtils.loadFromStorage('nftg-zonix-user-ratings', {});
-        this.userRatings = new Map(Object.entries(ratings));
+        const saved = MiniUtils.loadFromStorage('nftg-user-ratings', {});
+        this.userRatings = new Map(Object.entries(saved));
     }
 
     saveUserRatings() {
-        MiniUtils.saveToStorage('nftg-zonix-user-ratings', Object.fromEntries(this.userRatings));
+        const ratingsObj = Object.fromEntries(this.userRatings);
+        MiniUtils.saveToStorage('nftg-user-ratings', ratingsObj);
     }
 
-    // Public method to set user as verified
-    setUserVerified(verified = true) {
+    loadUserVerification() {
+        this.userVerified = MiniUtils.loadFromStorage('nftg-user-verified', false);
+    }
+
+    saveUserVerification(verified) {
         this.userVerified = verified;
-        this.saveUserVerification();
+        MiniUtils.saveToStorage('nftg-user-verified', verified);
         this.updateUserInfo();
-        
-        if (verified) {
-            MiniUtils.showNotification('Аккаунт успешно верифицирован! ✅', 'success');
+    }
+
+    onPixelPurchased() {
+        this.loadChannelsFromPixels();
+        if (this.isOpen) {
+            this.applyFilters();
         }
     }
 
-    // Statistics
-    getChannelStats() {
-        const totalChannels = this.channels.length;
-        const ownedChannels = this.channels.filter(ch => ch.isOwned).length;
-        const averageSubscribers = this.channels.reduce((sum, ch) => sum + ch.subscribers, 0) / totalChannels;
-        const averageRating = this.channels.reduce((sum, ch) => sum + (ch.rating || 0), 0) / totalChannels;
-        
-        return {
-            total: totalChannels,
-            owned: ownedChannels,
-            avgSubscribers: Math.round(averageSubscribers),
-            avgRating: Math.round(averageRating * 10) / 10
-        };
-    }
-
-    // Analytics and insights
-    getCategoryStats() {
-        const stats = {};
-        this.channels.forEach(channel => {
-            const category = channel.category;
-            if (!stats[category]) {
-                stats[category] = {
-                    count: 0,
-                    totalSubscribers: 0,
-                    avgRating: 0,
-                    channels: []
-                };
-            }
-            stats[category].count++;
-            stats[category].totalSubscribers += channel.subscribers;
-            stats[category].avgRating += (channel.rating || 0);
-            stats[category].channels.push(channel);
-        });
-
-        // Calculate averages
-        Object.keys(stats).forEach(category => {
-            const stat = stats[category];
-            stat.avgSubscribers = Math.round(stat.totalSubscribers / stat.count);
-            stat.avgRating = Math.round((stat.avgRating / stat.count) * 10) / 10;
-        });
-
-        return stats;
-    }
-
     refreshChannels() {
-        console.log('Refreshing channels data...');
-        
-        // Перезагружаем каналы из пикселей
         this.loadChannelsFromPixels();
-        
-        // Применяем текущие фильтры
-        this.applyFilters();
-        
+        if (this.isOpen) {
+            this.applyFilters();
+        }
         console.log('Channels refreshed');
     }
 
-    // Helper method for debugging
     getDebugInfo() {
         return {
-            isOpen: this.isOpen,
-            isMainSidebarOpen: this.isMainSidebarOpen,
-            totalChannels: this.channels.length,
-            filteredChannels: this.filteredChannels.length,
+            channelsCount: this.channels.length,
+            filteredCount: this.filteredChannels.length,
             activeFilters: this.activeFilters,
             currentSort: this.currentSort,
             searchTerm: this.searchTerm,
+            isOpen: this.isOpen,
+            isMainSidebarOpen: this.isMainSidebarOpen,
             userVerified: this.userVerified,
-            userRatings: this.userRatings.size,
-            stats: this.getChannelStats(),
-            categoryStats: this.getCategoryStats(),
-            mostActive: this.getMostActiveChannels(3).map(ch => `${ch.name}: ${ch.postsPerMonth}/month`),
-            trending: this.getTrendingChannels(3).map(ch => `${ch.name}: ${ch.rating}⭐`)
+            userRatingsCount: this.userRatings.size
         };
+    }
+
+    exportChannelsData() {
+        const data = {
+            channels: this.channels,
+            userRatings: Object.fromEntries(this.userRatings),
+            userVerified: this.userVerified,
+            stats: this.getChannelStats(),
+            exportDate: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nftg-channels-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        URL.revokeObjectURL(url);
+        MiniUtils.showNotification('Данные каналов экспортированы', 'success');
+    }
+
+    clearAllData() {
+        if (confirm('Очистить все данные каналов и рейтингов?')) {
+            this.channels = [];
+            this.filteredChannels = [];
+            this.userRatings.clear();
+            this.userVerified = false;
+            
+            localStorage.removeItem('nftg-user-ratings');
+            localStorage.removeItem('nftg-user-verified');
+            
+            this.updateUserInfo();
+            this.loadChannelsFromPixels();
+            
+            if (this.isOpen) {
+                this.applyFilters();
+            }
+            
+            MiniUtils.showNotification('Данные каналов очищены', 'info');
+        }
+    }
+
+    searchChannels(query) {
+        this.searchTerm = query.toLowerCase();
+        this.applyFilters();
+    }
+
+    filterByCategory(category) {
+        this.activeFilters = [category];
+        this.applyFilters();
+        
+        document.querySelectorAll('.filter-tag').forEach(tag => {
+            tag.classList.toggle('active', tag.dataset.category === category);
+        });
+    }
+
+    sortChannels(sortType) {
+        this.currentSort = sortType;
+        this.applyFilters();
+        
+        const sortSelect = document.getElementById('sort-select');
+        if (sortSelect) {
+            sortSelect.value = sortType;
+        }
+    }
+
+    rateMultipleChannels(channelIds, rating, comment = '') {
+        let updated = 0;
+        
+        channelIds.forEach(channelId => {
+            const channel = this.channels.find(ch => ch.id === channelId);
+            if (channel) {
+                this.userRatings.set(channel.channel, {
+                    rating: rating,
+                    comment: comment,
+                    date: new Date().toISOString()
+                });
+                
+                const channelIndex = this.channels.findIndex(ch => ch.id === channelId);
+                if (channelIndex !== -1) {
+                    this.channels[channelIndex].userRating = rating;
+                }
+                updated++;
+            }
+        });
+        
+        if (updated > 0) {
+            this.saveUserRatings();
+            this.applyFilters();
+            MiniUtils.showNotification(`Оценено каналов: ${updated}`, 'success');
+        }
+        
+        return updated;
+    }
+
+    openMultipleChannels(channelIds) {
+        channelIds.forEach((channelId, index) => {
+            const channel = this.channels.find(ch => ch.id === channelId);
+            if (channel && channel.telegramLink) {
+                setTimeout(() => {
+                    this.openChannel(channel.telegramLink);
+                }, index * 1000);
+            }
+        });
+    }
+
+    lazyLoadChannels() {
+        const batchSize = 20;
+        let currentBatch = 0;
+        
+        const loadBatch = () => {
+            const start = currentBatch * batchSize;
+            const end = start + batchSize;
+            const batch = this.filteredChannels.slice(start, end);
+            
+            if (batch.length > 0) {
+                this.renderChannelBatch(batch, start);
+                currentBatch++;
+                
+                if (end < this.filteredChannels.length) {
+                    setTimeout(loadBatch, 100);
+                }
+            }
+        };
+        
+        loadBatch();
+    }
+
+    renderChannelBatch(channels, startIndex) {
+        const channelsList = document.getElementById('channels-list');
+        if (!channelsList) return;
+        
+        const fragment = document.createDocumentFragment();
+        
+        channels.forEach((channel, index) => {
+            const channelElement = this.createChannelElement(channel, startIndex + index);
+            fragment.appendChild(channelElement);
+        });
+        
+        channelsList.appendChild(fragment);
+    }
+
+    createChannelElement(channel, index) {
+        const div = document.createElement('div');
+        div.className = `channel-card ${channel.isOwned ? 'owned' : ''}`;
+        div.onclick = () => this.viewChannel(channel.id);
+        
+        div.innerHTML = `
+            <div class="channel-header">
+                <div class="channel-avatar">${MiniUtils.getCategoryIcon(channel.category)}</div>
+                <div class="channel-info">
+                    <div class="channel-name">
+                        ${channel.name}
+                        ${channel.isOwned ? ' <span style="background: linear-gradient(45deg, #00FF88, #00CC66); color: #000; padding: 2px 6px; border-radius: 6px; font-size: 9px; font-weight: 600;">МОЙ</span>' : ''}
+                        ${channel.verified ? ' <span style="background: linear-gradient(45deg, #00D4FF, #0099CC); color: #000; padding: 2px 6px; border-radius: 6px; font-size: 9px; font-weight: 600;">✓</span>' : ''}
+                    </div>
+                    <div class="channel-stats">
+                        📍 #${channel.pixelId} • 👥 ${this.formatSubscriberCount(channel.subscribers)} • ⭐ ${channel.rating || 'N/A'} • 📝 ${channel.postsPerMonth}/мес
+                    </div>
+                </div>
+            </div>
+            <div class="channel-description">${channel.description}</div>
+            <div class="channel-categories" style="margin: 8px 0; font-size: 10px; color: rgba(255,255,255,0.7);">
+                📂 ${this.formatCategories(channel.categories)}
+            </div>
+            <div class="channel-footer">
+                <div class="channel-category">${MiniUtils.getCategoryIcon(channel.category)} ${channel.category}</div>
+                <div class="channel-actions">
+                    <button class="rate-channel-btn" onclick="event.stopPropagation(); window.miniChannels?.rateChannel('${channel.id}')">
+                        ⭐ ${channel.userRating || 'Оценить'}
+                    </button>
+                    <button class="view-channel-btn" onclick="event.stopPropagation(); window.miniChannels?.openChannel('${channel.telegramLink}')">
+                        Открыть
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(10px)';
+        div.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            div.style.opacity = '1';
+            div.style.transform = 'translateY(0)';
+        }, index * 50);
+        
+        return div;
+    }
+
+    getUsageStats() {
+        const stats = MiniUtils.loadFromStorage('nftg-channels-stats', {
+            totalChannelsViewed: 0,
+            totalRatingsSubmitted: 0,
+            mostViewedCategory: null,
+            lastActivity: null
+        });
+        
+        return stats;
+    }
+
+    updateUsageStats(action, data = {}) {
+        const stats = this.getUsageStats();
+        
+        switch (action) {
+            case 'channel_viewed':
+                stats.totalChannelsViewed += 1;
+                break;
+            case 'rating_submitted':
+                stats.totalRatingsSubmitted += 1;
+                break;
+            case 'category_viewed':
+                if (!stats.categoryViews) stats.categoryViews = {};
+                stats.categoryViews[data.category] = (stats.categoryViews[data.category] || 0) + 1;
+                
+                const mostViewed = Object.entries(stats.categoryViews)
+                    .sort(([,a], [,b]) => b - a)[0];
+                stats.mostViewedCategory = mostViewed ? mostViewed[0] : null;
+                break;
+        }
+        
+        stats.lastActivity = new Date().toISOString();
+        MiniUtils.saveToStorage('nftg-channels-stats', stats);
+        
+        console.log('Usage stats updated:', stats);
+    }
+
+    exportUsageStats() {
+        const stats = this.getUsageStats();
+        const channelsData = {
+            stats: stats,
+            channels: this.getChannelStats(),
+            categories: this.getCategoryStats(),
+            exportDate: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(channelsData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nftg-channels-stats-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        URL.revokeObjectURL(url);
+        MiniUtils.showNotification('Статистика каналов экспортирована', 'success');
     }
 }
 
 // Global initialization
 window.MiniChannels = MiniChannels;
-
-// Global functions for external access
-window.verifyNFTGUser = function() {
-    if (window.miniChannels) {
-        window.miniChannels.setUserVerified(true);
-        return true;
-    }
-    return false;
-};
-
-window.getNFTGChannelStats = function() {
-    if (window.miniChannels) {
-        return window.miniChannels.getDebugInfo();
-    }
-    return null;
-};
