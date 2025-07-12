@@ -158,26 +158,55 @@ class MiniEditor {
         this.drawAreaGuide();
     }
 
+    // ИСПРАВЛЕНО: Точное вычисление формы выбранных пикселей
     calculateAreaShape() {
         if (this.selectedPixels.length === 0) return null;
         
-        const rows = this.selectedPixels.map(id => Math.floor(id / this.gridSize));
-        const cols = this.selectedPixels.map(id => id % this.gridSize);
+        // Получаем координаты всех выбранных пикселей
+        const pixelCoords = this.selectedPixels.map(id => ({
+            id: id,
+            row: Math.floor(id / this.gridSize),
+            col: id % this.gridSize
+        }));
+        
+        // Находим границы
+        const rows = pixelCoords.map(p => p.row);
+        const cols = pixelCoords.map(p => p.col);
         
         const minRow = Math.min(...rows);
         const maxRow = Math.max(...rows);
         const minCol = Math.min(...cols);
         const maxCol = Math.max(...cols);
         
+        // Создаем точную карту формы
+        const shapeMap = new Map();
+        pixelCoords.forEach(pixel => {
+            const localRow = pixel.row - minRow;
+            const localCol = pixel.col - minCol;
+            const localKey = `${localRow}-${localCol}`;
+            shapeMap.set(localKey, {
+                globalId: pixel.id,
+                localRow: localRow,
+                localCol: localCol,
+                globalRow: pixel.row,
+                globalCol: pixel.col
+            });
+        });
+        
         this.areaShape = {
             width: maxCol - minCol + 1,
             height: maxRow - minRow + 1,
-            minRow,
-            minCol,
-            pixelIds: this.selectedPixels
+            minRow: minRow,
+            minCol: minCol,
+            maxRow: maxRow,
+            maxCol: maxCol,
+            pixelIds: this.selectedPixels,
+            shapeMap: shapeMap, // Точная карта формы
+            actualPixelCount: this.selectedPixels.length
         };
         
-        console.log('Area shape calculated:', this.areaShape);
+        console.log('Calculated exact area shape:', this.areaShape);
+        console.log('Shape map:', Array.from(shapeMap.entries()));
         return this.areaShape;
     }
 
@@ -193,6 +222,7 @@ class MiniEditor {
         this.ctx.fillRect(0, 0, width, height);
     }
 
+    // ИСПРАВЛЕНО: Рисуем точную форму выбранных пикселей
     drawAreaGuide() {
         if (!this.ctx || !this.areaShape) return;
         
@@ -229,42 +259,104 @@ class MiniEditor {
             centerY: centerY
         };
         
-        // Draw area outline
+        // Рисуем только те ячейки, которые соответствуют выбранным пикселям
         this.ctx.strokeStyle = '#9D4EDD';
         this.ctx.lineWidth = 2;
-        this.ctx.setLineDash([5, 5]);
-        this.ctx.strokeRect(startX, startY, areaWidth, areaHeight);
-        this.ctx.setLineDash([]);
+        this.ctx.fillStyle = 'rgba(157, 78, 221, 0.1)';
         
-        // Draw grid
-        this.ctx.strokeStyle = '#666';
+        // Рисуем каждую ячейку отдельно
+        for (let row = 0; row < this.areaShape.height; row++) {
+            for (let col = 0; col < this.areaShape.width; col++) {
+                const localKey = `${row}-${col}`;
+                if (this.areaShape.shapeMap.has(localKey)) {
+                    const cellX = startX + col * cellSize;
+                    const cellY = startY + row * cellSize;
+                    
+                    // Заливка ячейки
+                    this.ctx.fillRect(cellX, cellY, cellSize, cellSize);
+                    
+                    // Обводка ячейки
+                    this.ctx.strokeRect(cellX, cellY, cellSize, cellSize);
+                }
+            }
+        }
+        
+        // Рисуем общую обводку формы пунктирной линией
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.strokeStyle = '#00D4FF';
         this.ctx.lineWidth = 1;
         
-        for (let i = 1; i < this.areaShape.width; i++) {
-            const x = startX + i * cellSize;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, startY);
-            this.ctx.lineTo(x, startY + areaHeight);
-            this.ctx.stroke();
-        }
+        // Находим внешние границы формы и обводим их
+        this.drawShapeOutline(startX, startY, cellSize);
         
-        for (let i = 1; i < this.areaShape.height; i++) {
-            const y = startY + i * cellSize;
-            this.ctx.beginPath();
-            this.ctx.moveTo(startX, y);
-            this.ctx.lineTo(startX + areaWidth, y);
-            this.ctx.stroke();
-        }
+        this.ctx.setLineDash([]);
         
         // Draw info text
         this.ctx.fillStyle = '#9D4EDD';
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(
-            `Область: ${this.areaShape.width}×${this.areaShape.height}`,
+            `Форма: ${this.selectedPixels.length} пикселей (${this.areaShape.width}×${this.areaShape.height})`,
             centerX,
             startY - 10
         );
+    }
+
+    // НОВОЕ: Рисуем точную обводку формы
+    drawShapeOutline(startX, startY, cellSize) {
+        // Собираем все ячейки формы
+        const cells = new Set();
+        for (let row = 0; row < this.areaShape.height; row++) {
+            for (let col = 0; col < this.areaShape.width; col++) {
+                const localKey = `${row}-${col}`;
+                if (this.areaShape.shapeMap.has(localKey)) {
+                    cells.add(`${row}-${col}`);
+                }
+            }
+        }
+        
+        // Рисуем границы каждой ячейки, которые являются внешними границами формы
+        cells.forEach(cellKey => {
+            const [row, col] = cellKey.split('-').map(Number);
+            const cellX = startX + col * cellSize;
+            const cellY = startY + row * cellSize;
+            
+            // Проверяем каждую сторону ячейки
+            const neighbors = [
+                { dr: -1, dc: 0, side: 'top' },    // верх
+                { dr: 1, dc: 0, side: 'bottom' },  // низ
+                { dr: 0, dc: -1, side: 'left' },   // лево
+                { dr: 0, dc: 1, side: 'right' }    // право
+            ];
+            
+            neighbors.forEach(({ dr, dc, side }) => {
+                const neighborKey = `${row + dr}-${col + dc}`;
+                
+                // Если соседа нет в форме, рисуем границу
+                if (!cells.has(neighborKey)) {
+                    this.ctx.beginPath();
+                    switch (side) {
+                        case 'top':
+                            this.ctx.moveTo(cellX, cellY);
+                            this.ctx.lineTo(cellX + cellSize, cellY);
+                            break;
+                        case 'bottom':
+                            this.ctx.moveTo(cellX, cellY + cellSize);
+                            this.ctx.lineTo(cellX + cellSize, cellY + cellSize);
+                            break;
+                        case 'left':
+                            this.ctx.moveTo(cellX, cellY);
+                            this.ctx.lineTo(cellX, cellY + cellSize);
+                            break;
+                        case 'right':
+                            this.ctx.moveTo(cellX + cellSize, cellY);
+                            this.ctx.lineTo(cellX + cellSize, cellY + cellSize);
+                            break;
+                    }
+                    this.ctx.stroke();
+                }
+            });
+        });
     }
 
     async handleImageUpload(event) {
@@ -466,7 +558,7 @@ class MiniEditor {
         this.clearCanvas();
 
         if (this.currentImage) {
-            this.drawImage();
+            this.drawImageWithShapeClipping();
             this.drawAreaGuide();
         } else {
             this.drawAreaGuide();
@@ -483,13 +575,24 @@ class MiniEditor {
         }
     }
 
-    drawImage() {
+    // НОВОЕ: Рисуем изображение с обрезкой по точной форме
+    drawImageWithShapeClipping() {
         if (!this.currentImage || !this.areaRect) return;
         
         this.ctx.save();
         
+        // Создаем маску в форме выбранных пикселей
         this.ctx.beginPath();
-        this.ctx.rect(this.areaRect.x, this.areaRect.y, this.areaRect.width, this.areaRect.height);
+        for (let row = 0; row < this.areaShape.height; row++) {
+            for (let col = 0; col < this.areaShape.width; col++) {
+                const localKey = `${row}-${col}`;
+                if (this.areaShape.shapeMap.has(localKey)) {
+                    const cellX = this.areaRect.x + col * this.areaRect.cellSize;
+                    const cellY = this.areaRect.y + row * this.areaRect.cellSize;
+                    this.ctx.rect(cellX, cellY, this.areaRect.cellSize, this.areaRect.cellSize);
+                }
+            }
+        }
         this.ctx.clip();
         
         const centerX = this.areaRect.centerX + this.offsetX;
@@ -525,6 +628,7 @@ class MiniEditor {
         MiniUtils.vibrate([100]);
     }
 
+    // ИСПРАВЛЕНО: Предпросмотр в точной форме выбранных пикселей
     displayPreview(cells) {
         let previewContainer = document.getElementById('preview-container');
         if (!previewContainer) {
@@ -544,17 +648,18 @@ class MiniEditor {
         let previewHTML = '';
         let cellIndex = 0;
         
+        // Рисуем предпросмотр в точной форме
         for (let row = 0; row < this.areaShape.height; row++) {
             for (let col = 0; col < this.areaShape.width; col++) {
-                const globalRow = this.areaShape.minRow + row;
-                const globalCol = this.areaShape.minCol + col;
-                const pixelId = globalRow * this.gridSize + globalCol;
+                const localKey = `${row}-${col}`;
                 
-                if (this.selectedPixels.includes(pixelId)) {
-                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: none;"></div>`;
+                if (this.areaShape.shapeMap.has(localKey)) {
+                    // Есть пиксель в этой позиции - показываем изображение
+                    previewHTML += `<div style="width: 24px; height: 24px; background-image: url(${cells[cellIndex]}); background-size: cover; background-position: center; border: 1px solid #9D4EDD;"></div>`;
                     cellIndex++;
                 } else {
-                    previewHTML += `<div style="width: 24px; height: 24px; background: #111; border: 1px solid #333; opacity: 0.3;"></div>`;
+                    // Нет пикселя - пустое место
+                    previewHTML += `<div style="width: 24px; height: 24px; background: transparent; border: none;"></div>`;
                 }
             }
         }
@@ -562,17 +667,18 @@ class MiniEditor {
         previewContainer.innerHTML = `
             <h3 style="color: #9D4EDD; margin-bottom: 15px;">Предпросмотр для ${this.selectedPixels.length} пикселей</h3>
             <div style="margin: 15px 0; color: #b0b0b0; font-size: 12px;">
-                Область: ${this.areaShape.width}×${this.areaShape.height} • Позиции: ${this.selectedPixels.slice(0, 5).join(', ')}${this.selectedPixels.length > 5 ? '...' : ''}
+                Форма: ${this.areaShape.width}×${this.areaShape.height} • Пиксели: ${this.selectedPixels.slice(0, 5).join(', ')}${this.selectedPixels.length > 5 ? '...' : ''}
             </div>
             <div style="display: inline-grid; grid-template-columns: repeat(${this.areaShape.width}, 24px); gap: 0; background: #000; padding: 4px; border-radius: 5px;">
                 ${previewHTML}
             </div>
             <p style="margin-top: 15px; color: #9D4EDD; font-size: 12px; font-weight: bold;">
-                ✅ Готово к применению! Нажмите "Применить" для бесшовного изображения
+                ✅ Готово к применению! Форма точно соответствует выбранным пикселям
             </p>
         `;
     }
 
+    // ИСПРАВЛЕНО: Применяем к пикселям в точном соответствии с формой
     applyToPixels() {
         if (!this.currentImage || !this.areaShape) {
             MiniUtils.showNotification('Загрузите изображение', 'error');
@@ -582,46 +688,43 @@ class MiniEditor {
         try {
             const cells = this.extractCells();
             
-            let cellIndex = 0;
-            for (let row = 0; row < this.areaShape.height; row++) {
-                for (let col = 0; col < this.areaShape.width; col++) {
-                    const globalRow = this.areaShape.minRow + row;
-                    const globalCol = this.areaShape.minCol + col;
-                    const pixelId = globalRow * this.gridSize + globalCol;
+            // Применяем изображения к пикселям в точном соответствии с формой
+            const sortedPixels = Array.from(this.areaShape.shapeMap.values())
+                .sort((a, b) => a.globalId - b.globalId);
+            
+            sortedPixels.forEach((pixelInfo, cellIndex) => {
+                const pixelId = pixelInfo.globalId;
+                const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
+                
+                if (pixelElement && cells[cellIndex]) {
+                    pixelElement.style.backgroundImage = `url(${cells[cellIndex]})`;
+                    pixelElement.style.backgroundSize = 'cover';
+                    pixelElement.style.backgroundPosition = 'center';
+                    pixelElement.classList.add('with-image');
                     
-                    if (this.selectedPixels.includes(pixelId)) {
-                        const pixelElement = document.querySelector(`[data-id="${pixelId}"]`);
-                        if (pixelElement && cells[cellIndex]) {
-                            pixelElement.style.backgroundImage = `url(${cells[cellIndex]})`;
-                            pixelElement.style.backgroundSize = 'cover';
-                            pixelElement.style.backgroundPosition = 'center';
-                            pixelElement.classList.add('with-image');
-                            
-                            setTimeout(() => {
-                                pixelElement.style.animation = 'pulse 0.6s ease-out';
-                                setTimeout(() => {
-                                    pixelElement.style.animation = '';
-                                }, 600);
-                            }, cellIndex * 50);
-                        }
-                        
-                        if (window.miniGrid && window.miniGrid.pixels.has(pixelId)) {
-                            const pixelData = window.miniGrid.pixels.get(pixelId);
-                            pixelData.imageUrl = cells[cellIndex];
-                            window.miniGrid.pixels.set(pixelId, pixelData);
-                        }
-                        
-                        cellIndex++;
-                    }
+                    // Анимация с задержкой
+                    setTimeout(() => {
+                        pixelElement.style.animation = 'pulse 0.6s ease-out';
+                        setTimeout(() => {
+                            pixelElement.style.animation = '';
+                        }, 600);
+                    }, cellIndex * 50);
                 }
-            }
+                
+                // Обновляем данные в miniGrid
+                if (window.miniGrid && window.miniGrid.pixels.has(pixelId)) {
+                    const pixelData = window.miniGrid.pixels.get(pixelId);
+                    pixelData.imageUrl = cells[cellIndex];
+                    window.miniGrid.pixels.set(pixelId, pixelData);
+                }
+            });
 
             if (window.miniGrid) {
                 window.miniGrid.savePixelData();
                 window.miniGrid.updateSeamlessMode();
             }
 
-            MiniUtils.showNotification(`Изображение применено к ${this.selectedPixels.length} пикселям!`, 'success');
+            MiniUtils.showNotification(`Изображение точно применено к ${this.selectedPixels.length} пикселям!`, 'success');
             MiniUtils.vibrate([100, 50, 100]);
             
             setTimeout(() => {
@@ -633,7 +736,7 @@ class MiniEditor {
         }
     }
 
-    // УЛУЧШЕНО: Высококачественное извлечение ячеек
+    // ИСПРАВЛЕНО: Извлекаем ячейки в точном соответствии с формой
     extractCells() {
         const cells = [];
         
@@ -650,26 +753,22 @@ class MiniEditor {
         const canvasAreaRect = this.areaRect;
         const canvasCellSize = canvasAreaRect.cellSize;
         
-        const pixelMatrix = [];
+        // Извлекаем ячейки в порядке соответствующем реальным пикселям
+        const sortedPixelInfos = [];
         for (let row = 0; row < this.areaShape.height; row++) {
             for (let col = 0; col < this.areaShape.width; col++) {
-                const globalRow = this.areaShape.minRow + row;
-                const globalCol = this.areaShape.minCol + col;
-                const pixelId = globalRow * this.gridSize + globalCol;
-                
-                if (this.selectedPixels.includes(pixelId)) {
-                    pixelMatrix.push({
-                        pixelId,
-                        row,
-                        col,
-                        localRow: row,
-                        localCol: col
+                const localKey = `${row}-${col}`;
+                if (this.areaShape.shapeMap.has(localKey)) {
+                    const pixelInfo = this.areaShape.shapeMap.get(localKey);
+                    sortedPixelInfos.push({
+                        ...pixelInfo,
+                        extractionOrder: sortedPixelInfos.length
                     });
                 }
             }
         }
         
-        pixelMatrix.forEach(pixelInfo => {
+        sortedPixelInfos.forEach(pixelInfo => {
             const { localRow, localCol } = pixelInfo;
             
             // Очищаем временный canvas
@@ -727,7 +826,7 @@ class MiniEditor {
             cells.push(dataUrl);
         });
         
-        console.log(`Извлечено ${cells.length} ячеек высокого качества (${this.outputSize}x${this.outputSize}px, качество: ${this.outputQuality})`);
+        console.log(`Извлечено ${cells.length} ячеек высокого качества для точной формы (${this.outputSize}x${this.outputSize}px, качество: ${this.outputQuality})`);
         return cells;
     }
 
