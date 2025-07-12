@@ -1,202 +1,3 @@
-/* === НОВЫЕ СТИЛИ ДЛЯ РЕДАКТИРОВАНИЯ ИНФОРМАЦИИ === */
-
-/* Category selector */
-.category-selector {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.category-tag {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.category-tag:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-}
-
-.category-tag.selected {
-    background: linear-gradient(45deg, #00D4FF, #0099CC);
-    color: #000;
-    border-color: #00D4FF;
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
-    transform: scale(1.05);
-}
-
-.selected-categories {
-    background: rgba(0, 212, 255, 0.1);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin-top: 8px;
-    font-size: 12px;
-}
-
-#selected-categories-text {
-    font-weight: 600;
-}
-
-/* Character counter styling */
-.char-counter {
-    text-align: right;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 4px;
-}
-
-/* Textarea для описания */
-textarea.form-control {
-    resize: vertical;
-    min-height: 60px;
-    max-height: 120px;
-    font-family: inherit;
-    line-height: 1.4;
-}
-
-/* Статус подключения */
-.connection-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.connection-status.connected {
-    background: rgba(0, 255, 136, 0.2);
-    color: #00FF88;
-    border: 1px solid rgba(0, 255, 136, 0.3);
-}
-
-.connection-status.disconnected {
-    background: rgba(255, 180, 0, 0.2);
-    color: #FFB800;
-    border: 1px solid rgba(255, 180, 0, 0.3);
-}
-
-.connection-status .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    animation: statusPulse 2s infinite;
-}
-
-@keyframes statusPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* Loader для транзакций */
-.transaction-loader {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #00D4FF;
-    font-size: 12px;
-}
-
-.transaction-loader .spinner {
-    width: 12px;
-    height: 12px;
-    border: 2px solid rgba(0, 212, 255, 0.2);
-    border-top: 2px solid #00D4FF;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* TON Connect UI кастомизация */
-tc-root {
-    --tc-bg-color: #1a1a2e;
-    --tc-accent: #00D4FF;
-    --tc-text-primary: #ffffff;
-    --tc-text-secondary: rgba(255, 255, 255, 0.7);
-    --tc-border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Скрытие стандартной кнопки TON Connect */
-tc-root tc-button {
-    display: none !important;
-}
-
-/* === ACTION BUTTON === */
-.action-button-container {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 150;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-}
-
-.action-button-container.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.action-button {
-    padding: 14px 24px;
-    background: linear-gradient(45deg, #00FF88, #00CC66);
-    color: #000;
-    border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
-    transition: all 0.3s ease;
-    min-width: 120px;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    white-space: nowrap;
-}
-
-.action-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(0, 255, 136, 0.6);
-}
-
-.action-button:active {
-    transform: translateY(0);
-}
-
-.action-button.buy-mode {
-    background: linear-gradient(45deg, #00FF88, #00CC66);
-    color: #000;
-}
-
 .action-button.mass-buy-mode {
     background: linear-gradient(45deg, #FFB800, #FF9500);
     color: #000;
@@ -1082,6 +883,23 @@ tc-root tc-button {
         padding: 6px 10px;
         font-size: 11px;
     }
+    
+    /* Стили подачи заявки на мобильных */
+    .checkbox-group {
+        gap: 6px;
+    }
+    
+    .checkbox-label {
+        font-size: 11px;
+    }
+    
+    .rules-list {
+        font-size: 10px;
+    }
+    
+    .terms-checkbox .checkbox-label {
+        font-size: 10px;
+    }
 }
 
 @media (max-width: 360px) {
@@ -1688,4 +1506,355 @@ body {
         transform: scale(1.1);
         filter: brightness(1.2);
     }
+}
+
+/* === НОВЫЕ СТИЛИ ДЛЯ РЕДАКТИРОВАНИЯ ИНФОРМАЦИИ === */
+
+/* Category selector */
+.category-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.category-tag {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.category-tag:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.category-tag.selected {
+    background: linear-gradient(45deg, #00D4FF, #0099CC);
+    color: #000;
+    border-color: #00D4FF;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.selected-categories {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+#selected-categories-text {
+    font-weight: 600;
+}
+
+/* Character counter styling */
+.char-counter {
+    text-align: right;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 4px;
+}
+
+/* Textarea для описания */
+textarea.form-control {
+    resize: vertical;
+    min-height: 60px;
+    max-height: 120px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+/* Статус подключения */
+.connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.connection-status.connected {
+    background: rgba(0, 255, 136, 0.2);
+    color: #00FF88;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.connection-status.disconnected {
+    background: rgba(255, 180, 0, 0.2);
+    color: #FFB800;
+    border: 1px solid rgba(255, 180, 0, 0.3);
+}
+
+.connection-status .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Loader для транзакций */
+.transaction-loader {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #00D4FF;
+    font-size: 12px;
+}
+
+.transaction-loader .spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-top: 2px solid #00D4FF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* TON Connect UI кастомизация */
+tc-root {
+    --tc-bg-color: #1a1a2e;
+    --tc-accent: #00D4FF;
+    --tc-text-primary: #ffffff;
+    --tc-text-secondary: rgba(255, 255, 255, 0.7);
+    --tc-border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Скрытие стандартной кнопки TON Connect */
+tc-root tc-button {
+    display: none !important;
+}
+
+/* === СТИЛИ ДЛЯ ПОДАЧИ ЗАЯВКИ === */
+
+/* Стили для формы подачи заявки */
+.field-hint {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #00D4FF;
+}
+
+.checkbox-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    user-select: none;
+}
+
+.terms-section {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 8px;
+}
+
+.terms-section h4 {
+    color: #00D4FF;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.rules-list {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 12px;
+    padding-left: 0;
+    list-style: none;
+}
+
+.rules-list li {
+    padding: 2px 0;
+    line-height: 1.4;
+}
+
+.terms-checkbox {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 8px;
+}
+
+.terms-checkbox .checkbox-label {
+    color: #00D4FF;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.submission-status {
+    margin: 16px 0;
+}
+
+.status-card {
+    background: rgba(255, 184, 0, 0.1);
+    border: 1px solid rgba(255, 184, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-icon {
+    font-size: 24px;
+    color: #FFB800;
+}
+
+.status-info {
+    flex: 1;
+}
+
+.status-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFB800;
+    margin-bottom: 2px;
+}
+
+.status-subtitle {
+    font-size: 11px;
+    color: rgba(255, 184, 0, 0.8);
+    margin-bottom: 4px;
+}
+
+.status-date {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Статусы заявок */
+.status-card.pending {
+    background: rgba(255, 184, 0, 0.1);
+    border-color: rgba(255, 184, 0, 0.3);
+}
+
+.status-card.pending .status-icon {
+    color: #FFB800;
+}
+
+.status-card.approved {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: rgba(0, 255, 136, 0.3);
+}
+
+.status-card.approved .status-icon {
+    color: #00FF88;
+}
+
+.status-card.rejected {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.status-card.rejected .status-icon {
+    color: #FF4444;
+}
+
+/* === ACTION BUTTON === */
+.action-button-container {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-button-container.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.action-button {
+    padding: 14px 24px;
+    background: linear-gradient(45deg, #00FF88, #00CC66);
+    color: #000;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+    transition: all 0.3s ease;
+    min-width: 120px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(0, 255, 136, 0.6);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+.action-button.buy-mode {
+    background: linear-gradient(45deg, #00FF88, #00CC66);
+    color: #000;
+}
+
+.action-button.mass-buy-mode {
+    background: linear-gradient(45deg, #FFB800, #FF9500);
+    color: #000;
 }

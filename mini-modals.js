@@ -25,6 +25,10 @@ class MiniModals {
         document.getElementById('visit-channel')?.addEventListener('click', () => this.visitChannel());
         document.getElementById('close-pixel-info')?.addEventListener('click', () => this.closePixelInfoModal());
 
+        // НОВОЕ: Channel Submission Modal
+        document.getElementById('submit-channel-application')?.addEventListener('click', () => this.submitChannelApplication());
+        document.getElementById('cancel-channel-submission')?.addEventListener('click', () => this.closeChannelSubmissionModal());
+
         // Global modal handlers
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -45,12 +49,15 @@ class MiniModals {
         // НОВОЕ: Category selection for pixel info edit
         this.setupCategorySelection();
         
+        // НОВОЕ: Channel submission events
+        this.setupChannelSubmissionEvents();
+        
         console.log('✅ Modal event listeners setup completed');
     }
 
     setupFormValidation() {
         // Real-time validation for Telegram links
-        const telegramInputs = ['telegram-link', 'mass-telegram-link', 'edit-telegram-link'];
+        const telegramInputs = ['telegram-link', 'mass-telegram-link', 'edit-telegram-link', 'submission-telegram-link'];
 
         telegramInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
@@ -79,6 +86,72 @@ class MiniModals {
                     this.toggleCategory(e.target);
                 }
             });
+        }
+    }
+
+    // НОВОЕ: Настройка событий подачи заявки
+    setupChannelSubmissionEvents() {
+        // Category selection for submission
+        const submissionCategories = document.getElementById('submission-categories');
+        if (submissionCategories) {
+            submissionCategories.addEventListener('click', (e) => {
+                if (e.target.classList.contains('category-tag')) {
+                    this.toggleSubmissionCategory(e.target);
+                }
+            });
+        }
+        
+        // Character counters
+        const charCounters = [
+            { fieldId: 'submission-channel-name', counterId: 'submission-name-chars', maxLength: 50 },
+            { fieldId: 'submission-description', counterId: 'submission-description-chars', maxLength: 300 }
+        ];
+        
+        charCounters.forEach(({ fieldId, counterId }) => {
+            const field = document.getElementById(fieldId);
+            const counter = document.getElementById(counterId);
+            if (field && counter) {
+                field.addEventListener('input', () => {
+                    counter.textContent = field.value.length;
+                });
+            }
+        });
+    }
+
+    // НОВОЕ: Переключение категории для подачи заявки
+    toggleSubmissionCategory(categoryElement) {
+        const category = categoryElement.dataset.category;
+        
+        if (categoryElement.classList.contains('selected')) {
+            // Убираем категорию
+            categoryElement.classList.remove('selected');
+            this.selectedCategories = this.selectedCategories.filter(c => c !== category);
+        } else {
+            // Добавляем категорию (максимум 3)
+            if (this.selectedCategories.length < 3) {
+                categoryElement.classList.add('selected');
+                this.selectedCategories.push(category);
+            } else {
+                MiniUtils.showNotification('Максимум 3 категории', 'info');
+                return;
+            }
+        }
+        
+        this.updateSubmissionCategoriesDisplay();
+        MiniUtils.vibrate([30]);
+    }
+
+    // НОВОЕ: Обновление отображения выбранных категорий для подачи заявки
+    updateSubmissionCategoriesDisplay() {
+        const displayElement = document.getElementById('submission-categories-text');
+        if (displayElement) {
+            if (this.selectedCategories.length === 0) {
+                displayElement.textContent = 'Нет';
+                displayElement.style.color = '#666';
+            } else {
+                displayElement.textContent = this.selectedCategories.join(', ');
+                displayElement.style.color = '#00FF88';
+            }
         }
     }
 
@@ -537,6 +610,160 @@ class MiniModals {
         this.closePixelInfoEditModal();
     }
 
+    // === НОВОЕ: CHANNEL SUBMISSION MODAL ===
+    showChannelSubmissionModal() {
+        this.resetChannelSubmissionForm();
+        this.activeModal = 'channel-submission-modal';
+        
+        const modal = document.getElementById('channel-submission-modal');
+        if (modal) {
+            modal.classList.add('active');
+            MiniUtils.vibrate([100]);
+            
+            // Show Telegram back button
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.BackButton.show();
+            }
+        }
+    }
+
+    closeChannelSubmissionModal() {
+        const modal = document.getElementById('channel-submission-modal');
+        if (modal) modal.classList.remove('active');
+        
+        this.activeModal = null;
+        this.selectedCategories = [];
+        
+        // Hide Telegram back button if no other modals open
+        if (window.Telegram?.WebApp && !this.isModalOpen()) {
+            window.Telegram.WebApp.BackButton.hide();
+        }
+    }
+
+    resetChannelSubmissionForm() {
+        // Reset form fields
+        const fields = [
+            'submission-telegram-link',
+            'submission-channel-name', 
+            'submission-description',
+            'submission-owner-contact'
+        ];
+        
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) field.value = '';
+        });
+        
+        // Reset checkboxes
+        const checkboxes = [
+            'submission-adult-content',
+            'submission-paid-content', 
+            'submission-commercial',
+            'submission-terms'
+        ];
+        
+        checkboxes.forEach(checkboxId => {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) checkbox.checked = false;
+        });
+        
+        // Reset categories
+        this.selectedCategories = [];
+        document.querySelectorAll('#submission-categories .category-tag').forEach(tag => {
+            tag.classList.remove('selected');
+        });
+        this.updateSubmissionCategoriesDisplay();
+        
+        // Reset character counters
+        const counters = [
+            { fieldId: 'submission-channel-name', counterId: 'submission-name-chars' },
+            { fieldId: 'submission-description', counterId: 'submission-description-chars' }
+        ];
+        
+        counters.forEach(({ counterId }) => {
+            const counter = document.getElementById(counterId);
+            if (counter) counter.textContent = '0';
+        });
+    }
+
+    submitChannelApplication() {
+        // Получаем данные формы
+        const telegramLink = document.getElementById('submission-telegram-link')?.value.trim();
+        const channelName = document.getElementById('submission-channel-name')?.value.trim();
+        const description = document.getElementById('submission-description')?.value.trim();
+        const ownerContact = document.getElementById('submission-owner-contact')?.value.trim();
+        
+        const adultContent = document.getElementById('submission-adult-content')?.checked || false;
+        const paidContent = document.getElementById('submission-paid-content')?.checked || false;
+        const commercial = document.getElementById('submission-commercial')?.checked || false;
+        const termsAccepted = document.getElementById('submission-terms')?.checked || false;
+        
+        // Валидация
+        if (!telegramLink || !MiniUtils.validateTelegramUsername(telegramLink)) {
+            MiniUtils.showNotification('Введите корректную ссылку на Telegram канал', 'error');
+            document.getElementById('submission-telegram-link')?.focus();
+            return;
+        }
+        
+        if (!channelName) {
+            MiniUtils.showNotification('Введите название канала', 'error');
+            document.getElementById('submission-channel-name')?.focus();
+            return;
+        }
+        
+        if (this.selectedCategories.length === 0) {
+            MiniUtils.showNotification('Выберите хотя бы одну категорию', 'error');
+            return;
+        }
+        
+        if (!description) {
+            MiniUtils.showNotification('Введите описание канала', 'error');
+            document.getElementById('submission-description')?.focus();
+            return;
+        }
+        
+        if (!termsAccepted) {
+            MiniUtils.showNotification('Необходимо согласиться с правилами', 'error');
+            return;
+        }
+        
+        // Создаем заявку
+        const submission = {
+            id: MiniUtils.generateId(),
+            telegramLink: MiniUtils.normalizeTelegramLink(telegramLink),
+            channelName: channelName,
+            categories: [...this.selectedCategories],
+            description: description,
+            ownerContact: ownerContact || null,
+            adultContent: adultContent,
+            paidContent: paidContent,
+            commercial: commercial,
+            submittedAt: new Date().toISOString(),
+            status: 'pending'
+        };
+        
+        // Сохраняем заявку
+        const submissions = MiniUtils.loadFromStorage('nftg-channel-submissions', []);
+        submissions.push(submission);
+        MiniUtils.saveToStorage('nftg-channel-submissions', submissions);
+        
+        // Показываем успешное сообщение
+        MiniUtils.showNotification(`Заявка на канал "${channelName}" отправлена на модерацию!`, 'success');
+        MiniUtils.vibrate([100, 50, 100]);
+        
+        // Закрываем модальное окно
+        this.closeChannelSubmissionModal();
+        
+        // Обновляем каналы если возможно
+        if (window.miniChannels) {
+            setTimeout(() => {
+                window.miniChannels.loadChannelsFromPixels();
+            }, 500);
+        }
+        
+        console.log('Channel submission created:', submission);
+    }
+
     // === WALLET INTEGRATION ===
     updateWalletInfoInModal(modalType) {
         if (!window.miniWallet) return;
@@ -676,47 +903,6 @@ class MiniModals {
 
     getCurrentModal() {
         return this.activeModal;
-    }
-
-    // Form data helpers
-    getPurchaseFormData() {
-        const telegramLink = document.getElementById('telegram-link');
-        const pixelDescription = document.getElementById('pixel-description');
-        
-        return {
-            telegramLink: telegramLink ? telegramLink.value.trim() : '',
-            description: pixelDescription ? pixelDescription.value.trim() : ''
-        };
-    }
-
-    getMassPurchaseFormData() {
-        const massTelegramLink = document.getElementById('mass-telegram-link');
-        const massPixelDescription = document.getElementById('mass-pixel-description');
-        
-        return {
-            telegramLink: massTelegramLink ? massTelegramLink.value.trim() : '',
-            description: massPixelDescription ? massPixelDescription.value.trim() : ''
-        };
-    }
-
-    getPixelInfoEditFormData() {
-        const telegramLink = document.getElementById('edit-telegram-link');
-        const description = document.getElementById('edit-description');
-        
-        return {
-            categories: [...this.selectedCategories],
-            telegramLink: telegramLink ? telegramLink.value.trim() : '',
-            description: description ? description.value.trim() : ''
-        };
-    }
-
-    // Populate forms with existing data
-    populatePurchaseForm(data) {
-        const telegramLink = document.getElementById('telegram-link');
-        const pixelDescription = document.getElementById('pixel-description');
-        
-        if (data.channel && telegramLink) telegramLink.value = data.channel;
-        if (data.description && pixelDescription) pixelDescription.value = data.description;
     }
 
     // Show loading state
