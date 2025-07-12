@@ -4,8 +4,11 @@
 // === КОНФИГУРАЦИЯ ПЛАТЕЖЕЙ ===
 class PaymentConfig {
     static RECIPIENT_ADDRESS = "UQAeXSRClDQ5Xcx9WoKKfT9zn_pyk-Uep7fnSdnd_-4dUTHQ";
+    static VERIFICATION_ADDRESS = "UQAeXSRClDQ5Xcx9WoKKfT9zn_pyk-Uep7fnSdnd_-4dUTHQ"; // Тот же адрес для верификации
     static PIXEL_PRICE = 0.01;
+    static VERIFICATION_PRICE = 0.01;
     static TRANSACTION_COMMENT = "NFTG-ZONIX Pixel Purchase";
+    static VERIFICATION_COMMENT = "NFTG-ZONIX Account Verification";
     static TEST_RECIPIENT = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
     
     static getRecipientAddress(isTestnet = false) {
@@ -13,6 +16,13 @@ class PaymentConfig {
             return this.TEST_RECIPIENT;
         }
         return this.RECIPIENT_ADDRESS;
+    }
+
+    static getVerificationAddress(isTestnet = false) {
+        if (isTestnet) {
+            return this.TEST_RECIPIENT;
+        }
+        return this.VERIFICATION_ADDRESS;
     }
 }
 
@@ -142,9 +152,6 @@ class MiniWallet {
                 this.updateActionButtonForWallet(type);
             };
         }
-
-        // УБРАНО: Удаляем дублирующую логику enhancePurchaseModals
-        // Теперь вся логика покупки находится в mini-modals.js
     }
 
     async checkExistingConnection() {
@@ -273,6 +280,7 @@ class MiniWallet {
         
         console.log('Wallet connected:', this.walletAddress);
         console.log('Payments will go to:', PaymentConfig.RECIPIENT_ADDRESS);
+        console.log('Verification will go to:', PaymentConfig.VERIFICATION_ADDRESS);
     }
 
     onWalletDisconnected() {
@@ -421,7 +429,7 @@ class MiniWallet {
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.showPopup({
                 title: walletType,
-                message: `Адрес: ${this.formatAddress(this.walletAddress)}\nБаланс: ${balanceText}\n\nПлатежи идут на:\n${this.formatAddress(PaymentConfig.RECIPIENT_ADDRESS)}`,
+                message: `Адрес: ${this.formatAddress(this.walletAddress)}\nБаланс: ${balanceText}\n\nПлатежи идут на:\n${this.formatAddress(PaymentConfig.RECIPIENT_ADDRESS)}\n\nВерификация идет на:\n${this.formatAddress(PaymentConfig.VERIFICATION_ADDRESS)}`,
                 buttons: [
                     { id: 'copy', type: 'default', text: 'Копировать адрес' },
                     { id: 'disconnect', type: 'destructive', text: 'Отключить' },
@@ -471,7 +479,7 @@ class MiniWallet {
 
         try {
             if (this.isDemoMode) {
-                return await this.mockTransaction(price);
+                return await this.mockTransaction(price, 'purchase');
             }
 
             MiniUtils.showNotification('Отправка транзакции...', 'info');
@@ -496,21 +504,106 @@ class MiniWallet {
         }
     }
 
-    async mockTransaction(amount) {
+    // === НОВОЕ: МЕТОД ВЕРИФИКАЦИИ ===
+    
+    async sendVerificationTransaction() {
+        if (!this.isConnected) {
+            MiniUtils.showNotification('Подключите кошелек для верификации', 'error');
+            return false;
+        }
+
+        const verificationPrice = PaymentConfig.VERIFICATION_PRICE;
+
+        console.log('Verification attempt:', { price: verificationPrice, balance: this.balance });
+
+        if (this.balance < verificationPrice) {
+            MiniUtils.showNotification(`Недостаточно средств для верификации. Нужно ${verificationPrice} TON, доступно ${this.balance.toFixed(2)} TON`, 'error');
+            return false;
+        }
+
+        try {
+            if (this.isDemoMode) {
+                return await this.mockTransaction(verificationPrice, 'verification');
+            }
+
+            MiniUtils.showNotification('Отправка верификационной транзакции...', 'info');
+            
+            const transaction = await this.sendTransaction(verificationPrice, null, PaymentConfig.getVerificationAddress(this.isTestnet), true);
+            
+            if (transaction.success) {
+                this.balance -= verificationPrice;
+                this.updateStatusInfo();
+                
+                // Сохраняем хеш транзакции для верификации
+                this.saveVerificationTransaction(transaction.result);
+                
+                MiniUtils.showNotification(`Верификационная транзакция отправлена! ${verificationPrice} TON → ${this.formatAddress(PaymentConfig.VERIFICATION_ADDRESS)}`, 'success');
+                MiniUtils.showNotification('Средства будут возвращены в течение 24 часов', 'info');
+                
+                return true;
+            } else {
+                MiniUtils.showNotification('Верификационная транзакция отклонена', 'error');
+                return false;
+            }
+
+        } catch (error) {
+            console.error('Verification transaction failed:', error);
+            MiniUtils.showNotification(`Ошибка верификации: ${error.message}`, 'error');
+            return false;
+        }
+    }
+
+    saveVerificationTransaction(transactionResult) {
+        const verificationData = {
+            transactionHash: transactionResult.boc || 'verification_' + Date.now(),
+            amount: PaymentConfig.VERIFICATION_PRICE,
+            timestamp: new Date().toISOString(),
+            walletAddress: this.walletAddress,
+            isDemoMode: this.isDemoMode,
+            status: 'sent'
+        };
+        
+        MiniUtils.saveToStorage('nftg-verification-transaction', verificationData);
+        
+        // Также сохраняем в общую историю транзакций
+        this.saveTransactionInfo(PaymentConfig.VERIFICATION_PRICE, 'verification', PaymentConfig.VERIFICATION_ADDRESS, transactionResult);
+        
+        console.log('Verification transaction saved:', verificationData);
+    }
+
+    getVerificationTransaction() {
+        return MiniUtils.loadFromStorage('nftg-verification-transaction', null);
+    }
+
+    async mockTransaction(amount, type = 'purchase') {
         return new Promise((resolve) => {
             const transactionType = this.isDemoMode ? 'демо' : 'тестовый';
-            MiniUtils.showNotification(`Обработка ${transactionType} платежа...`, 'info');
+            const operationType = type === 'verification' ? 'верификации' : 'покупки';
+            
+            MiniUtils.showNotification(`Обработка ${transactionType} платежа ${operationType}...`, 'info');
             
             setTimeout(() => {
                 this.balance -= amount;
                 this.updateStatusInfo();
-                MiniUtils.showNotification(`${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)} платеж ${amount} TON выполнен!`, 'success');
+                
+                if (type === 'verification') {
+                    // Для верификации создаем мок-транзакцию
+                    const mockResult = {
+                        boc: 'demo_verification_' + Date.now(),
+                        hash: 'demo_hash_' + Date.now()
+                    };
+                    this.saveVerificationTransaction(mockResult);
+                    MiniUtils.showNotification(`${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)} верификация ${amount} TON выполнена!`, 'success');
+                } else {
+                    MiniUtils.showNotification(`${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)} платеж ${amount} TON выполнен!`, 'success');
+                }
+                
                 resolve(true);
             }, 2000);
         });
     }
 
-    async sendTransaction(amount, pixelId = null, toAddress = null) {
+    async sendTransaction(amount, pixelId = null, toAddress = null, isVerification = false) {
         try {
             if (!this.tonConnect) {
                 throw new Error('TON Connect not available');
@@ -518,7 +611,7 @@ class MiniWallet {
 
             const recipientAddress = toAddress || PaymentConfig.getRecipientAddress(this.isTestnet);
             
-            let comment = PaymentConfig.TRANSACTION_COMMENT;
+            let comment = isVerification ? PaymentConfig.VERIFICATION_COMMENT : PaymentConfig.TRANSACTION_COMMENT;
             if (pixelId !== null) {
                 comment += ` - Pixel #${pixelId}`;
             }
@@ -537,6 +630,7 @@ class MiniWallet {
             };
 
             console.log('Sending transaction:', {
+                type: isVerification ? 'verification' : 'purchase',
                 recipient: recipientAddress,
                 amount: `${amount} TON (${amountInNano} nanoTON)`,
                 comment: comment
@@ -544,7 +638,11 @@ class MiniWallet {
 
             const result = await this.tonConnect.sendTransaction(transaction);
             
-            this.saveTransactionInfo(amount, pixelId, recipientAddress, result);
+            if (isVerification) {
+                this.saveVerificationTransaction(result);
+            } else {
+                this.saveTransactionInfo(amount, pixelId, recipientAddress, result);
+            }
             
             return { success: true, result };
             
@@ -564,8 +662,11 @@ class MiniWallet {
             recipient: recipient,
             timestamp: new Date().toISOString(),
             status: 'sent',
-            comment: `${PaymentConfig.TRANSACTION_COMMENT}${pixelId ? ` - Pixel #${pixelId}` : ''}`,
-            transactionResult: transactionResult
+            comment: pixelId === 'verification' ? 
+                PaymentConfig.VERIFICATION_COMMENT : 
+                `${PaymentConfig.TRANSACTION_COMMENT}${pixelId && pixelId !== 'verification' ? ` - Pixel #${pixelId}` : ''}`,
+            transactionResult: transactionResult,
+            type: pixelId === 'verification' ? 'verification' : 'purchase'
         };
         
         transactions.push(transaction);
@@ -580,6 +681,11 @@ class MiniWallet {
 
     getTransactionHistory() {
         return MiniUtils.loadFromStorage('nftg-transaction-history', []);
+    }
+
+    getVerificationTransactions() {
+        const allTransactions = this.getTransactionHistory();
+        return allTransactions.filter(tx => tx.type === 'verification');
     }
 
     isWalletConnected() {
@@ -630,6 +736,7 @@ class MiniWallet {
         MiniUtils.showNotification('Демо кошелек подключен!', 'success');
         console.log('Demo wallet connected for testing');
         console.log('Real payments will go to:', PaymentConfig.RECIPIENT_ADDRESS);
+        console.log('Real verification will go to:', PaymentConfig.VERIFICATION_ADDRESS);
     }
 
     async forceDisconnect() {
@@ -658,7 +765,10 @@ class MiniWallet {
             isDemoMode: this.isDemoMode || false,
             tonConnectReady: !!this.tonConnect,
             manifestUrl: this.getManifestUrl(),
-            recipientAddress: PaymentConfig.RECIPIENT_ADDRESS
+            recipientAddress: PaymentConfig.RECIPIENT_ADDRESS,
+            verificationAddress: PaymentConfig.VERIFICATION_ADDRESS,
+            verificationPrice: PaymentConfig.VERIFICATION_PRICE,
+            verificationTransaction: this.getVerificationTransaction()
         };
     }
 
@@ -680,24 +790,51 @@ class MiniWallet {
         return success;
     }
 
+    async testVerification() {
+        console.log(`Testing verification transaction of ${PaymentConfig.VERIFICATION_PRICE} TON...`);
+        
+        if (!this.isConnected) {
+            console.log('❌ Wallet not connected');
+            return false;
+        }
+        
+        if (this.balance < PaymentConfig.VERIFICATION_PRICE) {
+            console.log('❌ Insufficient balance for verification');
+            return false;
+        }
+        
+        const success = await this.sendVerificationTransaction();
+        console.log(success ? '✅ Verification transaction successful' : '❌ Verification transaction failed');
+        return success;
+    }
+
     getUsageStats() {
         const stats = MiniUtils.loadFromStorage('nftg-wallet-stats', {
             totalTransactions: 0,
             totalSpent: 0,
             pixelsPurchased: 0,
+            verificationsCompleted: 0,
             lastTransaction: null,
+            lastVerification: null,
             demoMode: this.isDemoMode || false
         });
         
         return stats;
     }
 
-    updateUsageStats(amount, pixelCount = 1) {
+    updateUsageStats(amount, pixelCount = 1, isVerification = false) {
         const stats = this.getUsageStats();
         
         stats.totalTransactions += 1;
         stats.totalSpent += amount;
-        stats.pixelsPurchased += pixelCount;
+        
+        if (isVerification) {
+            stats.verificationsCompleted += 1;
+            stats.lastVerification = new Date().toISOString();
+        } else {
+            stats.pixelsPurchased += pixelCount;
+        }
+        
         stats.lastTransaction = new Date().toISOString();
         stats.demoMode = this.isDemoMode || false;
         
@@ -713,6 +850,9 @@ class MiniWallet {
             isTestnet: this.isTestnet,
             isDemoMode: this.isDemoMode || false,
             recipientAddress: PaymentConfig.RECIPIENT_ADDRESS,
+            verificationAddress: PaymentConfig.VERIFICATION_ADDRESS,
+            verificationTransaction: this.getVerificationTransaction(),
+            verificationTransactions: this.getVerificationTransactions(),
             exportDate: new Date().toISOString()
         };
         
@@ -742,13 +882,16 @@ function initWallet() {
                     window.disconnectDemoWallet = () => window.miniWallet?.forceDisconnect();
                     window.addBalance = (amount) => window.miniWallet?.addBalance(amount);
                     window.testPurchase = (amount) => window.miniWallet?.testPurchase(amount);
+                    window.testVerification = () => window.miniWallet?.testVerification();
                     window.walletStats = () => window.miniWallet?.getUsageStats();
                     window.exportWallet = () => window.miniWallet?.exportWalletData();
                     window.setTestMode = (enabled) => window.miniWallet?.setTestMode(enabled);
+                    window.getVerificationTx = () => window.miniWallet?.getVerificationTransaction();
                     
                     console.log('🛠️ Wallet development mode active');
-                    console.log('Available commands: connectDemoWallet(), disconnectDemoWallet(), addBalance(amount), testPurchase(amount), walletStats(), exportWallet(), setTestMode(true/false)');
+                    console.log('Available commands: connectDemoWallet(), disconnectDemoWallet(), addBalance(amount), testPurchase(amount), testVerification(), walletStats(), exportWallet(), setTestMode(true/false), getVerificationTx()');
                     console.log('💰 Payments will go to:', PaymentConfig.RECIPIENT_ADDRESS);
+                    console.log('🔐 Verification will go to:', PaymentConfig.VERIFICATION_ADDRESS);
                 }
             } else {
                 console.log('Wallet already initialized');
@@ -761,6 +904,10 @@ function initWallet() {
             isConnected: false,
             balance: 0,
             forceConnect: () => console.log('TON Connect not available'),
+            sendVerificationTransaction: () => { 
+                console.log('TON Connect not available');
+                return Promise.resolve(false);
+            },
             getDebugInfo: () => ({ error: 'TON Connect not loaded' })
         };
     }

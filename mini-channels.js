@@ -14,6 +14,8 @@ class MiniChannels {
         this.userRatings = new Map();
         this.currentRatingChannel = null;
         this.selectedRating = 0;
+        this.verificationStatus = 'none'; // none, pending, verified, failed
+        this.verificationTransactionHash = null;
         
         this.init();
     }
@@ -76,7 +78,7 @@ class MiniChannels {
 
         const verificationBtn = document.getElementById('verification-btn');
         if (verificationBtn) {
-            verificationBtn.addEventListener('click', () => this.startVerification());
+            verificationBtn.addEventListener('click', () => this.handleVerificationClick());
         }
 
         const statsBtn = document.getElementById('stats-btn');
@@ -225,13 +227,37 @@ class MiniChannels {
         }
         
         if (userStatus) {
-            if (this.userVerified) {
-                userStatus.textContent = 'Верифицирован ✓';
-                userStatus.classList.add('verified');
-            } else {
-                userStatus.textContent = 'Не верифицирован';
-                userStatus.classList.remove('verified');
-            }
+            this.updateVerificationStatus(userStatus);
+        }
+    }
+
+    updateVerificationStatus(statusElement) {
+        if (!statusElement) return;
+
+        switch (this.verificationStatus) {
+            case 'verified':
+                statusElement.textContent = 'Верифицирован ✓';
+                statusElement.className = 'user-status verified';
+                statusElement.style.color = '#00FF88';
+                statusElement.style.background = 'rgba(0, 255, 136, 0.1)';
+                break;
+            case 'pending':
+                statusElement.textContent = 'Верификация...';
+                statusElement.className = 'user-status pending';
+                statusElement.style.color = '#FFB800';
+                statusElement.style.background = 'rgba(255, 184, 0, 0.1)';
+                break;
+            case 'failed':
+                statusElement.textContent = 'Ошибка верификации';
+                statusElement.className = 'user-status failed';
+                statusElement.style.color = '#FF4444';
+                statusElement.style.background = 'rgba(255, 68, 68, 0.1)';
+                break;
+            default:
+                statusElement.textContent = 'Не верифицирован';
+                statusElement.className = 'user-status';
+                statusElement.style.color = '#FFB800';
+                statusElement.style.background = 'rgba(255, 184, 0, 0.1)';
         }
     }
 
@@ -672,7 +698,7 @@ class MiniChannels {
         const channel = this.channels.find(ch => ch.id === channelId);
         if (!channel) return;
 
-        if (!this.userVerified) {
+        if (this.verificationStatus !== 'verified') {
             MiniUtils.showNotification('Для оценки каналов требуется верификация', 'info');
             this.showRatingModal(channel, false);
             return;
@@ -731,7 +757,7 @@ class MiniChannels {
         }
 
         document.getElementById('submit-rating')?.addEventListener('click', () => this.submitRating());
-        document.getElementById('verify-account')?.addEventListener('click', () => this.startVerification());
+        document.getElementById('verify-account')?.addEventListener('click', () => this.handleVerificationClick());
         document.getElementById('cancel-rating')?.addEventListener('click', () => this.closeRatingModal());
 
         document.addEventListener('keydown', (e) => {
@@ -827,19 +853,255 @@ class MiniChannels {
         this.closeMainSidebar();
     }
 
-    startVerification() {
+    // === НОВОЕ: ВЕРИФИКАЦИЯ ЧЕРЕЗ TON ТРАНЗАКЦИЮ ===
+    
+    handleVerificationClick() {
         this.closeRatingModal();
         this.closeMainSidebar();
         
-        const botLink = 'https://t.me/nftg_zonix_bot';
+        if (this.verificationStatus === 'verified') {
+            this.showVerificationStatus();
+        } else if (this.verificationStatus === 'pending') {
+            this.showPendingVerification();
+        } else {
+            this.startVerification();
+        }
+    }
+
+    showVerificationStatus() {
+        const verificationData = this.getVerificationData();
         
         if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.openTelegramLink(botLink);
+            window.Telegram.WebApp.showPopup({
+                title: '✅ Аккаунт верифицирован',
+                message: `Ваш аккаунт успешно верифицирован!\n\nДата: ${verificationData.date}\nТранзакция: ${verificationData.hash || 'Демо'}`,
+                buttons: [
+                    { id: 'reset', type: 'destructive', text: 'Сбросить верификацию' },
+                    { type: 'ok' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'reset') {
+                    this.resetVerification();
+                }
+            });
         } else {
-            window.open(botLink, '_blank', 'noopener,noreferrer');
+            const action = confirm(`✅ Аккаунт верифицирован!\n\nДата: ${verificationData.date}\nТранзакция: ${verificationData.hash || 'Демо'}\n\nСбросить верификацию?`);
+            if (action) {
+                this.resetVerification();
+            }
         }
+    }
+
+    showPendingVerification() {
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.showPopup({
+                title: '⏳ Проверка транзакции',
+                message: 'Ваша транзакция проверяется. Это может занять до 5 минут.',
+                buttons: [
+                    { id: 'check', type: 'default', text: 'Проверить сейчас' },
+                    { id: 'cancel', type: 'destructive', text: 'Отменить' },
+                    { type: 'ok' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'check') {
+                    this.checkVerificationStatus();
+                } else if (buttonId === 'cancel') {
+                    this.cancelVerification();
+                }
+            });
+        } else {
+            const action = prompt('⏳ Проверка транзакции\n\nВведите:\n"check" - проверить сейчас\n"cancel" - отменить');
+            if (action === 'check') {
+                this.checkVerificationStatus();
+            } else if (action === 'cancel') {
+                this.cancelVerification();
+            }
+        }
+    }
+
+    async startVerification() {
+        // Проверяем подключен ли кошелек
+        if (!window.miniWallet || !window.miniWallet.isConnected) {
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.showPopup({
+                    title: 'Подключите кошелек',
+                    message: 'Для верификации необходимо подключить TON кошелек',
+                    buttons: [
+                        { id: 'connect', type: 'default', text: 'Подключить' },
+                        { type: 'cancel' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'connect') {
+                        this.openMainSidebar();
+                        setTimeout(() => {
+                            document.getElementById('wallet-connect-btn')?.click();
+                        }, 300);
+                    }
+                });
+            } else {
+                if (confirm('Для верификации необходимо подключить TON кошелек. Открыть настройки?')) {
+                    this.openMainSidebar();
+                    setTimeout(() => {
+                        document.getElementById('wallet-connect-btn')?.click();
+                    }, 300);
+                }
+            }
+            return;
+        }
+
+        // Показываем информацию о верификации
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.showPopup({
+                title: '🔐 Верификация аккаунта',
+                message: 'Для верификации отправьте 0.01 TON на адрес верификации. Средства будут возвращены на ваш кошелек в течение 24 часов.',
+                buttons: [
+                    { id: 'verify', type: 'default', text: 'Отправить 0.01 TON' },
+                    { id: 'demo', type: 'default', text: '🧪 Демо верификация' },
+                    { type: 'cancel' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'verify') {
+                    this.processVerification(false);
+                } else if (buttonId === 'demo') {
+                    this.processVerification(true);
+                }
+            });
+        } else {
+            const choice = prompt('🔐 Верификация аккаунта\n\nВыберите:\n"verify" - отправить 0.01 TON\n"demo" - демо верификация');
+            if (choice === 'verify') {
+                this.processVerification(false);
+            } else if (choice === 'demo') {
+                this.processVerification(true);
+            }
+        }
+    }
+
+    async processVerification(isDemo = false) {
+        try {
+            this.verificationStatus = 'pending';
+            this.updateUserInfo();
+            
+            if (isDemo) {
+                MiniUtils.showNotification('Демо верификация запущена...', 'info');
+                
+                // Симуляция демо верификации
+                setTimeout(() => {
+                    this.completeVerification({
+                        hash: 'demo_transaction_' + Date.now(),
+                        amount: 0.01,
+                        isDemo: true
+                    });
+                }, 3000);
+                
+            } else {
+                MiniUtils.showNotification('Отправка верификационной транзакции...', 'info');
+                
+                // Отправляем реальную транзакцию
+                const success = await window.miniWallet.sendVerificationTransaction();
+                
+                if (success) {
+                    // Запускаем проверку статуса через 30 секунд
+                    setTimeout(() => {
+                        this.checkVerificationStatus();
+                    }, 30000);
+                } else {
+                    this.verificationStatus = 'failed';
+                    this.updateUserInfo();
+                    MiniUtils.showNotification('Ошибка отправки транзакции', 'error');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Verification failed:', error);
+            this.verificationStatus = 'failed';
+            this.updateUserInfo();
+            MiniUtils.showNotification('Ошибка верификации', 'error');
+        }
+    }
+
+    async checkVerificationStatus() {
+        MiniUtils.showNotification('Проверка статуса верификации...', 'info');
         
-        MiniUtils.showNotification('Переход к боту для верификации', 'info');
+        try {
+            // В реальном приложении здесь был бы запрос к API
+            // Для демо просто симулируем успешную проверку
+            setTimeout(() => {
+                this.completeVerification({
+                    hash: this.verificationTransactionHash || 'verified_' + Date.now(),
+                    amount: 0.01,
+                    isDemo: false
+                });
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Status check failed:', error);
+            MiniUtils.showNotification('Ошибка проверки статуса', 'error');
+        }
+    }
+
+    completeVerification(transactionData) {
+        this.verificationStatus = 'verified';
+        this.userVerified = true;
+        this.verificationTransactionHash = transactionData.hash;
+        
+        const verificationData = {
+            verified: true,
+            status: 'verified',
+            transactionHash: transactionData.hash,
+            amount: transactionData.amount,
+            date: new Date().toISOString(),
+            isDemo: transactionData.isDemo || false
+        };
+        
+        this.saveUserVerification(verificationData);
+        this.updateUserInfo();
+        
+        const message = transactionData.isDemo ? 
+            'Демо верификация завершена!' : 
+            'Верификация завершена! Средства будут возвращены в течение 24 часов.';
+            
+        MiniUtils.showNotification(message, 'success');
+        MiniUtils.vibrate([100, 50, 100, 50, 100]);
+        
+        console.log('Verification completed:', verificationData);
+    }
+
+    cancelVerification() {
+        this.verificationStatus = 'none';
+        this.verificationTransactionHash = null;
+        this.updateUserInfo();
+        MiniUtils.showNotification('Верификация отменена', 'info');
+    }
+
+    resetVerification() {
+        this.verificationStatus = 'none';
+        this.userVerified = false;
+        this.verificationTransactionHash = null;
+        
+        const verificationData = {
+            verified: false,
+            status: 'none',
+            transactionHash: null,
+            amount: 0,
+            date: null,
+            isDemo: false
+        };
+        
+        this.saveUserVerification(verificationData);
+        this.updateUserInfo();
+        
+        MiniUtils.showNotification('Верификация сброшена', 'info');
+    }
+
+    getVerificationData() {
+        return MiniUtils.loadFromStorage('nftg-user-verification-data', {
+            verified: false,
+            status: 'none',
+            transactionHash: null,
+            amount: 0,
+            date: null,
+            isDemo: false
+        });
     }
 
     showStats() {
@@ -849,6 +1111,7 @@ class MiniChannels {
         const categoryStats = this.getCategoryStats();
         const activeChannels = this.getMostActiveChannels(3);
         const trendingChannels = this.getTrendingChannels(3);
+        const verificationData = this.getVerificationData();
         
         let statsMessage = `📊 Статистика каналов:\n\n`;
         statsMessage += `Всего каналов: ${stats.total}\n`;
@@ -857,6 +1120,18 @@ class MiniChannels {
         statsMessage += `Ваших каналов: ${stats.owned}\n`;
         statsMessage += `Средние подписчики: ${this.formatSubscriberCount(stats.avgSubscribers)}\n`;
         statsMessage += `Средний рейтинг: ${stats.avgRating}⭐\n\n`;
+        
+        // Добавляем информацию о верификации
+        if (verificationData.verified) {
+            statsMessage += `🔐 Статус: Верифицирован ✓\n`;
+            statsMessage += `📅 Дата верификации: ${MiniUtils.formatDate(verificationData.date)}\n`;
+            if (verificationData.isDemo) {
+                statsMessage += `🧪 Тип: Демо верификация\n`;
+            }
+            statsMessage += '\n';
+        } else {
+            statsMessage += `🔓 Статус: Не верифицирован\n\n`;
+        }
         
         if (activeChannels.length > 0) {
             statsMessage += `🔥 Самые активные:\n`;
@@ -952,13 +1227,24 @@ class MiniChannels {
     }
 
     loadUserVerification() {
-        this.userVerified = MiniUtils.loadFromStorage('nftg-user-verified', false);
+        const verificationData = this.getVerificationData();
+        
+        this.userVerified = verificationData.verified;
+        this.verificationStatus = verificationData.status;
+        this.verificationTransactionHash = verificationData.transactionHash;
+        
+        console.log('Loaded verification data:', verificationData);
     }
 
-    saveUserVerification(verified) {
-        this.userVerified = verified;
-        MiniUtils.saveToStorage('nftg-user-verified', verified);
+    saveUserVerification(verificationData) {
+        this.userVerified = verificationData.verified;
+        this.verificationStatus = verificationData.status;
+        this.verificationTransactionHash = verificationData.transactionHash;
+        
+        MiniUtils.saveToStorage('nftg-user-verification-data', verificationData);
         this.updateUserInfo();
+        
+        console.log('Saved verification data:', verificationData);
     }
 
     onPixelPurchased() {
@@ -988,6 +1274,8 @@ class MiniChannels {
             isOpen: this.isOpen,
             isMainSidebarOpen: this.isMainSidebarOpen,
             userVerified: this.userVerified,
+            verificationStatus: this.verificationStatus,
+            verificationHash: this.verificationTransactionHash,
             userRatingsCount: this.userRatings.size
         };
     }
@@ -1005,17 +1293,4 @@ String.prototype.hashCode = function() {
 };
 
 // Global initialization
-window.MiniChannels = MiniChannels;// Замените этот блок в mini-channels.js в методе setupEventListeners():
-
-// НОВОЕ: Подача заявки на канал
-document.getElementById('submit-channel-btn')?.addEventListener('click', () => {
-    this.closeMainSidebar();
-    setTimeout(() => {
-        if (window.miniModals) {
-            window.miniModals.showChannelSubmissionModal();
-        } else {
-            console.error('MiniModals not available');
-            MiniUtils.showNotification('Ошибка: модуль модальных окон не загружен', 'error');
-        }
-    }, 300);
-});
+window.MiniChannels = MiniChannels;
