@@ -39,29 +39,50 @@ class MiniChannels {
             closeMainSidebarBtn.addEventListener('click', () => this.closeMainSidebar());
         }
 
-        // Main menu items
-        document.getElementById('channels-navigator-btn')?.addEventListener('click', () => {
-            this.closeMainSidebar();
-            setTimeout(() => this.openSidebar(), 300);
-        });
+        // Main menu items - используем стрелочные функции для всех обработчиков
+        const channelsNavigatorBtn = document.getElementById('channels-navigator-btn');
+        if (channelsNavigatorBtn) {
+            channelsNavigatorBtn.addEventListener('click', () => {
+                this.closeMainSidebar();
+                setTimeout(() => this.openSidebar(), 300);
+            });
+        }
 
-        // ИСПРАВЛЕНО: Подача заявки на канал
-        document.getElementById('submit-channel-btn')?.addEventListener('click', () => {
-            this.closeMainSidebar();
-            setTimeout(() => {
-                if (window.miniModals) {
-                    window.miniModals.showChannelSubmissionModal();
-                } else {
-                    console.error('MiniModals not available');
-                    MiniUtils.showNotification('Ошибка: модуль модальных окон не загружен', 'error');
-                }
-            }, 300);
-        });
+        // ИСПРАВЛЕНО: Подача заявки на канал - используем стрелочную функцию для сохранения контекста
+        const submitChannelBtn = document.getElementById('submit-channel-btn');
+        if (submitChannelBtn) {
+            submitChannelBtn.addEventListener('click', () => {
+                this.closeMainSidebar();
+                setTimeout(() => {
+                    if (window.miniModals) {
+                        window.miniModals.showChannelSubmissionModal();
+                    } else {
+                        console.error('MiniModals not available');
+                        MiniUtils.showNotification('Ошибка: модуль модальных окон не загружен', 'error');
+                    }
+                }, 300);
+            });
+        }
 
-        document.getElementById('market-btn')?.addEventListener('click', () => this.openMarket());
-        document.getElementById('website-btn')?.addEventListener('click', () => this.openWebsite());
-        document.getElementById('verification-btn')?.addEventListener('click', () => this.startVerification());
-        document.getElementById('stats-btn')?.addEventListener('click', () => this.showStats());
+        const marketBtn = document.getElementById('market-btn');
+        if (marketBtn) {
+            marketBtn.addEventListener('click', () => this.openMarket());
+        }
+
+        const websiteBtn = document.getElementById('website-btn');
+        if (websiteBtn) {
+            websiteBtn.addEventListener('click', () => this.openWebsite());
+        }
+
+        const verificationBtn = document.getElementById('verification-btn');
+        if (verificationBtn) {
+            verificationBtn.addEventListener('click', () => this.startVerification());
+        }
+
+        const statsBtn = document.getElementById('stats-btn');
+        if (statsBtn) {
+            statsBtn.addEventListener('click', () => this.showStats());
+        }
 
         // Channel navigator close
         const closeSidebarBtn = document.getElementById('close-sidebar');
