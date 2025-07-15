@@ -615,6 +615,28 @@ body {
     background: #1a1a1a;
 }
 
+/* Фоновая надпись NFTG-ZONIX */
+.grid-container::before {
+    content: 'NFTG-ZONIX';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: clamp(120px, 15vw, 200px);
+    font-weight: 900;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: rgba(0, 212, 255, 0.08);
+    text-shadow: 
+        0 0 20px rgba(0, 212, 255, 0.1),
+        0 0 40px rgba(0, 212, 255, 0.05),
+        0 0 60px rgba(0, 212, 255, 0.03);
+    letter-spacing: 8px;
+    z-index: 1;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
 .grid-container.drag-mode {
     cursor: grab;
 }
@@ -638,6 +660,7 @@ body {
     padding: 8px;
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
     transition: gap 0.3s ease, background 0.3s ease;
+    z-index: 10;
 }
 
 /* === PIXELS === */
@@ -1413,6 +1436,13 @@ textarea.form-control {
 
 /* === RESPONSIVE === */
 @media (max-width: 480px) {
+    /* Адаптация фоновой надписи для мобильных */
+    .grid-container::before {
+        font-size: clamp(60px, 12vw, 120px);
+        letter-spacing: 4px;
+        transform: translate(-50%, -50%) rotate(-10deg);
+    }
+    
     .header {
         padding: 8px 12px;
         height: 50px;
@@ -1527,6 +1557,13 @@ textarea.form-control {
 }
 
 @media (max-width: 360px) {
+    /* Еще более мелкая надпись для очень маленьких экранов */
+    .grid-container::before {
+        font-size: clamp(40px, 10vw, 80px);
+        letter-spacing: 2px;
+        transform: translate(-50%, -50%) rotate(-8deg);
+    }
+    
     .pixel-grid {
         grid-template-columns: repeat(10, 22px);
         grid-template-rows: repeat(10, 22px);
