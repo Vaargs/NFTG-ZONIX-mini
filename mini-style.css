@@ -818,6 +818,7 @@ body {
 .mode-tabs {
     display: flex;
     gap: 4px;
+    flex: 1;
 }
 
 .mode-tab {
@@ -864,29 +865,42 @@ body {
     opacity: 1;
 }
 
+/* НОВОЕ: Компактная информация в зеленой строке */
 .status-info {
     display: flex;
-    gap: 16px;
-    font-size: 12px;
-    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 11px;
+    align-items: center;
+    background: #1a4a1a;
+    border: 1px solid #00ff88;
+    border-radius: 4px;
+    padding: 8px 12px;
+    min-width: 280px;
+    flex-shrink: 0;
 }
 
 .status-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
+    white-space: nowrap;
 }
 
 .status-label {
-    color: #999;
+    color: #ccc;
     font-size: 10px;
+    font-weight: 600;
 }
 
 .status-value {
     color: #00ff88;
-    font-weight: 600;
-    font-size: 12px;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+/* Скрываем баланс кошелька из статус-бара на мобильных */
+#wallet-balance {
+    display: none;
 }
 
 /* === WALLET SPECIFIC STYLES === */
@@ -902,20 +916,6 @@ body {
 .wallet-connect-item.connected .menu-subtitle {
     color: rgba(0, 255, 136, 0.8);
     font-family: 'Courier New', monospace;
-}
-
-#wallet-balance {
-    border-left: 1px solid #333;
-    padding-left: 16px;
-    margin-left: 16px;
-}
-
-#wallet-balance .status-label {
-    color: #ccc;
-}
-
-#balance-value {
-    font-weight: 700;
 }
 
 /* === MODALS === */
@@ -1452,6 +1452,11 @@ textarea.form-control {
         font-size: 16px;
     }
     
+    .mode-tab {
+        min-width: 60px;
+        height: 40px;
+    }
+    
     .mode-tab .mode-icon {
         font-size: 12px;
     }
@@ -1460,24 +1465,24 @@ textarea.form-control {
         font-size: 8px;
     }
     
+    /* Делаем статус-информацию еще более компактной на мобильных */
     .status-info {
-        gap: 12px;
+        gap: 8px;
         font-size: 10px;
-        flex-direction: column;
-        align-items: flex-end;
+        padding: 6px 10px;
+        min-width: 240px;
+    }
+    
+    .status-item {
+        gap: 3px;
+    }
+    
+    .status-label {
+        font-size: 9px;
     }
     
     .status-value {
         font-size: 10px;
-    }
-    
-    #wallet-balance {
-        border-left: none;
-        padding-left: 0;
-        margin-left: 0;
-        border-top: 1px solid #333;
-        padding-top: 4px;
-        margin-top: 4px;
     }
     
     .action-button-container {
@@ -1589,8 +1594,20 @@ textarea.form-control {
         font-size: 14px;
     }
     
+    /* Еще более компактно для очень маленьких экранов */
     .status-info {
-        gap: 8px;
+        gap: 6px;
+        font-size: 9px;
+        padding: 5px 8px;
+        min-width: 200px;
+    }
+    
+    .status-label {
+        font-size: 8px;
+    }
+    
+    .status-value {
+        font-size: 9px;
     }
     
     .action-button {
@@ -1607,7 +1624,7 @@ textarea.form-control {
     
     .mode-tab {
         min-width: 50px;
-        height: 40px;
+        height: 36px;
     }
     
     .mode-tab .mode-icon {

@@ -350,16 +350,19 @@ class MiniGrid {
     clearSelection() {
         this.selectedPixels.clear();
         this.hideActionButton();
+        this.updateStatusInfo();
     }
 
     clearMassSelection() {
         this.massSelectedPixels.clear();
         this.hideActionButton();
+        this.updateStatusInfo();
     }
 
     clearEditSelection() {
         this.editSelectedPixels.clear();
         this.hideActionButton();
+        this.updateStatusInfo();
     }
 
     // Grid manipulation methods
@@ -808,11 +811,24 @@ class MiniGrid {
                 break;
         }
 
+        // ИСПРАВЛЕНО: Вычисляем стоимость для отображения
+        const totalCost = selectedCount * 0.01;
+
         const ownedElement = document.getElementById('owned-count');
         const selectedElement = document.getElementById('selected-count');
+        const costElement = document.getElementById('cost-display');
         
         if (ownedElement) ownedElement.textContent = `${ownedCount}/100`;
         if (selectedElement) selectedElement.textContent = selectedCount;
+        if (costElement) {
+            if (selectedCount > 0) {
+                costElement.textContent = `${totalCost.toFixed(2)} TON`;
+                costElement.style.color = '#00ff88';
+            } else {
+                costElement.textContent = '0 TON';
+                costElement.style.color = '#666';
+            }
+        }
     }
 
     savePixelData() {
