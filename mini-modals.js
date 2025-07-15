@@ -29,6 +29,11 @@ class MiniModals {
         document.getElementById('submit-channel-application')?.addEventListener('click', () => this.submitChannelApplication());
         document.getElementById('cancel-channel-submission')?.addEventListener('click', () => this.closeChannelSubmissionModal());
 
+        // НОВОЕ: About Modal
+        document.getElementById('about-mode')?.addEventListener('click', () => this.showAboutModal());
+        document.getElementById('close-about')?.addEventListener('click', () => this.closeAboutModal());
+        document.getElementById('visit-website-about')?.addEventListener('click', () => this.visitWebsiteFromAbout());
+
         // Global modal handlers
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -53,6 +58,46 @@ class MiniModals {
         this.setupChannelSubmissionEvents();
         
         console.log('✅ Modal event listeners setup completed');
+    }
+
+    // === НОВОЕ: ABOUT MODAL ===
+    showAboutModal() {
+        this.activeModal = 'about-modal';
+        const modal = document.getElementById('about-modal');
+        if (modal) {
+            modal.classList.add('active');
+            MiniUtils.vibrate([100]);
+            
+            // Show Telegram back button
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.BackButton.show();
+            }
+        }
+    }
+
+    closeAboutModal() {
+        const modal = document.getElementById('about-modal');
+        if (modal) modal.classList.remove('active');
+        
+        this.activeModal = null;
+        
+        // Hide Telegram back button if no other modals open
+        if (window.Telegram?.WebApp && !this.isModalOpen()) {
+            window.Telegram.WebApp.BackButton.hide();
+        }
+    }
+
+    visitWebsiteFromAbout() {
+        const websiteUrl = 'https://nftg-zonix.com';
+        
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.openLink(websiteUrl);
+        } else {
+            window.open(websiteUrl, '_blank', 'noopener,noreferrer');
+        }
+        
+        MiniUtils.showNotification('Переход на официальный сайт', 'info');
+        this.closeAboutModal();
     }
 
     setupFormValidation() {

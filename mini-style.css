@@ -885,6 +885,37 @@ body {
     opacity: 1;
 }
 
+/* === КНОПКА "О ПРОЕКТЕ" === */
+.about-tab {
+    background: #404040 !important;
+    color: #fff !important;
+    border-color: #555 !important;
+    margin-left: 8px; /* Отступ от основных режимов */
+    position: relative;
+}
+
+.about-tab::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 10%;
+    bottom: 10%;
+    width: 1px;
+    background: #666;
+}
+
+.about-tab:hover {
+    background: #555 !important;
+    border-color: #666 !important;
+}
+
+.about-tab:active,
+.about-tab.active {
+    background: #00D4FF !important;
+    color: #000 !important;
+    border-color: #00D4FF !important;
+}
+
 /* Скрываем баланс кошелька из статус-бара */
 #wallet-balance {
     display: none;
@@ -939,6 +970,97 @@ body {
 .modal-content.editor-content {
     width: 95vw;
     max-width: 500px;
+}
+
+/* === ABOUT MODAL === */
+.about-content {
+    width: 95vw;
+    max-width: 500px;
+    max-height: 85vh;
+}
+
+.about-section {
+    text-align: center;
+    margin-bottom: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid #404040;
+}
+
+.project-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #00D4FF;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.project-subtitle {
+    font-size: 14px;
+    color: #ccc;
+    font-weight: 500;
+}
+
+.about-description {
+    line-height: 1.6;
+    color: #ddd;
+}
+
+.about-description p {
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.about-description strong {
+    color: #00D4FF;
+    font-weight: 600;
+}
+
+.features-list {
+    margin: 20px 0;
+    padding: 0;
+}
+
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 8px 0;
+}
+
+.feature-icon {
+    font-size: 16px;
+    min-width: 20px;
+    text-align: center;
+    margin-top: 2px;
+}
+
+.feature-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ddd;
+    flex: 1;
+}
+
+.inspiration-section {
+    background: #333;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.inspiration-section p {
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.inspiration-section p:last-child {
+    margin-bottom: 0;
+    font-weight: 600;
+    color: #00FF88;
+    font-size: 14px;
 }
 
 @keyframes modalSlideIn {
@@ -1460,7 +1582,7 @@ textarea.form-control {
     }
     
     .mode-tabs {
-        gap: 3px;
+        gap: 2px;
         padding: 3px 0;
     }
     
@@ -1475,6 +1597,60 @@ textarea.form-control {
     
     .mode-tab .mode-label {
         font-size: 8px;
+    }
+    
+    .about-tab {
+        margin-left: 4px;
+        min-width: 55px;
+        height: 40px;
+    }
+    
+    .about-tab .mode-icon {
+        font-size: 12px;
+    }
+    
+    .about-tab .mode-label {
+        font-size: 8px;
+    }
+    
+    .about-content {
+        width: 98vw;
+        max-height: 90vh;
+        padding: 12px;
+    }
+    
+    .project-title {
+        font-size: 20px;
+    }
+    
+    .project-subtitle {
+        font-size: 12px;
+    }
+    
+    .about-description p {
+        font-size: 12px;
+    }
+    
+    .feature-item {
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .feature-icon {
+        font-size: 14px;
+        min-width: 18px;
+    }
+    
+    .feature-text {
+        font-size: 11px;
+    }
+    
+    .inspiration-section {
+        padding: 12px;
+    }
+    
+    .inspiration-section p {
+        font-size: 11px;
     }
     
     .action-button-container {
@@ -1630,6 +1806,37 @@ textarea.form-control {
     
     .mode-tab .mode-label {
         font-size: 7px;
+    }
+    
+    .about-tab {
+        margin-left: 2px;
+        min-width: 45px;
+        height: 36px;
+    }
+    
+    .about-tab .mode-icon {
+        font-size: 10px;
+    }
+    
+    .about-tab .mode-label {
+        font-size: 7px;
+    }
+    
+    .project-title {
+        font-size: 18px;
+    }
+    
+    .project-subtitle {
+        font-size: 11px;
+    }
+    
+    .about-description p {
+        font-size: 11px;
+        margin-bottom: 12px;
+    }
+    
+    .feature-text {
+        font-size: 10px;
     }
     
     .category-tag {

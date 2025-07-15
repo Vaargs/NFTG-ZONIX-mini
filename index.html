@@ -87,7 +87,7 @@
             </div>
         </div>
         
-        <!-- Кнопки режимов -->
+        <!-- Кнопки режимов с кнопкой "О проекте" -->
         <div class="mode-tabs">
             <button class="mode-tab active" data-mode="view" id="view-mode" title="Режим просмотра">
                 <span class="mode-icon">👁️</span>
@@ -104,6 +104,11 @@
             <button class="mode-tab" data-mode="edit" id="edit-mode" title="Режим редактирования">
                 <span class="mode-icon">🎨</span>
                 <span class="mode-label">РЕДАКТОР</span>
+            </button>
+            <!-- НОВОЕ: Кнопка "О проекте" -->
+            <button class="mode-tab about-tab" id="about-mode" title="О проекте">
+                <span class="mode-icon">ℹ️</span>
+                <span class="mode-label">О ПРОЕКТЕ</span>
             </button>
         </div>
     </div>
@@ -225,6 +230,59 @@
             
             <div class="channels-list" id="channels-list">
                 <!-- Channels will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- НОВОЕ: About Project Modal -->
+    <div class="modal" id="about-modal">
+        <div class="modal-content about-content">
+            <h3>🧩 О ПРОЕКТЕ</h3>
+            
+            <div class="about-section">
+                <div class="project-title">NFTG-ZONIX</div>
+                <div class="project-subtitle">Интерактивная платформа поиска Telegram-каналов</div>
+            </div>
+            
+            <div class="about-description">
+                <p><strong>NFTG-ZONIX</strong> — это интерактивная платформа по поиску Telegram-каналов и визуальному размещению их на пиксельной сетке. Проект сочетает в себе:</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">📺</span>
+                        <span class="feature-text">Каталог Telegram-каналов по темам, тэгам и популярности</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🎨</span>
+                        <span class="feature-text">Визуальную NFT-сетку, где каждый блок представляет канал</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🖼️</span>
+                        <span class="feature-text">Возможность загрузить изображение и прикрепить ссылку на свой канал</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🛡️</span>
+                        <span class="feature-text">Механизмы модерации и защиты от запрещённого контента</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">💎</span>
+                        <span class="feature-text">Интеграцию с TON (TON Connect, NFT, транзакции)</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🌐</span>
+                        <span class="feature-text">Полноценный сайт с поисковой системой и витриной всех размещённых каналов</span>
+                    </div>
+                </div>
+                
+                <div class="inspiration-section">
+                    <p>Проект вдохновлён <strong>Million Dollar Homepage</strong> и адаптирован под Telegram-экосистему.</p>
+                    <p><strong>NFTG-ZONIX</strong> — это не только реклама, но и сообщество.</p>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="visit-website-about">🌐 САЙТ</button>
+                <button class="btn btn-secondary" id="close-about">❌ ЗАКРЫТЬ</button>
             </div>
         </div>
     </div>
