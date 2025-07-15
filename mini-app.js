@@ -80,6 +80,9 @@ class MiniApp {
             // Update UI with strict styling
             this.updateStrictUI();
             
+            // Update grid container height for new bottom bar
+            this.updateGridContainerHeight();
+            
             // Mark as initialized
             this.isInitialized = true;
             
@@ -369,6 +372,23 @@ class MiniApp {
         }
     }
 
+    updateGridContainerHeight() {
+        const bottomBar = document.getElementById('bottom-bar');
+        const gridContainer = document.getElementById('grid-container');
+        
+        if (bottomBar && gridContainer) {
+            // Используем наблюдатель для отслеживания изменений высоты bottom-bar
+            const resizeObserver = new ResizeObserver((entries) => {
+                for (let entry of entries) {
+                    const bottomBarHeight = entry.target.offsetHeight;
+                    gridContainer.style.height = `calc(100vh - 60px - ${bottomBarHeight}px)`;
+                }
+            });
+            
+            resizeObserver.observe(bottomBar);
+        }
+    }
+
     updateStrictUI() {
         // Update all text to uppercase where needed
         const updateTextToUppercase = (selector) => {
@@ -496,6 +516,9 @@ class MiniApp {
         if (this.editor.isOpen && this.editor.canvas) {
             this.editor.setupCanvas();
         }
+
+        // Обновляем высоту контейнера сетки с учетом новой высоты bottom-bar
+        this.updateGridContainerHeight();
 
         // Обновляем бесшовный режим при изменении размера окна
         if (this.grid) {

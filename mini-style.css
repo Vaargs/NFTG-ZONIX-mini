@@ -609,32 +609,10 @@ body {
 .grid-container {
     position: relative;
     width: 100vw;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 140px);
     overflow: hidden;
     cursor: default;
     background: #1a1a1a;
-}
-
-/* Фоновая надпись NFTG-ZONIX */
-.grid-container::before {
-    content: 'NFTG-ZONIX';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-15deg);
-    font-size: clamp(120px, 15vw, 200px);
-    font-weight: 900;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: rgba(0, 212, 255, 0.08);
-    text-shadow: 
-        0 0 20px rgba(0, 212, 255, 0.1),
-        0 0 40px rgba(0, 212, 255, 0.05),
-        0 0 60px rgba(0, 212, 255, 0.03);
-    letter-spacing: 8px;
-    z-index: 1;
-    pointer-events: none;
-    user-select: none;
-    white-space: nowrap;
 }
 
 .grid-container.drag-mode {
@@ -660,7 +638,6 @@ body {
     padding: 8px;
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
     transition: gap 0.3s ease, background 0.3s ease;
-    z-index: 10;
 }
 
 /* === PIXELS === */
@@ -807,18 +784,61 @@ body {
     right: 0;
     background: #2a2a2a;
     border-top: 1px solid #333;
-    padding: 12px 16px;
+    padding: 8px 16px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 60px;
+    flex-direction: column;
+    height: auto;
     z-index: 100;
 }
 
+/* НОВОЕ: Строка статус-информации НАД кнопками режимов */
+.status-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #1a4a1a;
+    border: 1px solid #00ff88;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 11px;
+}
+
+.status-info-left {
+    display: flex;
+    gap: 16px;
+}
+
+.status-info-right {
+    display: flex;
+    gap: 16px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.status-label {
+    color: #ccc;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.status-value {
+    color: #00ff88;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+/* Кнопки режимов теперь в отдельной строке */
 .mode-tabs {
     display: flex;
     gap: 4px;
-    flex: 1;
+    justify-content: center;
+    padding: 4px 0;
 }
 
 .mode-tab {
@@ -865,40 +885,7 @@ body {
     opacity: 1;
 }
 
-/* НОВОЕ: Компактная информация в зеленой строке */
-.status-info {
-    display: flex;
-    gap: 12px;
-    font-size: 11px;
-    align-items: center;
-    background: #1a4a1a;
-    border: 1px solid #00ff88;
-    border-radius: 4px;
-    padding: 8px 12px;
-    min-width: 280px;
-    flex-shrink: 0;
-}
-
-.status-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-}
-
-.status-label {
-    color: #ccc;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.status-value {
-    color: #00ff88;
-    font-weight: 700;
-    font-size: 11px;
-}
-
-/* Скрываем баланс кошелька из статус-бара на мобильных */
+/* Скрываем баланс кошелька из статус-бара */
 #wallet-balance {
     display: none;
 }
@@ -1187,7 +1174,7 @@ textarea.form-control {
 /* === ACTION BUTTON === */
 .action-button-container {
     position: fixed;
-    bottom: 80px;
+    bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 150;
@@ -1436,13 +1423,6 @@ textarea.form-control {
 
 /* === RESPONSIVE === */
 @media (max-width: 480px) {
-    /* Адаптация фоновой надписи для мобильных */
-    .grid-container::before {
-        font-size: clamp(60px, 12vw, 120px);
-        letter-spacing: 4px;
-        transform: translate(-50%, -50%) rotate(-10deg);
-    }
-    
     .header {
         padding: 8px 12px;
         height: 50px;
@@ -1450,6 +1430,38 @@ textarea.form-control {
     
     .logo {
         font-size: 16px;
+    }
+    
+    .bottom-bar {
+        padding: 6px 12px;
+    }
+    
+    .status-info {
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        font-size: 10px;
+    }
+    
+    .status-info-left,
+    .status-info-right {
+        gap: 12px;
+    }
+    
+    .status-item {
+        gap: 3px;
+    }
+    
+    .status-label {
+        font-size: 9px;
+    }
+    
+    .status-value {
+        font-size: 10px;
+    }
+    
+    .mode-tabs {
+        gap: 3px;
+        padding: 3px 0;
     }
     
     .mode-tab {
@@ -1465,28 +1477,8 @@ textarea.form-control {
         font-size: 8px;
     }
     
-    /* Делаем статус-информацию еще более компактной на мобильных */
-    .status-info {
-        gap: 8px;
-        font-size: 10px;
-        padding: 6px 10px;
-        min-width: 240px;
-    }
-    
-    .status-item {
-        gap: 3px;
-    }
-    
-    .status-label {
-        font-size: 9px;
-    }
-    
-    .status-value {
-        font-size: 10px;
-    }
-    
     .action-button-container {
-        bottom: 70px;
+        bottom: 110px;
         gap: 6px;
     }
     
@@ -1562,13 +1554,6 @@ textarea.form-control {
 }
 
 @media (max-width: 360px) {
-    /* Еще более мелкая надпись для очень маленьких экранов */
-    .grid-container::before {
-        font-size: clamp(40px, 10vw, 80px);
-        letter-spacing: 2px;
-        transform: translate(-50%, -50%) rotate(-8deg);
-    }
-    
     .pixel-grid {
         grid-template-columns: repeat(10, 22px);
         grid-template-rows: repeat(10, 22px);
@@ -1594,12 +1579,19 @@ textarea.form-control {
         font-size: 14px;
     }
     
-    /* Еще более компактно для очень маленьких экранов */
+    .bottom-bar {
+        padding: 4px 8px;
+    }
+    
     .status-info {
-        gap: 6px;
+        padding: 4px 8px;
+        margin-bottom: 4px;
         font-size: 9px;
-        padding: 5px 8px;
-        min-width: 200px;
+    }
+    
+    .status-info-left,
+    .status-info-right {
+        gap: 8px;
     }
     
     .status-label {
@@ -1608,6 +1600,11 @@ textarea.form-control {
     
     .status-value {
         font-size: 9px;
+    }
+    
+    .mode-tabs {
+        gap: 2px;
+        padding: 2px 0;
     }
     
     .action-button {
