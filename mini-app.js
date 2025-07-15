@@ -77,15 +77,18 @@ class MiniApp {
             // Setup Telegram WebApp specific features
             this.setupTelegramFeatures();
             
+            // Update UI with strict styling
+            this.updateStrictUI();
+            
             // Mark as initialized
             this.isInitialized = true;
             
             console.log('✅ NFTG-ZONIX Mini App initialized successfully!');
-            MiniUtils.showNotification('Приложение готово к работе!', 'success');
+            MiniUtils.showNotification('ПРИЛОЖЕНИЕ ГОТОВО К РАБОТЕ!', 'success');
             
         } catch (error) {
             console.error('❌ Failed to initialize Mini App:', error);
-            MiniUtils.showNotification('Ошибка инициализации приложения', 'error');
+            MiniUtils.showNotification('ОШИБКА ИНИЦИАЛИЗАЦИИ ПРИЛОЖЕНИЯ', 'error');
         }
     }
 
@@ -145,6 +148,8 @@ class MiniApp {
             originalPurchasePixel(pixelId, data);
             // Update channels after purchase
             this.channels.onPixelPurchased();
+            // Update cost display
+            this.updateCostDisplay();
         };
 
         const originalCompleteMassPurchase = this.grid.completeMassPurchase.bind(this.grid);
@@ -152,6 +157,16 @@ class MiniApp {
             originalCompleteMassPurchase(purchaseData);
             // Update channels after mass purchase
             this.channels.onPixelPurchased();
+            // Update cost display
+            this.updateCostDisplay();
+        };
+
+        // Hook для обновления режимов
+        const originalSetMode = this.grid.setMode.bind(this.grid);
+        this.grid.setMode = (mode) => {
+            originalSetMode(mode);
+            this.updateCostDisplay();
+            this.updateStrictModeDisplay(mode);
         };
 
         // Hook для обновления бесшовного режима после применения изображений
@@ -241,7 +256,7 @@ class MiniApp {
                     if (this.grid) {
                         const newMode = this.grid.toggleSeamlessMode();
                         MiniUtils.showNotification(
-                            `Бесшовный режим ${newMode ? 'включен' : 'выключен'}`, 
+                            `БЕСШОВНЫЙ РЕЖИМ ${newMode ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'}`, 
                             'info'
                         );
                     }
@@ -294,16 +309,7 @@ class MiniApp {
         });
 
         // Update mode display in header
-        const modeDisplay = document.getElementById('mode-display');
-        const modeNames = {
-            'view': 'Просмотр',
-            'buy': 'Покупка',
-            'mass-buy': 'Массовая покупка',
-            'edit': 'Редактирование'
-        };
-        if (modeDisplay) {
-            modeDisplay.textContent = modeNames[mode] || mode;
-        }
+        this.updateStrictModeDisplay(mode);
 
         // Special handling for mass-buy mode
         if (mode === 'mass-buy') {
@@ -311,10 +317,85 @@ class MiniApp {
             this.grid.massSelectionEnabled = true;
         }
 
+        // Update cost display
+        this.updateCostDisplay();
+
         // Vibration feedback
         MiniUtils.vibrate([50]);
 
         console.log(`✅ Mode changed to: ${mode}`);
+    }
+
+    updateStrictModeDisplay(mode) {
+        const modeDisplay = document.getElementById('mode-display');
+        const modeNames = {
+            'view': 'ПРОСМОТР',
+            'buy': 'ПОКУПКА',
+            'mass-buy': 'МАССОВАЯ ПОКУПКА',
+            'edit': 'РЕДАКТИРОВАНИЕ'
+        };
+        if (modeDisplay) {
+            modeDisplay.textContent = modeNames[mode] || mode.toUpperCase();
+        }
+    }
+
+    updateCostDisplay() {
+        const costDisplay = document.getElementById('cost-display');
+        if (!costDisplay || !this.grid) return;
+
+        let selectedCount = 0;
+        let totalCost = 0;
+
+        switch (this.currentMode) {
+            case 'buy':
+                selectedCount = this.grid.selectedPixels.size;
+                break;
+            case 'mass-buy':
+                selectedCount = this.grid.massSelectedPixels.size;
+                break;
+            case 'edit':
+                selectedCount = this.grid.editSelectedPixels.size;
+                break;
+        }
+
+        totalCost = selectedCount * 0.01; // 0.01 TON per pixel
+
+        if (selectedCount > 0) {
+            costDisplay.textContent = `${totalCost.toFixed(2)} TON`;
+            costDisplay.style.color = '#00ff88';
+        } else {
+            costDisplay.textContent = '0 TON';
+            costDisplay.style.color = '#666';
+        }
+    }
+
+    updateStrictUI() {
+        // Update all text to uppercase where needed
+        const updateTextToUppercase = (selector) => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (el.textContent && !el.querySelector('span')) {
+                    el.textContent = el.textContent.toUpperCase();
+                }
+            });
+        };
+
+        // Update status labels
+        updateTextToUppercase('.status-label');
+        
+        // Update button labels that should be uppercase
+        const actionButton = document.getElementById('action-button');
+        if (actionButton) {
+            actionButton.textContent = actionButton.textContent.toUpperCase();
+        }
+
+        // Update user status
+        const userStatus = document.getElementById('user-status');
+        if (userStatus && userStatus.textContent) {
+            userStatus.textContent = userStatus.textContent.toUpperCase();
+        }
+
+        console.log('🎨 Strict UI styling applied');
     }
 
     setupTelegramFeatures() {
@@ -354,24 +435,13 @@ class MiniApp {
 
         const root = document.documentElement;
 
-        // Apply Telegram theme colors
+        // Apply Telegram theme colors but maintain strict design
         if (themeParams.bg_color) {
+            // Don't override our strict color scheme completely
             root.style.setProperty('--tg-bg-color', themeParams.bg_color);
         }
-        if (themeParams.text_color) {
-            root.style.setProperty('--tg-text-color', themeParams.text_color);
-        }
-        if (themeParams.hint_color) {
-            root.style.setProperty('--tg-hint-color', themeParams.hint_color);
-        }
-        if (themeParams.button_color) {
-            root.style.setProperty('--tg-button-color', themeParams.button_color);
-        }
-        if (themeParams.button_text_color) {
-            root.style.setProperty('--tg-button-text-color', themeParams.button_text_color);
-        }
-
-        console.log('🎨 Telegram theme applied');
+        
+        console.log('🎨 Telegram theme applied (strict mode)');
     }
 
     setupHapticFeedback() {
@@ -417,6 +487,7 @@ class MiniApp {
             this.grid.clearSelection();
             this.grid.clearMassSelection();
             this.grid.clearEditSelection();
+            this.updateCostDisplay();
         }
     }
 
@@ -501,6 +572,7 @@ class MiniApp {
             this.grid.clearSelection();
             this.grid.clearMassSelection();
             this.grid.clearEditSelection();
+            this.updateCostDisplay();
         }
     }
 
@@ -525,14 +597,14 @@ class MiniApp {
     enableSeamlessMode() {
         if (this.grid) {
             this.grid.enableSeamlessMode();
-            MiniUtils.showNotification('Бесшовный режим включен', 'success');
+            MiniUtils.showNotification('БЕСШОВНЫЙ РЕЖИМ ВКЛЮЧЕН', 'success');
         }
     }
 
     disableSeamlessMode() {
         if (this.grid) {
             this.grid.disableSeamlessMode();
-            MiniUtils.showNotification('Бесшовный режим выключен', 'info');
+            MiniUtils.showNotification('БЕСШОВНЫЙ РЕЖИМ ВЫКЛЮЧЕН', 'info');
         }
     }
 
@@ -540,7 +612,7 @@ class MiniApp {
         if (this.grid) {
             const newMode = this.grid.toggleSeamlessMode();
             MiniUtils.showNotification(
-                `Бесшовный режим ${newMode ? 'включен' : 'выключен'}`, 
+                `БЕСШОВНЫЙ РЕЖИМ ${newMode ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'}`, 
                 newMode ? 'success' : 'info'
             );
             return newMode;
@@ -553,7 +625,7 @@ class MiniApp {
         if (this.wallet) {
             return this.wallet.connectWallet();
         } else {
-            MiniUtils.showNotification('Кошелек не инициализирован', 'error');
+            MiniUtils.showNotification('КОШЕЛЕК НЕ ИНИЦИАЛИЗИРОВАН', 'error');
             return Promise.resolve(false);
         }
     }
@@ -601,7 +673,7 @@ class MiniApp {
     }
 
     resetApp() {
-        if (confirm('Сбросить все данные приложения?')) {
+        if (confirm('СБРОСИТЬ ВСЕ ДАННЫЕ ПРИЛОЖЕНИЯ?')) {
             // Clear all data
             localStorage.clear();
             
@@ -622,7 +694,7 @@ class MiniApp {
             seamlessMode: this.grid?.seamlessMode || false,
             walletConnected: this.wallet?.isConnected || false,
             exportDate: new Date().toISOString(),
-            version: '1.1.0'
+            version: '1.2.0'
         };
 
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -636,7 +708,7 @@ class MiniApp {
         document.body.removeChild(a);
         
         URL.revokeObjectURL(url);
-        MiniUtils.showNotification('Данные экспортированы', 'success');
+        MiniUtils.showNotification('ДАННЫЕ ЭКСПОРТИРОВАНЫ', 'success');
     }
 
     // Performance monitoring
@@ -654,7 +726,7 @@ class MiniApp {
         console.error(`💥 Global error in ${context}:`, error);
         
         // Проверяем что error существует и имеет message
-        const errorMessage = error && error.message ? error.message : 'Неизвестная ошибка';
+        const errorMessage = error && error.message ? error.message : 'НЕИЗВЕСТНАЯ ОШИБКА';
         
         // Send error to Telegram if available
         if (this.telegramConfig.isWebApp) {
@@ -671,18 +743,18 @@ class MiniApp {
             }
         }
         
-        MiniUtils.showNotification('Произошла ошибка', 'error');
+        MiniUtils.showNotification('ПРОИЗОШЛА ОШИБКА', 'error');
     }
 
     // Wallet integration helpers
     async purchaseWithWallet(pixelId, price) {
         if (!this.wallet) {
-            MiniUtils.showNotification('Кошелек не доступен', 'error');
+            MiniUtils.showNotification('КОШЕЛЕК НЕ ДОСТУПЕН', 'error');
             return false;
         }
 
         if (!this.wallet.isConnected) {
-            MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
+            MiniUtils.showNotification('ПОДКЛЮЧИТЕ КОШЕЛЕК ДЛЯ ПОКУПКИ', 'error');
             return false;
         }
 
@@ -697,7 +769,7 @@ class MiniApp {
 
     async massPurchaseWithWallet(pixelIds, totalPrice) {
         if (!this.wallet || !this.wallet.isConnected) {
-            MiniUtils.showNotification('Подключите кошелек для покупки', 'error');
+            MiniUtils.showNotification('ПОДКЛЮЧИТЕ КОШЕЛЕК ДЛЯ ПОКУПКИ', 'error');
             return false;
         }
 
@@ -747,7 +819,7 @@ function initMiniApp() {
         
     } catch (error) {
         console.error('❌ Failed to initialize Mini App:', error);
-        alert('Ошибка при запуске приложения: ' + error.message);
+        alert('ОШИБКА ПРИ ЗАПУСКЕ ПРИЛОЖЕНИЯ: ' + error.message);
     }
 }
 

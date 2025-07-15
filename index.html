@@ -21,7 +21,7 @@
         window.Telegram.WebApp.expand();
         
         // Устанавливаем тему
-        document.documentElement.style.setProperty('--tg-theme-bg-color', window.Telegram.WebApp.backgroundColor || '#1a1a2e');
+        document.documentElement.style.setProperty('--tg-theme-bg-color', window.Telegram.WebApp.backgroundColor || '#1a1a1a');
         document.documentElement.style.setProperty('--tg-theme-text-color', window.Telegram.WebApp.textColor || '#ffffff');
         
         // Отключаем предупреждения о закрытии
@@ -33,7 +33,6 @@
     // Исправляем ошибки загрузки
     window.addEventListener('error', function(e) {
         console.error('Global error:', e.error);
-        // Не показываем ошибки пользователю в Telegram
     });
 
     window.addEventListener('unhandledrejection', function(e) {
@@ -46,7 +45,7 @@
     <!-- Header -->
     <div class="header">
         <div class="logo">NFTG-ZONIX</div>
-        <div class="mode-display" id="mode-display">Просмотр</div>
+        <div class="mode-display" id="mode-display">ПРОСМОТР</div>
         <button class="hamburger-menu" id="hamburger-menu">
             <div class="hamburger-line"></div>
             <div class="hamburger-line"></div>
@@ -60,9 +59,9 @@
         
         <!-- Floating Controls -->
         <div class="floating-controls">
-            <button class="control-btn zoom-in" id="zoom-in">+</button>
-            <button class="control-btn zoom-out" id="zoom-out">−</button>
-            <button class="control-btn center" id="center">⌖</button>
+            <button class="control-btn zoom-in" id="zoom-in" title="Увеличить">+</button>
+            <button class="control-btn zoom-out" id="zoom-out" title="Уменьшить">−</button>
+            <button class="control-btn center" id="center" title="Центр">⌖</button>
         </div>
     </div>
 
@@ -71,43 +70,47 @@
         <div class="mode-tabs">
             <button class="mode-tab active" data-mode="view" id="view-mode" title="Режим просмотра">
                 <span class="mode-icon">👁️</span>
-                <span class="mode-label">Просмотр</span>
+                <span class="mode-label">ПРОСМОТР</span>
             </button>
             <button class="mode-tab" data-mode="buy" id="buy-mode" title="Режим покупки">
                 <span class="mode-icon">💰</span>
-                <span class="mode-label">Покупка</span>
+                <span class="mode-label">ПОКУПКА</span>
             </button>
             <button class="mode-tab" data-mode="mass-buy" id="mass-buy-mode" title="Массовая покупка">
                 <span class="mode-icon">🛒</span>
-                <span class="mode-label">Массово</span>
+                <span class="mode-label">МАССОВО</span>
             </button>
             <button class="mode-tab" data-mode="edit" id="edit-mode" title="Режим редактирования">
                 <span class="mode-icon">🎨</span>
-                <span class="mode-label">Редактор</span>
+                <span class="mode-label">РЕДАКТОР</span>
             </button>
         </div>
         
         <div class="status-info">
             <div class="status-item">
-                <span class="status-label">Куплено:</span>
+                <span class="status-label">ВЫБРАНО:</span>
+                <span class="status-value" id="selected-count">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">КУПЛЕНО:</span>
                 <span class="status-value" id="owned-count">0/100</span>
             </div>
             <div class="status-item">
-                <span class="status-label">Выбрано:</span>
-                <span class="status-value" id="selected-count">0</span>
+                <span class="status-label">СТОИМОСТЬ:</span>
+                <span class="status-value" id="cost-display">0 TON</span>
             </div>
         </div>
     </div>
 
     <!-- Action Button -->
     <div class="action-button-container" id="action-button-container">
-        <button class="action-button" id="action-button">Купить</button>
+        <button class="action-button" id="action-button">КУПИТЬ</button>
     </div>
 
     <!-- Main Menu Sidebar -->
     <div class="main-sidebar" id="main-sidebar">
         <div class="sidebar-header">
-            <h3>📱 Главное меню</h3>
+            <h3>📱 ГЛАВНОЕ МЕНЮ</h3>
             <button class="close-sidebar" id="close-main-sidebar">×</button>
         </div>
         
@@ -116,7 +119,7 @@
                 <button class="menu-item" id="channels-navigator-btn">
                     <span class="menu-icon">📺</span>
                     <span class="menu-text">
-                        <div class="menu-title">Навигатор каналов</div>
+                        <div class="menu-title">НАВИГАТОР КАНАЛОВ</div>
                         <div class="menu-subtitle">Обзор и поиск каналов</div>
                     </span>
                     <span class="menu-arrow">→</span>
@@ -125,7 +128,7 @@
                 <button class="menu-item" id="submit-channel-btn">
                     <span class="menu-icon">📝</span>
                     <span class="menu-text">
-                        <div class="menu-title">Подать заявку</div>
+                        <div class="menu-title">ПОДАТЬ ЗАЯВКУ</div>
                         <div class="menu-subtitle">Добавить канал в поиск</div>
                     </span>
                     <span class="menu-arrow">→</span>
@@ -134,7 +137,7 @@
                 <button class="menu-item" id="market-btn">
                     <span class="menu-icon">🛒</span>
                     <span class="menu-text">
-                        <div class="menu-title">Маркет</div>
+                        <div class="menu-title">МАРКЕТ</div>
                         <div class="menu-subtitle">Покупка и продажа пикселей</div>
                     </span>
                     <span class="menu-arrow">→</span>
@@ -143,7 +146,7 @@
                 <button class="menu-item" id="website-btn">
                     <span class="menu-icon">🌐</span>
                     <span class="menu-text">
-                        <div class="menu-title">Веб-сайт</div>
+                        <div class="menu-title">ВЕБ-САЙТ</div>
                         <div class="menu-subtitle">Перейти на официальный сайт</div>
                     </span>
                     <span class="menu-arrow">→</span>
@@ -152,7 +155,7 @@
                 <button class="menu-item" id="verification-btn">
                     <span class="menu-icon">✅</span>
                     <span class="menu-text">
-                        <div class="menu-title">Верификация</div>
+                        <div class="menu-title">ВЕРИФИКАЦИЯ</div>
                         <div class="menu-subtitle">Подтвердить аккаунт</div>
                     </span>
                     <span class="menu-arrow">→</span>
@@ -161,7 +164,7 @@
                 <button class="menu-item" id="stats-btn">
                     <span class="menu-icon">📊</span>
                     <span class="menu-text">
-                        <div class="menu-title">Статистика</div>
+                        <div class="menu-title">СТАТИСТИКА</div>
                         <div class="menu-subtitle">Аналитика и метрики</div>
                     </span>
                     <span class="menu-arrow">→</span>
@@ -173,7 +176,7 @@
                     <div class="user-avatar">👤</div>
                     <div class="user-details">
                         <div class="user-name" id="user-name">@demo_user</div>
-                        <div class="user-status" id="user-status">Не верифицирован</div>
+                        <div class="user-status" id="user-status">НЕ ВЕРИФИЦИРОВАН</div>
                     </div>
                 </div>
             </div>
@@ -183,7 +186,7 @@
     <!-- Channel Navigator Sidebar -->
     <div class="channel-sidebar" id="channel-sidebar">
         <div class="sidebar-header">
-            <h3>📺 Навигатор каналов</h3>
+            <h3>📺 НАВИГАТОР КАНАЛОВ</h3>
             <button class="close-sidebar" id="close-sidebar">×</button>
         </div>
         
@@ -194,22 +197,22 @@
             
             <div class="filters-section">
                 <div class="filter-group">
-                    <label>Категории:</label>
+                    <label>КАТЕГОРИИ:</label>
                     <div class="category-filters" id="category-filters">
-                        <div class="filter-tag" data-category="Крипта">💰 Крипта</div>
-                        <div class="filter-tag" data-category="Игры">🎮 Игры</div>
-                        <div class="filter-tag" data-category="Новости">📰 Новости</div>
-                        <div class="filter-tag" data-category="Технологии">💻 Технологии</div>
+                        <div class="filter-tag" data-category="Крипта">💰 КРИПТА</div>
+                        <div class="filter-tag" data-category="Игры">🎮 ИГРЫ</div>
+                        <div class="filter-tag" data-category="Новости">📰 НОВОСТИ</div>
+                        <div class="filter-tag" data-category="Технологии">💻 ТЕХНОЛОГИИ</div>
                     </div>
                 </div>
                 
                 <div class="filter-group">
-                    <label>Сортировка:</label>
+                    <label>СОРТИРОВКА:</label>
                     <select class="sort-select" id="sort-select">
-                        <option value="newest">🆕 Новые</option>
-                        <option value="rating">⭐ По рейтингу</option>
-                        <option value="subscribers">👥 По подписчикам</option>
-                        <option value="activity">📝 По активности</option>
+                        <option value="newest">🆕 НОВЫЕ</option>
+                        <option value="rating">⭐ ПО РЕЙТИНГУ</option>
+                        <option value="subscribers">👥 ПО ПОДПИСЧИКАМ</option>
+                        <option value="activity">📝 ПО АКТИВНОСТИ</option>
                     </select>
                 </div>
             </div>
@@ -220,53 +223,53 @@
         </div>
     </div>
 
-    <!-- Purchase Modal (БЕЗ КАТЕГОРИЙ) -->
+    <!-- Purchase Modal -->
     <div class="modal" id="purchase-modal">
         <div class="modal-content">
-            <h3>💰 Покупка пикселя #<span id="purchase-pixel-id">0</span></h3>
-            <p>Цена: <span id="purchase-price">0.01</span> TON</p>
+            <h3>💰 ПОКУПКА ПИКСЕЛЯ #<span id="purchase-pixel-id">0</span></h3>
+            <p>ЦЕНА: <span id="purchase-price">0.01</span> TON</p>
             
             <div class="form-group">
-                <label for="telegram-link">🔗 Telegram канал:</label>
+                <label for="telegram-link">🔗 TELEGRAM КАНАЛ:</label>
                 <input type="text" id="telegram-link" class="form-control" 
                        placeholder="@username или https://t.me/username">
             </div>
 
             <div class="form-group">
-                <label for="pixel-description">📝 Описание (опционально):</label>
+                <label for="pixel-description">📝 ОПИСАНИЕ (ОПЦИОНАЛЬНО):</label>
                 <input type="text" id="pixel-description" class="form-control" 
                        placeholder="Краткое описание канала" maxlength="100">
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-success" id="confirm-purchase">💰 Купить</button>
-                <button class="btn btn-secondary" id="cancel-purchase">❌ Отмена</button>
+                <button class="btn btn-success" id="confirm-purchase">💰 КУПИТЬ</button>
+                <button class="btn btn-secondary" id="cancel-purchase">❌ ОТМЕНА</button>
             </div>
         </div>
     </div>
 
-    <!-- Mass Purchase Modal (БЕЗ КАТЕГОРИЙ) -->
+    <!-- Mass Purchase Modal -->
     <div class="modal" id="mass-purchase-modal">
         <div class="modal-content">
-            <h3>🛒 Массовая покупка</h3>
-            <p>Пикселей: <span id="mass-count">0</span></p>
-            <p>Общая цена: <span id="mass-total">0</span> TON</p>
+            <h3>🛒 МАССОВАЯ ПОКУПКА</h3>
+            <p>ПИКСЕЛЕЙ: <span id="mass-count">0</span></p>
+            <p>ОБЩАЯ ЦЕНА: <span id="mass-total">0</span> TON</p>
             
             <div class="form-group">
-                <label for="mass-telegram-link">🔗 Telegram канал:</label>
+                <label for="mass-telegram-link">🔗 TELEGRAM КАНАЛ:</label>
                 <input type="text" id="mass-telegram-link" class="form-control" 
                        placeholder="@username или https://t.me/username">
             </div>
 
             <div class="form-group">
-                <label for="mass-pixel-description">📝 Описание (опционально):</label>
+                <label for="mass-pixel-description">📝 ОПИСАНИЕ (ОПЦИОНАЛЬНО):</label>
                 <input type="text" id="mass-pixel-description" class="form-control" 
                        placeholder="Краткое описание канала" maxlength="100">
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-success" id="confirm-mass-purchase">🛒 Купить все</button>
-                <button class="btn btn-secondary" id="cancel-mass-purchase">❌ Отмена</button>
+                <button class="btn btn-success" id="confirm-mass-purchase">🛒 КУПИТЬ ВСЕ</button>
+                <button class="btn btn-secondary" id="cancel-mass-purchase">❌ ОТМЕНА</button>
             </div>
         </div>
     </div>
@@ -274,12 +277,12 @@
     <!-- Editor Modal -->
     <div class="modal" id="editor-modal">
         <div class="modal-content editor-content">
-            <h3>🎨 Редактор изображений</h3>
+            <h3>🎨 РЕДАКТОР ИЗОБРАЖЕНИЙ</h3>
             
             <div class="editor-controls">
                 <input type="file" id="image-input" accept="image/*" style="display: none;">
-                <button class="btn btn-primary" onclick="document.getElementById('image-input').click()">📁 Загрузить изображение</button>
-                <button class="btn btn-secondary" id="close-editor">❌ Закрыть</button>
+                <button class="btn btn-primary" onclick="document.getElementById('image-input').click()">📁 ЗАГРУЗИТЬ</button>
+                <button class="btn btn-secondary" id="close-editor">❌ ЗАКРЫТЬ</button>
             </div>
 
             <div class="canvas-container">
@@ -295,43 +298,43 @@
             </div>
 
             <div class="editor-controls">
-                <button class="btn btn-primary" id="preview-editor">👁️ Предпросмотр</button>
-                <button class="btn btn-success" id="apply-editor">✅ Применить</button>
+                <button class="btn btn-primary" id="preview-editor">👁️ ПРЕДПРОСМОТР</button>
+                <button class="btn btn-success" id="apply-editor">✅ ПРИМЕНИТЬ</button>
             </div>
         </div>
     </div>
 
-    <!-- НОВЫЙ: Модальное окно редактирования информации -->
+    <!-- Pixel Info Edit Modal -->
     <div class="modal" id="pixel-info-edit-modal">
         <div class="modal-content">
-            <h3>📝 Редактировать информацию пикселей</h3>
-            <p>Пикселей: <span id="edit-pixel-count">0</span></p>
+            <h3>📝 РЕДАКТИРОВАТЬ ИНФОРМАЦИЮ ПИКСЕЛЕЙ</h3>
+            <p>ПИКСЕЛЕЙ: <span id="edit-pixel-count">0</span></p>
             
             <div class="form-group">
-                <label for="edit-categories">📂 Категории (до 3-х):</label>
+                <label for="edit-categories">📂 КАТЕГОРИИ (ДО 3-Х):</label>
                 <div class="category-selector" id="edit-categories">
-                    <div class="category-tag" data-category="Крипта">💰 Крипта</div>
-                    <div class="category-tag" data-category="Игры">🎮 Игры</div>
-                    <div class="category-tag" data-category="Новости">📰 Новости</div>
-                    <div class="category-tag" data-category="Технологии">💻 Технологии</div>
-                    <div class="category-tag" data-category="Бизнес">💼 Бизнес</div>
-                    <div class="category-tag" data-category="Образование">📚 Образование</div>
-                    <div class="category-tag" data-category="Спорт">⚽ Спорт</div>
-                    <div class="category-tag" data-category="Развлечения">🎬 Развлечения</div>
+                    <div class="category-tag" data-category="Крипта">💰 КРИПТА</div>
+                    <div class="category-tag" data-category="Игры">🎮 ИГРЫ</div>
+                    <div class="category-tag" data-category="Новости">📰 НОВОСТИ</div>
+                    <div class="category-tag" data-category="Технологии">💻 ТЕХНОЛОГИИ</div>
+                    <div class="category-tag" data-category="Бизнес">💼 БИЗНЕС</div>
+                    <div class="category-tag" data-category="Образование">📚 ОБРАЗОВАНИЕ</div>
+                    <div class="category-tag" data-category="Спорт">⚽ СПОРТ</div>
+                    <div class="category-tag" data-category="Развлечения">🎬 РАЗВЛЕЧЕНИЯ</div>
                 </div>
                 <div class="selected-categories" id="selected-categories-display">
-                    Выбрано: <span id="selected-categories-text">Нет</span>
+                    ВЫБРАНО: <span id="selected-categories-text">НЕТ</span>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="edit-telegram-link">🔗 Telegram канал:</label>
+                <label for="edit-telegram-link">🔗 TELEGRAM КАНАЛ:</label>
                 <input type="text" id="edit-telegram-link" class="form-control" 
                        placeholder="@username или https://t.me/username">
             </div>
 
             <div class="form-group">
-                <label for="edit-description">📝 Описание:</label>
+                <label for="edit-description">📝 ОПИСАНИЕ:</label>
                 <textarea id="edit-description" class="form-control" 
                          placeholder="Описание канала" maxlength="200" rows="3"></textarea>
                 <div class="char-counter">
@@ -340,8 +343,8 @@
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-success" id="save-pixel-info">💾 Сохранить</button>
-                <button class="btn btn-secondary" id="cancel-pixel-info-edit">❌ Отмена</button>
+                <button class="btn btn-success" id="save-pixel-info">💾 СОХРАНИТЬ</button>
+                <button class="btn btn-secondary" id="cancel-pixel-info-edit">❌ ОТМЕНА</button>
             </div>
         </div>
     </div>
@@ -349,18 +352,18 @@
     <!-- Channel Rating Modal -->
     <div class="modal" id="channel-rating-modal">
         <div class="modal-content">
-            <h3>⭐ Оценить канал</h3>
+            <h3>⭐ ОЦЕНИТЬ КАНАЛ</h3>
             
             <div class="channel-rating-info">
                 <div class="rating-channel-name" id="rating-channel-name">@channel_name</div>
                 <div class="rating-channel-description" id="rating-channel-description">Описание канала</div>
                 <div class="current-rating" id="current-rating">
-                    Текущий рейтинг: <span class="rating-value">4.2</span> ⭐
+                    ТЕКУЩИЙ РЕЙТИНГ: <span class="rating-value">4.2</span> ⭐
                 </div>
             </div>
             
             <div class="rating-selector">
-                <div class="rating-label">Ваша оценка:</div>
+                <div class="rating-label">ВАША ОЦЕНКА:</div>
                 <div class="star-rating" id="star-rating">
                     <span class="star" data-rating="1">⭐</span>
                     <span class="star" data-rating="2">⭐</span>
@@ -368,11 +371,11 @@
                     <span class="star" data-rating="4">⭐</span>
                     <span class="star" data-rating="5">⭐</span>
                 </div>
-                <div class="rating-text" id="rating-text">Выберите оценку</div>
+                <div class="rating-text" id="rating-text">ВЫБЕРИТЕ ОЦЕНКУ</div>
             </div>
             
             <div class="form-group">
-                <label for="rating-comment">💬 Комментарий (опционально):</label>
+                <label for="rating-comment">💬 КОММЕНТАРИЙ (ОПЦИОНАЛЬНО):</label>
                 <textarea id="rating-comment" class="form-control" 
                          placeholder="Поделитесь своим мнением о канале..." maxlength="200"></textarea>
                 <div class="char-counter"><span id="comment-chars">0</span>/200</div>
@@ -381,15 +384,15 @@
             <div class="verification-notice">
                 <div class="notice-icon">🔒</div>
                 <div class="notice-text">
-                    <div class="notice-title">Верификация требуется</div>
+                    <div class="notice-title">ВЕРИФИКАЦИЯ ТРЕБУЕТСЯ</div>
                     <div class="notice-subtitle">Для оценки каналов необходимо пройти верификацию через бот</div>
                 </div>
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-success" id="submit-rating">⭐ Оценить</button>
-                <button class="btn btn-primary" id="verify-account">✅ Верифицироваться</button>
-                <button class="btn btn-secondary" id="cancel-rating">❌ Отмена</button>
+                <button class="btn btn-success" id="submit-rating">⭐ ОЦЕНИТЬ</button>
+                <button class="btn btn-primary" id="verify-account">✅ ВЕРИФИЦИРОВАТЬСЯ</button>
+                <button class="btn btn-secondary" id="cancel-rating">❌ ОТМЕНА</button>
             </div>
         </div>
     </div>
@@ -397,30 +400,30 @@
     <!-- Pixel Info Modal -->
     <div class="modal" id="pixel-info-modal">
         <div class="modal-content">
-            <h3>ℹ️ Пиксель #<span id="info-pixel-id">0</span></h3>
+            <h3>ℹ️ ПИКСЕЛЬ #<span id="info-pixel-id">0</span></h3>
             
             <div class="pixel-info">
                 <div class="info-row">
-                    <span class="info-label">👤 Владелец:</span>
+                    <span class="info-label">👤 ВЛАДЕЛЕЦ:</span>
                     <span class="info-value" id="info-owner">@username</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">📂 Категории:</span>
-                    <span class="info-value" id="info-categories">Не указаны</span>
+                    <span class="info-label">📂 КАТЕГОРИИ:</span>
+                    <span class="info-value" id="info-categories">НЕ УКАЗАНЫ</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">📅 Дата:</span>
-                    <span class="info-value" id="info-date">Неизвестна</span>
+                    <span class="info-label">📅 ДАТА:</span>
+                    <span class="info-value" id="info-date">НЕИЗВЕСТНА</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">💰 Цена:</span>
+                    <span class="info-label">💰 ЦЕНА:</span>
                     <span class="info-value" id="info-price">0.01 TON</span>
                 </div>
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-primary" id="visit-channel">🔗 Перейти</button>
-                <button class="btn btn-secondary" id="close-pixel-info">❌ Закрыть</button>
+                <button class="btn btn-primary" id="visit-channel">🔗 ПЕРЕЙТИ</button>
+                <button class="btn btn-secondary" id="close-pixel-info">❌ ЗАКРЫТЬ</button>
             </div>
         </div>
     </div>
@@ -428,20 +431,20 @@
     <!-- Channel Submission Modal -->
     <div class="modal" id="channel-submission-modal">
         <div class="modal-content">
-            <h3>📝 Подать заявку на канал</h3>
-            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 20px; text-align: center;">
+            <h3>📝 ПОДАТЬ ЗАЯВКУ НА КАНАЛ</h3>
+            <p style="color: #999; font-size: 12px; margin-bottom: 20px; text-align: center;">
                 Ваш канал появится в поиске после модерации, даже без покупки пикселя
             </p>
             
             <div class="form-group">
-                <label for="submission-telegram-link">🔗 Telegram канал *</label>
+                <label for="submission-telegram-link">🔗 TELEGRAM КАНАЛ *</label>
                 <input type="text" id="submission-telegram-link" class="form-control" 
                        placeholder="@username или https://t.me/username" required>
                 <div class="field-hint">Основная ссылка на ваш Telegram канал</div>
             </div>
 
             <div class="form-group">
-                <label for="submission-channel-name">📢 Название канала *</label>
+                <label for="submission-channel-name">📢 НАЗВАНИЕ КАНАЛА *</label>
                 <input type="text" id="submission-channel-name" class="form-control" 
                        placeholder="Crypto News Today" maxlength="50" required>
                 <div class="char-counter">
@@ -450,24 +453,24 @@
             </div>
 
             <div class="form-group">
-                <label for="submission-categories">📂 Категории (выберите до 3-х) *</label>
+                <label for="submission-categories">📂 КАТЕГОРИИ (ВЫБЕРИТЕ ДО 3-Х) *</label>
                 <div class="category-selector" id="submission-categories">
-                    <div class="category-tag" data-category="Крипта">💰 Крипта</div>
-                    <div class="category-tag" data-category="Игры">🎮 Игры</div>
-                    <div class="category-tag" data-category="Новости">📰 Новости</div>
-                    <div class="category-tag" data-category="Технологии">💻 Технологии</div>
-                    <div class="category-tag" data-category="Бизнес">💼 Бизнес</div>
-                    <div class="category-tag" data-category="Образование">📚 Образование</div>
-                    <div class="category-tag" data-category="Спорт">⚽ Спорт</div>
-                    <div class="category-tag" data-category="Развлечения">🎬 Развлечения</div>
+                    <div class="category-tag" data-category="Крипта">💰 КРИПТА</div>
+                    <div class="category-tag" data-category="Игры">🎮 ИГРЫ</div>
+                    <div class="category-tag" data-category="Новости">📰 НОВОСТИ</div>
+                    <div class="category-tag" data-category="Технологии">💻 ТЕХНОЛОГИИ</div>
+                    <div class="category-tag" data-category="Бизнес">💼 БИЗНЕС</div>
+                    <div class="category-tag" data-category="Образование">📚 ОБРАЗОВАНИЕ</div>
+                    <div class="category-tag" data-category="Спорт">⚽ СПОРТ</div>
+                    <div class="category-tag" data-category="Развлечения">🎬 РАЗВЛЕЧЕНИЯ</div>
                 </div>
                 <div class="selected-categories" id="submission-selected-categories">
-                    Выбрано: <span id="submission-categories-text">Нет</span>
+                    ВЫБРАНО: <span id="submission-categories-text">НЕТ</span>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="submission-description">📝 Описание канала *</label>
+                <label for="submission-description">📝 ОПИСАНИЕ КАНАЛА *</label>
                 <textarea id="submission-description" class="form-control" 
                          placeholder="Кратко опишите ваш канал: тематика, аудитория, частота постов..." 
                          maxlength="300" rows="4" required></textarea>
@@ -477,35 +480,33 @@
             </div>
 
             <div class="form-group">
-                <label for="submission-owner-contact">👤 Контакт владельца (опционально)</label>
+                <label for="submission-owner-contact">👤 КОНТАКТ ВЛАДЕЛЬЦА (ОПЦИОНАЛЬНО)</label>
                 <input type="text" id="submission-owner-contact" class="form-control" 
                        placeholder="@username для связи">
                 <div class="field-hint">Для связи по вопросам модерации</div>
             </div>
 
-            <!-- Дополнительные опции -->
             <div class="form-group">
-                <label>⚙️ Дополнительные опции</label>
+                <label>⚙️ ДОПОЛНИТЕЛЬНЫЕ ОПЦИИ</label>
                 <div class="checkbox-group">
                     <label class="checkbox-item">
                         <input type="checkbox" id="submission-adult-content">
-                        <span class="checkbox-label">18+ контент</span>
+                        <span class="checkbox-label">18+ КОНТЕНТ</span>
                     </label>
                     <label class="checkbox-item">
                         <input type="checkbox" id="submission-paid-content">
-                        <span class="checkbox-label">Платный контент</span>
+                        <span class="checkbox-label">ПЛАТНЫЙ КОНТЕНТ</span>
                     </label>
                     <label class="checkbox-item">
                         <input type="checkbox" id="submission-commercial">
-                        <span class="checkbox-label">Коммерческий канал</span>
+                        <span class="checkbox-label">КОММЕРЧЕСКИЙ КАНАЛ</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Условия и правила -->
             <div class="form-group">
                 <div class="terms-section">
-                    <h4>📋 Правила модерации:</h4>
+                    <h4>📋 ПРАВИЛА МОДЕРАЦИИ:</h4>
                     <ul class="rules-list">
                         <li>✅ Активный канал (посты в последние 30 дней)</li>
                         <li>✅ Качественный контент на русском языке</li>
@@ -522,21 +523,20 @@
                 </div>
             </div>
 
-            <!-- Статус заявки (если уже подавалась) -->
             <div class="submission-status" id="submission-status" style="display: none;">
                 <div class="status-card">
                     <div class="status-icon">⏳</div>
                     <div class="status-info">
-                        <div class="status-title">Заявка на рассмотрении</div>
+                        <div class="status-title">ЗАЯВКА НА РАССМОТРЕНИИ</div>
                         <div class="status-subtitle">Модерация занимает 1-3 дня</div>
-                        <div class="status-date">Подано: <span id="submission-date">-</span></div>
+                        <div class="status-date">ПОДАНО: <span id="submission-date">-</span></div>
                     </div>
                 </div>
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-success" id="submit-channel-application">📤 Подать заявку</button>
-                <button class="btn btn-secondary" id="cancel-channel-submission">❌ Отмена</button>
+                <button class="btn btn-success" id="submit-channel-application">📤 ПОДАТЬ ЗАЯВКУ</button>
+                <button class="btn btn-secondary" id="cancel-channel-submission">❌ ОТМЕНА</button>
             </div>
         </div>
     </div>

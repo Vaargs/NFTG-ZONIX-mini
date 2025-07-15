@@ -3,6 +3,9 @@
 class MiniUtils {
     // Показ уведомлений через Telegram WebApp
     static showNotification(message, type = 'info') {
+        // Преобразуем сообщение в верхний регистр для строгого стиля
+        const strictMessage = message.toUpperCase();
+        
         // Используем Telegram WebApp API если доступно
         if (window.Telegram?.WebApp) {
             try {
@@ -10,25 +13,25 @@ class MiniUtils {
                 const version = window.Telegram.WebApp.version;
                 if (version && parseFloat(version) >= 6.1) {
                     if (type === 'error') {
-                        window.Telegram.WebApp.showAlert(message);
+                        window.Telegram.WebApp.showAlert(strictMessage);
                     } else {
                         window.Telegram.WebApp.showPopup({
                             title: 'NFTG-ZONIX',
-                            message: message,
+                            message: strictMessage,
                             buttons: [{ type: 'ok' }]
                         });
                     }
                 } else {
                     // Fallback для старых версий - используем toast
-                    this.createToast(message, type);
+                    this.createToast(strictMessage, type);
                 }
             } catch (error) {
                 // Если API недоступен - используем toast
-                this.createToast(message, type);
+                this.createToast(strictMessage, type);
             }
         } else {
             // Fallback для десктопа
-            this.createToast(message, type);
+            this.createToast(strictMessage, type);
         }
     }
 
@@ -41,16 +44,20 @@ class MiniUtils {
             position: fixed;
             top: 80px;
             right: 20px;
-            background: ${type === 'error' ? '#ff4444' : type === 'success' ? '#00FF88' : '#00D4FF'};
+            background: ${type === 'error' ? '#ff4444' : type === 'success' ? '#00ff88' : '#00D4FF'};
             color: ${type === 'success' || type === 'info' ? '#000' : '#fff'};
             padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             z-index: 2000;
             animation: slideInRight 0.3s ease;
-            max-width: 250px;
+            max-width: 280px;
             word-wrap: break-word;
+            border: 1px solid ${type === 'error' ? '#cc0000' : type === 'success' ? '#00cc66' : '#0099CC'};
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            letter-spacing: 0.5px;
         `;
 
         document.body.appendChild(toast);
@@ -122,22 +129,24 @@ class MiniUtils {
         return `@${trimmed}`;
     }
 
-    // Форматирование даты
+    // Форматирование даты в строгом стиле
     static formatDate(dateString) {
-        if (!dateString) return 'Неизвестна';
+        if (!dateString) return 'НЕИЗВЕСТНА';
         try {
-            return new Date(dateString).toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'short'
-            });
+            const date = new Date(dateString);
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}.${month}.${year}`;
         } catch (error) {
-            return 'Неизвестна';
+            return 'НЕИЗВЕСТНА';
         }
     }
 
-    // Форматирование цены
+    // Форматирование цены в строгом стиле
     static formatPrice(price, currency = 'TON') {
-        return `${price} ${currency}`;
+        const formattedPrice = typeof price === 'number' ? price.toFixed(2) : price;
+        return `${formattedPrice} ${currency}`;
     }
 
     // Генерация случайных пикселей
@@ -294,9 +303,9 @@ class MiniUtils {
     static handleError(error, context = 'Unknown') {
         console.error(`Error in ${context}:`, error);
         
-        let message = 'Произошла ошибка';
+        let message = 'ПРОИЗОШЛА ОШИБКА';
         if (error.message) {
-            message += `: ${error.message}`;
+            message += `: ${error.message.toUpperCase()}`;
         }
         
         this.showNotification(message, 'error');
@@ -325,13 +334,13 @@ class MiniUtils {
         if (!indicator) return;
 
         const modeNames = {
-            'view': 'Просмотр',
-            'buy': 'Покупка',
-            'mass-buy': 'Массовая покупка',
-            'edit': 'Редактирование'
+            'view': 'ПРОСМОТР',
+            'buy': 'ПОКУПКА',
+            'mass-buy': 'МАССОВАЯ ПОКУПКА',
+            'edit': 'РЕДАКТИРОВАНИЕ'
         };
 
-        indicator.textContent = modeNames[mode] || mode;
+        indicator.textContent = modeNames[mode] || mode.toUpperCase();
         indicator.classList.add('show');
 
         // Скрыть через 2 секунды
@@ -346,13 +355,13 @@ class MiniUtils {
         if (!display) return;
 
         const modeNames = {
-            'view': 'Просмотр',
-            'buy': 'Покупка', 
-            'mass-buy': 'Массовая покупка',
-            'edit': 'Редактирование'
+            'view': 'ПРОСМОТР',
+            'buy': 'ПОКУПКА', 
+            'mass-buy': 'МАССОВАЯ ПОКУПКА',
+            'edit': 'РЕДАКТИРОВАНИЕ'
         };
 
-        display.textContent = modeNames[mode] || mode;
+        display.textContent = modeNames[mode] || mode.toUpperCase();
     }
 
     // Копирование в буфер обмена
@@ -387,7 +396,7 @@ class MiniUtils {
         };
     }
 
-    // Форматирование числа подписчиков
+    // Форматирование числа подписчиков в строгом стиле
     static formatSubscriberCount(count) {
         if (count >= 1000000) {
             return `${(count / 1000000).toFixed(1)}M`;
@@ -408,7 +417,8 @@ class MiniUtils {
             'Бизнес': '💼',
             'Образование': '📚',
             'Спорт': '⚽',
-            'Развлечения': '🎬'
+            'Развлечения': '🎬',
+            'Демо': '🧪'
         };
         return icons[category] || '📁';
     }
@@ -449,7 +459,7 @@ class MiniUtils {
                     config.telegram.enableClosingConfirmation();
                 }
                 
-                // Применение темы Telegram
+                // Применение темы Telegram (адаптированное под строгий стиль)
                 if (config.theme.bg_color) {
                     document.documentElement.style.setProperty('--tg-bg-color', config.theme.bg_color);
                 }
@@ -464,6 +474,113 @@ class MiniUtils {
             console.log('ℹ️ Running in browser mode');
             return config;
         }
+    }
+
+    // Строгое форматирование текста
+    static formatStrictText(text) {
+        if (!text) return '';
+        return text.toUpperCase().trim();
+    }
+
+    // Форматирование номера пикселя
+    static formatPixelNumber(pixelId) {
+        return `#${pixelId.toString().padStart(3, '0')}`;
+    }
+
+    // Форматирование статуса в строгом стиле
+    static formatStatus(status) {
+        const statusMap = {
+            'sent': 'ОТПРАВЛЕНО',
+            'confirmed': 'ПОДТВЕРЖДЕНО',
+            'pending': 'В ОЖИДАНИИ',
+            'failed': 'ОШИБКА',
+            'verified': 'ВЕРИФИЦИРОВАН',
+            'not_verified': 'НЕ ВЕРИФИЦИРОВАН'
+        };
+        return statusMap[status] || status.toUpperCase();
+    }
+
+    // Валидация email (если потребуется)
+    static validateEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+
+    // Генерация QR кода (если потребуется)
+    static generateQRCode(text, size = 150) {
+        // Здесь можно добавить генерацию QR кода
+        console.log('QR Code generation requested for:', text);
+        return null;
+    }
+
+    // Проверка подключения к интернету
+    static checkInternetConnection() {
+        return navigator.onLine;
+    }
+
+    // Получение информации о устройстве
+    static getDeviceInfo() {
+        return {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            cookieEnabled: navigator.cookieEnabled,
+            onLine: navigator.onLine,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight,
+            isMobile: this.isMobile(),
+            isTelegram: !!window.Telegram?.WebApp
+        };
+    }
+
+    // Логирование в строгом стиле
+    static log(message, type = 'info') {
+        const timestamp = new Date().toISOString();
+        const prefix = `[${timestamp}] [${type.toUpperCase()}]`;
+        
+        switch (type) {
+            case 'error':
+                console.error(prefix, message);
+                break;
+            case 'warn':
+                console.warn(prefix, message);
+                break;
+            case 'success':
+                console.log(`%c${prefix} ${message}`, 'color: #00ff88; font-weight: bold;');
+                break;
+            default:
+                console.log(prefix, message);
+        }
+    }
+
+    // Создание уникального идентификатора сессии
+    static createSessionId() {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substr(2, 9);
+        return `session_${timestamp}_${random}`;
+    }
+
+    // Безопасное выполнение функции
+    static safeExecute(fn, fallback = null, context = 'Unknown') {
+        try {
+            return fn();
+        } catch (error) {
+            this.log(`Error in ${context}: ${error.message}`, 'error');
+            return fallback;
+        }
+    }
+
+    // Очистка объекта от пустых значений
+    static cleanObject(obj) {
+        const cleaned = {};
+        Object.keys(obj).forEach(key => {
+            if (obj[key] !== null && obj[key] !== undefined && obj[key] !== '') {
+                cleaned[key] = obj[key];
+            }
+        });
+        return cleaned;
     }
 }
 
