@@ -212,11 +212,22 @@ class MiniApp {
     }
 
     setupEventListeners() {
-        // Mode switching
+        // ИСПРАВЛЕНО: Mode switching с проверкой на кнопку "О проекте"
         document.querySelectorAll('.mode-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const mode = tab.dataset.mode;
-                this.setMode(mode);
+            tab.addEventListener('click', (e) => {
+                // Проверяем, это кнопка "О проекте" или обычная кнопка режима
+                if (tab.id === 'about-mode') {
+                    // Для кнопки "О проекте" - открываем модальное окно
+                    if (this.modals) {
+                        this.modals.showAboutModal();
+                    }
+                } else {
+                    // Для обычных кнопок режима - переключаем режим
+                    const mode = tab.dataset.mode;
+                    if (mode) {
+                        this.setMode(mode);
+                    }
+                }
             });
         });
 
@@ -308,7 +319,10 @@ class MiniApp {
 
         // Update UI
         document.querySelectorAll('.mode-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.mode === mode);
+            // Только для кнопок с data-mode атрибутом
+            if (tab.dataset.mode) {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+            }
         });
 
         // Update mode display in header

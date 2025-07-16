@@ -349,10 +349,10 @@ class MiniUtils {
         }, 2000);
     }
 
-    // Обновить отображение текущего режима
+    // ИСПРАВЛЕНО: Обновить отображение текущего режима
     static updateModeDisplay(mode) {
         const display = document.getElementById('mode-display');
-        if (!display) return;
+        if (!display || !mode) return;
 
         const modeNames = {
             'view': 'ПРОСМОТР',
