@@ -5,6 +5,8 @@
     box-sizing: border-box;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap');
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
@@ -46,66 +48,17 @@ body {
 }
 
 .logo {
+    font-family: 'Orbitron', sans-serif;
     font-size: 18px;
-    font-weight: 700;
-    color: #ffffff;
+    font-weight: 600;
+    color: #e0e0e0;
     letter-spacing: 2px;
     position: relative;
     overflow: hidden;
-    animation: logoLaserSweep 3s ease-in-out;
+    animation: logoLaserScan 3s ease-in-out;
 }
 
 /* === ЛАЗЕРНАЯ АНИМАЦИЯ ЛОГОТИПА === */
-@keyframes logoLaserSweep {
-    0% {
-        color: #ffffff;
-        text-shadow: none;
-    }
-    15% {
-        color: #00D4FF;
-        text-shadow: 
-            0 0 10px #00D4FF,
-            0 0 20px #00D4FF,
-            0 0 30px #00D4FF;
-    }
-    30% {
-        color: #ffffff;
-        text-shadow: 
-            0 0 5px #00D4FF,
-            0 0 10px #00D4FF;
-    }
-    45% {
-        color: #00ff88;
-        text-shadow: 
-            0 0 10px #00ff88,
-            0 0 20px #00ff88,
-            0 0 30px #00ff88;
-    }
-    60% {
-        color: #ffffff;
-        text-shadow: 
-            0 0 5px #00ff88,
-            0 0 10px #00ff88;
-    }
-    75% {
-        color: #9D4EDD;
-        text-shadow: 
-            0 0 10px #9D4EDD,
-            0 0 20px #9D4EDD,
-            0 0 30px #9D4EDD;
-    }
-    90% {
-        color: #ffffff;
-        text-shadow: 
-            0 0 5px #9D4EDD,
-            0 0 10px #9D4EDD;
-    }
-    100% {
-        color: #ffffff;
-        text-shadow: none;
-    }
-}
-
 .logo::before {
     content: '';
     position: absolute;
@@ -113,19 +66,35 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
-    animation: laserSlide 3s ease-in-out;
+    background: linear-gradient(120deg, transparent 0%, #00b2ff55 50%, transparent 100%);
+    animation: laser-scan 2.5s ease-in-out 1;
 }
 
-@keyframes laserSlide {
-    0% { left: -100%; }
-    20% { left: 100%; }
-    100% { left: 100%; }
+@keyframes laser-scan {
+    0% {
+        left: -100%;
+    }
+    50% {
+        left: 100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes logoLaserScan {
+    0% {
+        color: #e0e0e0;
+    }
+    40% {
+        color: #00b2ff;
+    }
+    60% {
+        color: #00b2ff;
+    }
+    100% {
+        color: #e0e0e0;
+    }
 }
 
 .mode-indicator {
@@ -402,7 +371,6 @@ body {
 .star.active {
     opacity: 1;
     color: #ffb800;
-    text-shadow: 0 0 10px #ffb800;
 }
 
 .rating-text {
@@ -579,7 +547,6 @@ body {
     background: linear-gradient(145deg, #00D4FF, #0099CC);
     color: #000;
     border-color: #00D4FF;
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
 }
 
 .sort-select {
@@ -757,33 +724,11 @@ body {
     grid-template-rows: repeat(10, 30px);
     gap: 1px;
     background: #000;
-    border: 1px solid #00D4FF;
-    border-radius: 6px;
+    border: 1px solid #333;
+    border-radius: 4px;
     padding: 8px;
-    box-shadow: 
-        0 0 10px rgba(0, 212, 255, 0.3),
-        0 0 20px rgba(0, 212, 255, 0.2),
-        0 0 30px rgba(0, 212, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
     transition: gap 0.3s ease, background 0.3s ease;
-    animation: neonPulse 3s ease-in-out infinite;
-}
-
-/* === НЕОНОВОЕ ПУЛЬСИРУЮЩЕЕ СВЕЧЕНИЕ === */
-@keyframes neonPulse {
-    0%, 100% {
-        border-color: #00D4FF;
-        box-shadow: 
-            0 0 5px rgba(0, 212, 255, 0.3),
-            0 0 10px rgba(0, 212, 255, 0.2),
-            0 0 15px rgba(0, 212, 255, 0.1);
-    }
-    50% {
-        border-color: #00ff88;
-        box-shadow: 
-            0 0 8px rgba(0, 255, 136, 0.4),
-            0 0 15px rgba(0, 255, 136, 0.3),
-            0 0 25px rgba(0, 255, 136, 0.2);
-    }
 }
 
 /* === PIXELS === */
@@ -809,21 +754,18 @@ body {
 .pixel.owned {
     background: linear-gradient(145deg, #00ff88, #00cc66);
     border-color: #00ff88;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
 }
 
 .pixel.selected {
     background: linear-gradient(145deg, #ffb800, #ff9500);
     border-color: #ffb800;
     animation: pulse 1.5s infinite;
-    box-shadow: 0 0 15px rgba(255, 184, 0, 0.5);
 }
 
 .pixel.mass-selected {
     background: linear-gradient(145deg, #ff6b35, #ff4500);
     border-color: #ff6b35;
     animation: massSelectPulse 2s infinite;
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
 }
 
 .pixel.edit-selected {
@@ -842,7 +784,6 @@ body {
     border-radius: 2px;
     z-index: 5;
     pointer-events: none;
-    box-shadow: 0 0 10px rgba(157, 78, 221, 0.4);
 }
 
 .pixel.with-image {
@@ -924,7 +865,6 @@ body {
     background: linear-gradient(145deg, #00ff88, #00cc66);
     color: #000;
     border-color: #00ff88;
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
 }
 
 .drag-mode-btn.active:hover {
@@ -991,7 +931,7 @@ body {
     font-size: 11px;
 }
 
-/* === ЦВЕТОВОЕ КОДИРОВАНИЕ РЕЖИМОВ === */
+/* === ЦВЕТОВЫЕ ОБВОДКИ ДЛЯ КНОПОК РЕЖИМОВ === */
 .mode-tabs {
     display: flex;
     gap: 4px;
@@ -1018,84 +958,44 @@ body {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.mode-tab::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    border-radius: 0 0 6px 6px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-/* ПРОСМОТР - ЖЁЛТАЯ ПОЛОСКА */
-.mode-tab[data-mode="view"]::before {
-    background: linear-gradient(90deg, #ffb800, #ff9500);
-    box-shadow: 0 0 10px rgba(255, 184, 0, 0.5);
-}
-
-.mode-tab[data-mode="view"].active::before {
-    opacity: 1;
+/* ПРОСМОТР - ЖЁЛТАЯ ОБВОДКА */
+.mode-tab[data-mode="view"] {
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .mode-tab[data-mode="view"].active {
-    background: linear-gradient(145deg, #ffb800, #ff9500);
-    color: #000;
     border-color: #ffb800;
-    box-shadow: 0 0 15px rgba(255, 184, 0, 0.3);
+    box-shadow: 0 0 8px rgba(255, 184, 0, 0.3);
 }
 
-/* ПОКУПКА - ЗЕЛЁНАЯ ПОЛОСКА */
-.mode-tab[data-mode="buy"]::before {
-    background: linear-gradient(90deg, #00ff88, #00cc66);
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-}
-
-.mode-tab[data-mode="buy"].active::before {
-    opacity: 1;
+/* ПОКУПКА - ЗЕЛЁНАЯ ОБВОДКА */
+.mode-tab[data-mode="buy"] {
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .mode-tab[data-mode="buy"].active {
-    background: linear-gradient(145deg, #00ff88, #00cc66);
-    color: #000;
     border-color: #00ff88;
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
 }
 
-/* МАССОВАЯ ПОКУПКА - ОРАНЖЕВАЯ ПОЛОСКА */
-.mode-tab[data-mode="mass-buy"]::before {
-    background: linear-gradient(90deg, #ff6b35, #ff4500);
-    box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
-}
-
-.mode-tab[data-mode="mass-buy"].active::before {
-    opacity: 1;
+/* МАССОВАЯ ПОКУПКА - ОРАНЖЕВАЯ ОБВОДКА */
+.mode-tab[data-mode="mass-buy"] {
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .mode-tab[data-mode="mass-buy"].active {
-    background: linear-gradient(145deg, #ff6b35, #ff4500);
-    color: #000;
     border-color: #ff6b35;
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+    box-shadow: 0 0 8px rgba(255, 107, 53, 0.3);
 }
 
-/* РЕДАКТОР - ФИОЛЕТОВАЯ ПОЛОСКА */
-.mode-tab[data-mode="edit"]::before {
-    background: linear-gradient(90deg, #9D4EDD, #7209B7);
-    box-shadow: 0 0 10px rgba(157, 78, 221, 0.5);
-}
-
-.mode-tab[data-mode="edit"].active::before {
-    opacity: 1;
+/* РЕДАКТОР - ФИОЛЕТОВАЯ ОБВОДКА */
+.mode-tab[data-mode="edit"] {
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .mode-tab[data-mode="edit"].active {
-    background: linear-gradient(145deg, #9D4EDD, #7209B7);
-    color: #fff;
     border-color: #9D4EDD;
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
+    box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
 }
 
 .mode-tab .mode-icon {
@@ -1112,13 +1012,8 @@ body {
 
 .mode-tab:hover {
     background: linear-gradient(145deg, #2a2a2a, #3a3a3a);
-    border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
-
-.mode-tab:hover::before {
-    opacity: 0.5;
 }
 
 .mode-tab.active .mode-label {
@@ -1237,7 +1132,6 @@ body {
     color: #00D4FF;
     margin-bottom: 8px;
     letter-spacing: 1px;
-    text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
 .project-subtitle {
@@ -1380,20 +1274,7 @@ body {
     transition: all 0.3s ease;
     min-width: 80px;
     user-select: none;
-    position: relative;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    border-radius: 0 0 6px 6px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
 }
 
 .btn-primary {
@@ -1402,43 +1283,16 @@ body {
     border-color: #00D4FF;
 }
 
-.btn-primary::before {
-    background: linear-gradient(90deg, #00D4FF, #0099CC);
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-}
-
-.btn-primary:hover::before {
-    opacity: 1;
-}
-
 .btn-success {
     background: linear-gradient(145deg, #00ff88, #00cc66);
     color: #000;
     border-color: #00ff88;
 }
 
-.btn-success::before {
-    background: linear-gradient(90deg, #00ff88, #00cc66);
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-}
-
-.btn-success:hover::before {
-    opacity: 1;
-}
-
 .btn-secondary {
     background: linear-gradient(145deg, #2a2a2a, #3a3a3a);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.2);
-}
-
-.btn-secondary::before {
-    background: linear-gradient(90deg, #666, #888);
-    box-shadow: 0 0 10px rgba(102, 102, 102, 0.5);
-}
-
-.btn-secondary:hover::before {
-    opacity: 1;
 }
 
 .btn:hover {
@@ -1559,7 +1413,6 @@ body {
     background: linear-gradient(145deg, #00D4FF, #0099CC);
     color: #000;
     border-color: #00D4FF;
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
 }
 
 .selected-categories {
@@ -1631,19 +1484,6 @@ textarea.form-control {
     gap: 6px;
     white-space: nowrap;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    position: relative;
-}
-
-.action-button::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
 }
 
 .action-button:hover {
@@ -1651,45 +1491,27 @@ textarea.form-control {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.action-button:hover::before {
-    opacity: 1;
-}
-
 .action-button:active {
     transform: scale(0.95);
 }
 
+/* === ЦВЕТОВЫЕ ОБВОДКИ ДЛЯ ACTION BUTTON === */
 .action-button.buy-mode {
     background: linear-gradient(145deg, #00ff88, #00cc66);
     color: #000;
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
-}
-
-.action-button.buy-mode::before {
-    background: linear-gradient(90deg, #00ff88, #00cc66);
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+    border: 2px solid #00ff88;
 }
 
 .action-button.mass-buy-mode {
     background: linear-gradient(145deg, #ff6b35, #ff4500);
     color: #000;
-    box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
-}
-
-.action-button.mass-buy-mode::before {
-    background: linear-gradient(90deg, #ff6b35, #ff4500);
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+    border: 2px solid #ff6b35;
 }
 
 .action-button.edit-mode {
     background: linear-gradient(145deg, #9d4edd, #7209b7);
     color: #fff;
-    box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
-}
-
-.action-button.edit-mode::before {
-    background: linear-gradient(90deg, #9d4edd, #7209b7);
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
+    border: 2px solid #9d4edd;
 }
 
 .action-button.edit-info-mode {
@@ -1697,12 +1519,37 @@ textarea.form-control {
     color: #000;
     font-size: 14px;
     padding: 12px 20px;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    border: 2px solid #00D4FF;
 }
 
-.action-button.edit-info-mode::before {
-    background: linear-gradient(90deg, #00D4FF, #0099CC);
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+/* === ЦВЕТОВЫЕ ОБВОДКИ ДЛЯ МОДАЛЬНЫХ ОКОН === */
+
+/* Модальное окно обычной покупки - зеленая обводка */
+#purchase-modal .btn-success {
+    background: linear-gradient(145deg, #00ff88, #00cc66);
+    color: #000;
+    border: 2px solid #00ff88;
+}
+
+/* Модальное окно массовой покупки - оранжевая обводка */
+#mass-purchase-modal .btn-success {
+    background: linear-gradient(145deg, #ff6b35, #ff4500) !important;
+    color: #000 !important;
+    border: 2px solid #ff6b35 !important;
+}
+
+/* Модальное окно редактирования - фиолетовая обводка */
+#pixel-info-edit-modal .btn-success {
+    background: linear-gradient(145deg, #9d4edd, #7209b7);
+    color: #fff;
+    border: 2px solid #9d4edd;
+}
+
+/* Модальное окно редактора изображений - фиолетовая обводка */
+#editor-modal .btn-success {
+    background: linear-gradient(145deg, #9d4edd, #7209b7);
+    color: #fff;
+    border: 2px solid #9d4edd;
 }
 
 /* === СТИЛИ ДЛЯ ПОДАЧИ ЗАЯВКИ === */
@@ -1803,10 +1650,6 @@ textarea.form-control {
     color: #ffb800;
 }
 
-.status-info {
-    flex: 1;
-}
-
 .status-title {
     font-size: 14px;
     font-weight: 600;
@@ -1850,60 +1693,6 @@ textarea.form-control {
     color: #ff4444;
 }
 
-/* === ЦВЕТОВОЕ КОДИРОВАНИЕ ДЛЯ МОДАЛЬНЫХ ОКОН === */
-
-/* Модальное окно обычной покупки - зеленый */
-#purchase-modal .btn-success {
-    background: linear-gradient(145deg, #00ff88, #00cc66);
-    color: #000;
-    border-color: #00ff88;
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-}
-
-#purchase-modal .btn-success::before {
-    background: linear-gradient(90deg, #00ff88, #00cc66);
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-}
-
-/* Модальное окно массовой покупки - оранжевый */
-#mass-purchase-modal .btn-success {
-    background: linear-gradient(145deg, #ff6b35, #ff4500) !important;
-    color: #000 !important;
-    border-color: #ff6b35 !important;
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.3) !important;
-}
-
-#mass-purchase-modal .btn-success::before {
-    background: linear-gradient(90deg, #ff6b35, #ff4500) !important;
-    box-shadow: 0 0 10px rgba(255, 107, 53, 0.5) !important;
-}
-
-/* Модальное окно редактирования - фиолетовый */
-#pixel-info-edit-modal .btn-success {
-    background: linear-gradient(145deg, #9d4edd, #7209b7);
-    color: #fff;
-    border-color: #9d4edd;
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
-}
-
-#pixel-info-edit-modal .btn-success::before {
-    background: linear-gradient(90deg, #9d4edd, #7209b7);
-    box-shadow: 0 0 10px rgba(157, 78, 221, 0.5);
-}
-
-/* Модальное окно редактора изображений - фиолетовый */
-#editor-modal .btn-success {
-    background: linear-gradient(145deg, #9d4edd, #7209b7);
-    color: #fff;
-    border-color: #9d4edd;
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
-}
-
-#editor-modal .btn-success::before {
-    background: linear-gradient(90deg, #9d4edd, #7209b7);
-    box-shadow: 0 0 10px rgba(157, 78, 221, 0.5);
-}
-
 /* === АНИМАЦИИ === */
 @keyframes fadeIn {
     from { opacity: 0; }
@@ -1928,20 +1717,18 @@ textarea.form-control {
 @keyframes pulse {
     0%, 100% { 
         transform: scale(1); 
-        box-shadow: 0 0 15px rgba(255, 184, 0, 0.5);
     }
     50% { 
         transform: scale(1.1); 
-        box-shadow: 0 0 25px rgba(255, 184, 0, 0.8);
     }
 }
 
 @keyframes massSelectPulse {
     0%, 100% { 
-        box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+        opacity: 1;
     }
     50% { 
-        box-shadow: 0 0 25px rgba(255, 107, 53, 0.8);
+        opacity: 0.7;
     }
 }
 
@@ -2293,18 +2080,5 @@ textarea.form-control {
     
     .wallet-connect-item:active {
         transform: scale(0.98);
-    }
-    
-    /* Убираем эффекты наведения для сенсорных устройств */
-    .btn:hover::before,
-    .action-button:hover::before,
-    .mode-tab:hover::before {
-        opacity: 0;
-    }
-    
-    .btn:active::before,
-    .action-button:active::before,
-    .mode-tab.active::before {
-        opacity: 1;
     }
 }
