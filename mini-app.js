@@ -65,6 +65,9 @@ class MiniApp {
                 });
             }
             
+            // Initialize language system
+            this.initializeLanguageSystem();
+            
             // Initialize modules
             await this.initializeModules();
             
@@ -87,11 +90,25 @@ class MiniApp {
             this.isInitialized = true;
             
             console.log('✅ NFTG-ZONIX Mini App initialized successfully!');
-            MiniUtils.showNotification('ПРИЛОЖЕНИЕ ГОТОВО К РАБОТЕ!', 'success');
+            MiniUtils.showNotification('notification.app_ready', 'success');
             
         } catch (error) {
             console.error('❌ Failed to initialize Mini App:', error);
-            MiniUtils.showNotification('ОШИБКА ИНИЦИАЛИЗАЦИИ ПРИЛОЖЕНИЯ', 'error');
+            const errorMsg = window.MiniI18n ? 
+                window.MiniI18n.t('error.app_init') : 
+                'ОШИБКА ПРИ ЗАПУСКЕ ПРИЛОЖЕНИЯ';
+            alert(errorMsg + ': ' + error.message);
+        }
+    }
+
+    initializeLanguageSystem() {
+        // Инициализация системы локализации
+        if (window.MiniI18n) {
+            // Применяем начальные переводы
+            window.MiniI18n.updateAllTexts();
+            console.log('✅ Language system initialized');
+        } else {
+            console.warn('⚠️ MiniI18n not available');
         }
     }
 
@@ -164,14 +181,6 @@ class MiniApp {
             this.updateCostDisplay();
         };
 
-        // Hook для обновления режимов
-        const originalSetMode = this.grid.setMode.bind(this.grid);
-        this.grid.setMode = (mode) => {
-            originalSetMode(mode);
-            this.updateCostDisplay();
-            this.updateStrictModeDisplay(mode);
-        };
-
         // Hook для обновления бесшовного режима после применения изображений
         const originalApplyToPixels = this.editor.applyToPixels.bind(this.editor);
         this.editor.applyToPixels = () => {
@@ -208,6 +217,14 @@ class MiniApp {
             }
         }
 
+        // Hook для обновления режимов
+        const originalSetMode = this.grid.setMode.bind(this.grid);
+        this.grid.setMode = (mode) => {
+            originalSetMode(mode);
+            this.updateCostDisplay();
+            this.updateStrictModeDisplay(mode);
+        };
+
         console.log('🔗 Module communication setup completed');
     }
 
@@ -230,6 +247,21 @@ class MiniApp {
                 }
             });
         });
+
+        // Language button
+        const languageBtn = document.getElementById('language-btn');
+        if (languageBtn) {
+            languageBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleLanguage();
+            });
+            languageBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleLanguage();
+            });
+        }
 
         // Global keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -270,7 +302,7 @@ class MiniApp {
                     if (this.grid) {
                         const newMode = this.grid.toggleSeamlessMode();
                         MiniUtils.showNotification(
-                            `БЕСШОВНЫЙ РЕЖИМ ${newMode ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'}`, 
+                            newMode ? 'notification.seamless_on' : 'notification.seamless_off', 
                             'info'
                         );
                     }
@@ -284,6 +316,11 @@ class MiniApp {
                             document.getElementById('wallet-connect-btn')?.click();
                         }, 300);
                     }
+                    break;
+                case 'l':
+                case 'L':
+                    // Клавиша для переключения языка
+                    this.toggleLanguage();
                     break;
                 case 'Escape':
                     this.handleEscapeKey();
@@ -306,6 +343,53 @@ class MiniApp {
         });
 
         console.log('👂 Event listeners setup completed');
+    }
+
+    // НОВОЕ: Переключение языка
+    toggleLanguage() {
+        if (window.MiniI18n) {
+            const currentLang = window.MiniI18n.getCurrentLanguage();
+            const newLang = currentLang === 'ru' ? 'en' : 'ru';
+            
+            window.MiniI18n.setLanguage(newLang);
+            
+            // Обновляем кнопку языка
+            const languageBtn = document.getElementById('language-btn');
+            if (languageBtn) {
+                languageBtn.innerHTML = newLang === 'ru' ? '🇷🇺' : '🇺🇸';
+            }
+            
+            // Обновляем все интерфейсы
+            this.updateAllInterfaces();
+            
+            MiniUtils.vibrate([50]);
+            console.log(`Language switched to: ${newLang}`);
+        }
+    }
+
+    // НОВОЕ: Обновление всех интерфейсов при смене языка
+    updateAllInterfaces() {
+        // Обновляем отображение режима
+        this.updateStrictModeDisplay(this.currentMode);
+        
+        // Обновляем статус-бар
+        this.updateStatusInfo();
+        
+        // Обновляем кнопки действий
+        this.updateActionButtons();
+        
+        // Обновляем тултипы пикселей
+        this.updatePixelTooltips();
+        
+        // Обновляем каналы если открыты
+        if (this.channels.isOpen) {
+            this.channels.applyFilters();
+        }
+        
+        // Обновляем модальные окна если открыты
+        if (this.modals.isModalOpen()) {
+            this.modals.updateCurrentModal();
+        }
     }
 
     setMode(mode) {
@@ -337,6 +421,9 @@ class MiniApp {
         // Update cost display
         this.updateCostDisplay();
 
+        // Update action buttons
+        this.updateActionButtons();
+
         // Vibration feedback
         MiniUtils.vibrate([50]);
 
@@ -345,14 +432,11 @@ class MiniApp {
 
     updateStrictModeDisplay(mode) {
         const modeDisplay = document.getElementById('mode-display');
-        const modeNames = {
-            'view': 'ПРОСМОТР',
-            'buy': 'ПОКУПКА',
-            'mass-buy': 'МАССОВАЯ ПОКУПКА',
-            'edit': 'РЕДАКТИРОВАНИЕ'
-        };
         if (modeDisplay) {
-            modeDisplay.textContent = modeNames[mode] || mode.toUpperCase();
+            const modeText = window.MiniI18n ? 
+                window.MiniI18n.t('header.mode.' + mode) : 
+                mode.toUpperCase();
+            modeDisplay.textContent = modeText;
         }
     }
 
@@ -404,6 +488,14 @@ class MiniApp {
     }
 
     updateStrictUI() {
+        // Update language button
+        const languageBtn = document.getElementById('language-btn');
+        if (languageBtn && window.MiniI18n) {
+            const currentLang = window.MiniI18n.getCurrentLanguage();
+            languageBtn.innerHTML = currentLang === 'ru' ? '🇷🇺' : '🇺🇸';
+            languageBtn.title = window.MiniI18n.t('control.language');
+        }
+
         // Update all text to uppercase where needed
         const updateTextToUppercase = (selector) => {
             const elements = document.querySelectorAll(selector);
@@ -430,6 +522,97 @@ class MiniApp {
         }
 
         console.log('🎨 Strict UI styling applied');
+    }
+
+    updateStatusInfo() {
+        const ownedCount = Array.from(this.grid.pixels.keys())
+            .filter(id => this.grid.pixels.get(id).owner === this.grid.currentUser).length;
+        
+        let selectedCount = 0;
+        switch (this.currentMode) {
+            case 'buy':
+                selectedCount = this.grid.selectedPixels.size;
+                break;
+            case 'mass-buy':
+                selectedCount = this.grid.massSelectedPixels.size;
+                break;
+            case 'edit':
+                selectedCount = this.grid.editSelectedPixels.size;
+                break;
+        }
+
+        const totalCost = selectedCount * 0.01;
+
+        const ownedElement = document.getElementById('owned-count');
+        const selectedElement = document.getElementById('selected-count');
+        const costElement = document.getElementById('cost-display');
+        
+        if (ownedElement) ownedElement.textContent = `${ownedCount}/100`;
+        if (selectedElement) selectedElement.textContent = selectedCount;
+        if (costElement) {
+            if (selectedCount > 0) {
+                costElement.textContent = `${totalCost.toFixed(2)} TON`;
+                costElement.style.color = '#00ff88';
+            } else {
+                costElement.textContent = '0 TON';
+                costElement.style.color = '#666';
+            }
+        }
+
+        // Update status labels
+        const statusLabels = document.querySelectorAll('.status-label');
+        statusLabels.forEach((label, index) => {
+            if (window.MiniI18n) {
+                const keys = ['status.selected', 'status.owned', 'status.cost'];
+                if (keys[index]) {
+                    label.textContent = window.MiniI18n.t(keys[index]) + ':';
+                }
+            }
+        });
+    }
+
+    updateActionButtons() {
+        const actionButton = document.getElementById('action-button');
+        if (!actionButton) return;
+
+        const selectedCount = this.getSelectedPixels().length;
+        let buttonText = '';
+
+        switch (this.currentMode) {
+            case 'buy':
+                buttonText = selectedCount > 1 ? 
+                    MiniUtils.t('button.buy.multiple', { count: selectedCount }) :
+                    MiniUtils.t('button.buy.single');
+                break;
+            case 'mass-buy':
+                buttonText = MiniUtils.t('button.buy.mass', { count: selectedCount });
+                break;
+            case 'edit':
+                buttonText = selectedCount > 1 ? 
+                    MiniUtils.t('button.edit') :
+                    MiniUtils.t('button.edit.single');
+                break;
+        }
+
+        actionButton.textContent = buttonText;
+    }
+
+    updatePixelTooltips() {
+        // Обновляем тултипы всех пикселей
+        document.querySelectorAll('.pixel').forEach(pixel => {
+            const pixelId = parseInt(pixel.dataset.id);
+            const pixelData = this.grid.pixels.get(pixelId);
+            
+            if (pixelData) {
+                pixel.title = MiniUtils.t('tooltip.pixel_owned', {
+                    id: pixelId,
+                    owner: pixelData.owner,
+                    category: pixelData.category || MiniUtils.t('pixel.not_specified')
+                });
+            } else {
+                pixel.title = MiniUtils.t('tooltip.pixel_available', { id: pixelId });
+            }
+        });
     }
 
     setupTelegramFeatures() {
@@ -634,14 +817,14 @@ class MiniApp {
     enableSeamlessMode() {
         if (this.grid) {
             this.grid.enableSeamlessMode();
-            MiniUtils.showNotification('БЕСШОВНЫЙ РЕЖИМ ВКЛЮЧЕН', 'success');
+            MiniUtils.showNotification('notification.seamless_on', 'success');
         }
     }
 
     disableSeamlessMode() {
         if (this.grid) {
             this.grid.disableSeamlessMode();
-            MiniUtils.showNotification('БЕСШОВНЫЙ РЕЖИМ ВЫКЛЮЧЕН', 'info');
+            MiniUtils.showNotification('notification.seamless_off', 'info');
         }
     }
 
@@ -649,7 +832,7 @@ class MiniApp {
         if (this.grid) {
             const newMode = this.grid.toggleSeamlessMode();
             MiniUtils.showNotification(
-                `БЕСШОВНЫЙ РЕЖИМ ${newMode ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН'}`, 
+                newMode ? 'notification.seamless_on' : 'notification.seamless_off', 
                 newMode ? 'success' : 'info'
             );
             return newMode;
@@ -662,7 +845,7 @@ class MiniApp {
         if (this.wallet) {
             return this.wallet.connectWallet();
         } else {
-            MiniUtils.showNotification('КОШЕЛЕК НЕ ИНИЦИАЛИЗИРОВАН', 'error');
+            MiniUtils.showNotification('error.wallet_not_available', 'error');
             return Promise.resolve(false);
         }
     }
@@ -684,17 +867,35 @@ class MiniApp {
         return { isConnected: false, address: null, balance: 0 };
     }
 
+    // Методы для управления языком
+    getCurrentLanguage() {
+        return window.MiniI18n ? window.MiniI18n.getCurrentLanguage() : 'ru';
+    }
+
+    setLanguage(lang) {
+        if (window.MiniI18n) {
+            window.MiniI18n.setLanguage(lang);
+            this.updateAllInterfaces();
+        }
+    }
+
+    getAvailableLanguages() {
+        return window.MiniI18n ? window.MiniI18n.getAvailableLanguages() : ['ru', 'en'];
+    }
+
     // Debug and development methods
     getDebugInfo() {
         return {
             initialized: this.isInitialized,
             currentMode: this.currentMode,
+            currentLanguage: this.getCurrentLanguage(),
             telegram: this.telegramConfig,
             modules: {
                 grid: this.grid?.getDebugInfo?.() || 'Not available',
                 channels: this.channels?.getDebugInfo?.() || 'Not available',
                 editor: this.editor?.getState?.() || 'Not available',
-                wallet: this.wallet?.getDebugInfo?.() || 'Not available'
+                wallet: this.wallet?.getDebugInfo?.() || 'Not available',
+                i18n: window.MiniI18n?.getDebugInfo?.() || 'Not available'
             },
             selectedPixels: this.getSelectedPixels(),
             seamlessMode: this.grid?.seamlessMode || false,
@@ -710,7 +911,7 @@ class MiniApp {
     }
 
     resetApp() {
-        if (confirm('СБРОСИТЬ ВСЕ ДАННЫЕ ПРИЛОЖЕНИЯ?')) {
+        if (confirm(MiniUtils.t('confirmation.reset_app'))) {
             // Clear all data
             localStorage.clear();
             
@@ -730,8 +931,9 @@ class MiniApp {
             channels: this.channels?.channels || [],
             seamlessMode: this.grid?.seamlessMode || false,
             walletConnected: this.wallet?.isConnected || false,
+            currentLanguage: this.getCurrentLanguage(),
             exportDate: new Date().toISOString(),
-            version: '1.2.0'
+            version: '1.3.0'
         };
 
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -745,7 +947,7 @@ class MiniApp {
         document.body.removeChild(a);
         
         URL.revokeObjectURL(url);
-        MiniUtils.showNotification('ДАННЫЕ ЭКСПОРТИРОВАНЫ', 'success');
+        MiniUtils.showNotification('notification.data_exported', 'success');
     }
 
     // Performance monitoring
@@ -763,7 +965,7 @@ class MiniApp {
         console.error(`💥 Global error in ${context}:`, error);
         
         // Проверяем что error существует и имеет message
-        const errorMessage = error && error.message ? error.message : 'НЕИЗВЕСТНАЯ ОШИБКА';
+        const errorMessage = error && error.message ? error.message : MiniUtils.t('error.unknown');
         
         // Send error to Telegram if available
         if (this.telegramConfig.isWebApp) {
@@ -780,18 +982,18 @@ class MiniApp {
             }
         }
         
-        MiniUtils.showNotification('ПРОИЗОШЛА ОШИБКА', 'error');
+        MiniUtils.showNotification('error.unknown', 'error');
     }
 
     // Wallet integration helpers
     async purchaseWithWallet(pixelId, price) {
         if (!this.wallet) {
-            MiniUtils.showNotification('КОШЕЛЕК НЕ ДОСТУПЕН', 'error');
+            MiniUtils.showNotification('error.wallet_not_available', 'error');
             return false;
         }
 
         if (!this.wallet.isConnected) {
-            MiniUtils.showNotification('ПОДКЛЮЧИТЕ КОШЕЛЕК ДЛЯ ПОКУПКИ', 'error');
+            MiniUtils.showNotification('notification.connect_wallet', 'error');
             return false;
         }
 
@@ -806,7 +1008,7 @@ class MiniApp {
 
     async massPurchaseWithWallet(pixelIds, totalPrice) {
         if (!this.wallet || !this.wallet.isConnected) {
-            MiniUtils.showNotification('ПОДКЛЮЧИТЕ КОШЕЛЕК ДЛЯ ПОКУПКИ', 'error');
+            MiniUtils.showNotification('notification.connect_wallet', 'error');
             return false;
         }
 
@@ -849,14 +1051,17 @@ function initMiniApp() {
             window.connectWallet = () => window.miniApp.connectWallet();
             window.disconnectWallet = () => window.miniApp.disconnectWallet();
             window.walletInfo = () => window.miniApp.getWalletInfo();
+            window.setLang = (lang) => window.miniApp.setLanguage(lang);
+            window.toggleLang = () => window.miniApp.toggleLanguage();
+            window.getLang = () => window.miniApp.getCurrentLanguage();
             
             console.log('🛠️ Development mode active');
-            console.log('Available commands: debugApp(), resetApp(), exportApp(), toggleSeamless(), enableSeamless(), disableSeamless(), connectWallet(), disconnectWallet(), walletInfo()');
+            console.log('Available commands: debugApp(), resetApp(), exportApp(), toggleSeamless(), enableSeamless(), disableSeamless(), connectWallet(), disconnectWallet(), walletInfo(), setLang(lang), toggleLang(), getLang()');
         }
         
     } catch (error) {
         console.error('❌ Failed to initialize Mini App:', error);
-        alert('ОШИБКА ПРИ ЗАПУСКЕ ПРИЛОЖЕНИЯ: ' + error.message);
+        MiniUtils.showNotification('error.init', 'error');
     }
 }
 

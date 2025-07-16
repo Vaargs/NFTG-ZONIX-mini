@@ -62,6 +62,7 @@
             <button class="control-btn zoom-in" id="zoom-in" title="Увеличить">+</button>
             <button class="control-btn zoom-out" id="zoom-out" title="Уменьшить">−</button>
             <button class="control-btn center" id="center" title="Центр">⌖</button>
+            <button class="control-btn language-btn" id="language-btn" title="Язык">🇷🇺</button>
         </div>
     </div>
 
@@ -150,6 +151,15 @@
                     <span class="menu-text">
                         <div class="menu-title">МАРКЕТ</div>
                         <div class="menu-subtitle">Покупка и продажа пикселей</div>
+                    </span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                
+                <button class="menu-item wallet-connect-item" id="wallet-connect-btn">
+                    <span class="menu-icon">👛</span>
+                    <span class="menu-text">
+                        <div class="menu-title" id="wallet-title">Подключить кошелек</div>
+                        <div class="menu-subtitle" id="wallet-subtitle">TON кошелек для покупок</div>
                     </span>
                     <span class="menu-arrow">→</span>
                 </button>
@@ -607,6 +617,7 @@
 
     <!-- Scripts - ПРАВИЛЬНЫЙ ПОРЯДОК -->
     <script src="mini-utils.js"></script>
+    <script src="mini-i18n.js"></script>
     <script src="mini-grid.js"></script>
     <script src="mini-modals.js"></script>
     <script src="mini-channels.js"></script>

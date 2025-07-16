@@ -3,8 +3,13 @@
 class MiniUtils {
     // Показ уведомлений через Telegram WebApp
     static showNotification(message, type = 'info') {
+        // Используем переводы если доступны
+        const translatedMessage = window.MiniI18n ? 
+            (typeof message === 'string' && message.includes('.') ? window.MiniI18n.t(message) : message) : 
+            message;
+        
         // Преобразуем сообщение в верхний регистр для строгого стиля
-        const strictMessage = message.toUpperCase();
+        const strictMessage = translatedMessage.toUpperCase();
         
         // Используем Telegram WebApp API если доступно
         if (window.Telegram?.WebApp) {
@@ -131,7 +136,8 @@ class MiniUtils {
 
     // Форматирование даты в строгом стиле
     static formatDate(dateString) {
-        if (!dateString) return 'НЕИЗВЕСТНА';
+        if (!dateString) return window.MiniI18n ? window.MiniI18n.t('pixel.unknown_date') : 'НЕИЗВЕСТНА';
+        
         try {
             const date = new Date(dateString);
             const day = date.getDate().toString().padStart(2, '0');
@@ -139,7 +145,7 @@ class MiniUtils {
             const year = date.getFullYear();
             return `${day}.${month}.${year}`;
         } catch (error) {
-            return 'НЕИЗВЕСТНА';
+            return window.MiniI18n ? window.MiniI18n.t('pixel.unknown_date') : 'НЕИЗВЕСТНА';
         }
     }
 
@@ -303,7 +309,7 @@ class MiniUtils {
     static handleError(error, context = 'Unknown') {
         console.error(`Error in ${context}:`, error);
         
-        let message = 'ПРОИЗОШЛА ОШИБКА';
+        let message = window.MiniI18n ? window.MiniI18n.t('error.unknown') : 'ПРОИЗОШЛА ОШИБКА';
         if (error.message) {
             message += `: ${error.message.toUpperCase()}`;
         }
@@ -333,14 +339,11 @@ class MiniUtils {
         const indicator = document.getElementById('mode-indicator');
         if (!indicator) return;
 
-        const modeNames = {
-            'view': 'ПРОСМОТР',
-            'buy': 'ПОКУПКА',
-            'mass-buy': 'МАССОВАЯ ПОКУПКА',
-            'edit': 'РЕДАКТИРОВАНИЕ'
-        };
+        const modeText = window.MiniI18n ? 
+            window.MiniI18n.t('header.mode.' + mode) : 
+            mode.toUpperCase();
 
-        indicator.textContent = modeNames[mode] || mode.toUpperCase();
+        indicator.textContent = modeText;
         indicator.classList.add('show');
 
         // Скрыть через 2 секунды
@@ -349,19 +352,16 @@ class MiniUtils {
         }, 2000);
     }
 
-    // ИСПРАВЛЕНО: Обновить отображение текущего режима
+    // Обновить отображение текущего режима
     static updateModeDisplay(mode) {
         const display = document.getElementById('mode-display');
         if (!display || !mode) return;
 
-        const modeNames = {
-            'view': 'ПРОСМОТР',
-            'buy': 'ПОКУПКА', 
-            'mass-buy': 'МАССОВАЯ ПОКУПКА',
-            'edit': 'РЕДАКТИРОВАНИЕ'
-        };
+        const modeText = window.MiniI18n ? 
+            window.MiniI18n.t('header.mode.' + mode) : 
+            mode.toUpperCase();
 
-        display.textContent = modeNames[mode] || mode.toUpperCase();
+        display.textContent = modeText;
     }
 
     // Копирование в буфер обмена
@@ -410,15 +410,16 @@ class MiniUtils {
     // Получение иконки категории
     static getCategoryIcon(category) {
         const icons = {
-            'Крипта': '💰',
-            'Игры': '🎮',
-            'Новости': '📰',
-            'Технологии': '💻',
-            'Бизнес': '💼',
-            'Образование': '📚',
-            'Спорт': '⚽',
-            'Развлечения': '🎬',
-            'Демо': '🧪'
+            'Крипта': '💰', 'CRYPTO': '💰', 'crypto': '💰',
+            'Игры': '🎮', 'GAMES': '🎮', 'games': '🎮',
+            'Новости': '📰', 'NEWS': '📰', 'news': '📰',
+            'Технологии': '💻', 'TECH': '💻', 'tech': '💻',
+            'Бизнес': '💼', 'BUSINESS': '💼', 'business': '💼',
+            'Образование': '📚', 'EDUCATION': '📚', 'education': '📚',
+            'Спорт': '⚽', 'SPORTS': '⚽', 'sports': '⚽',
+            'Развлечения': '🎬', 'ENTERTAINMENT': '🎬', 'entertainment': '🎬',
+            'Демо': '🧪', 'DEMO': '🧪', 'demo': '🧪',
+            'Общее': '📁', 'GENERAL': '📁', 'general': '📁'
         };
         return icons[category] || '📁';
     }
@@ -489,6 +490,18 @@ class MiniUtils {
 
     // Форматирование статуса в строгом стиле
     static formatStatus(status) {
+        if (window.MiniI18n) {
+            const statusMap = {
+                'sent': 'notification.transaction_sent',
+                'confirmed': 'notification.transaction_confirmed',
+                'pending': 'notification.transaction_pending',
+                'failed': 'notification.transaction_rejected',
+                'verified': 'user.verified',
+                'not_verified': 'user.not_verified'
+            };
+            return window.MiniI18n.t(statusMap[status] || status);
+        }
+        
         const statusMap = {
             'sent': 'ОТПРАВЛЕНО',
             'confirmed': 'ПОДТВЕРЖДЕНО',
@@ -531,7 +544,8 @@ class MiniUtils {
             windowWidth: window.innerWidth,
             windowHeight: window.innerHeight,
             isMobile: this.isMobile(),
-            isTelegram: !!window.Telegram?.WebApp
+            isTelegram: !!window.Telegram?.WebApp,
+            currentLanguage: window.MiniI18n ? window.MiniI18n.getCurrentLanguage() : 'ru'
         };
     }
 
@@ -581,6 +595,26 @@ class MiniUtils {
             }
         });
         return cleaned;
+    }
+
+    // Получение локализованного текста
+    static t(key, params = {}) {
+        return window.MiniI18n ? window.MiniI18n.t(key, params) : key;
+    }
+
+    // Получение локализованного текста уведомления
+    static getNotificationText(key, params = {}) {
+        return window.MiniI18n ? window.MiniI18n.getNotificationText(key, params) : key;
+    }
+
+    // Получение локализованного текста ошибки
+    static getErrorText(key, params = {}) {
+        return window.MiniI18n ? window.MiniI18n.getErrorText(key, params) : key;
+    }
+
+    // Получение локализованного текста кнопки
+    static getButtonText(key, params = {}) {
+        return window.MiniI18n ? window.MiniI18n.getButtonText(key, params) : key;
     }
 }
 
