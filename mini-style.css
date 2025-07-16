@@ -55,10 +55,10 @@ body {
     letter-spacing: 2px;
     position: relative;
     overflow: hidden;
-    animation: logoLaserScan 3s ease-in-out;
+    animation: logoColorCycle 6s ease-in-out infinite;
 }
 
-/* === ЛАЗЕРНАЯ АНИМАЦИЯ ЛОГОТИПА === */
+/* === ЦИКЛИЧЕСКАЯ АНИМАЦИЯ ЛОГОТИПА === */
 .logo::before {
     content: '';
     position: absolute;
@@ -67,33 +67,45 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(120deg, transparent 0%, #00b2ff55 50%, transparent 100%);
-    animation: laser-scan 2.5s ease-in-out 1;
+    animation: laser-scan-cycle 8s ease-in-out infinite;
 }
 
-@keyframes laser-scan {
-    0% {
+@keyframes laser-scan-cycle {
+    0%, 100% {
         left: -100%;
     }
-    50% {
+    12.5% {
         left: 100%;
     }
-    100% {
+    25%, 87.5% {
         left: 100%;
     }
 }
 
-@keyframes logoLaserScan {
-    0% {
+@keyframes logoColorCycle {
+    0%, 100% {
         color: #e0e0e0;
+        text-shadow: none;
     }
-    40% {
+    16.67% {
         color: #00b2ff;
+        text-shadow: 0 0 10px rgba(0, 178, 255, 0.5);
     }
-    60% {
-        color: #00b2ff;
+    33.33% {
+        color: #00ff88;
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
     }
-    100% {
-        color: #e0e0e0;
+    50% {
+        color: #9D4EDD;
+        text-shadow: 0 0 10px rgba(157, 78, 221, 0.5);
+    }
+    66.67% {
+        color: #ff6b35;
+        text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+    }
+    83.33% {
+        color: #ffb800;
+        text-shadow: 0 0 10px rgba(255, 184, 0, 0.5);
     }
 }
 
@@ -724,11 +736,43 @@ body {
     grid-template-rows: repeat(10, 30px);
     gap: 1px;
     background: #000;
-    border: 1px solid #333;
+    border: 1px solid #888;
     border-radius: 4px;
     padding: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
     transition: gap 0.3s ease, background 0.3s ease;
+    animation: silverGlow 4s ease-in-out infinite;
+}
+
+/* === СЕРЕБРИСТОЕ СВЕЧЕНИЕ СЕТКИ === */
+@keyframes silverGlow {
+    0%, 100% {
+        border-color: #888;
+        box-shadow: 
+            0 4px 20px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(192, 192, 192, 0.3);
+    }
+    25% {
+        border-color: #b8b8b8;
+        box-shadow: 
+            0 4px 20px rgba(0, 0, 0, 0.6),
+            0 0 8px rgba(192, 192, 192, 0.4),
+            0 0 0 1px rgba(220, 220, 220, 0.5);
+    }
+    50% {
+        border-color: #d4d4d4;
+        box-shadow: 
+            0 4px 20px rgba(0, 0, 0, 0.6),
+            0 0 12px rgba(212, 212, 212, 0.5),
+            0 0 0 1px rgba(240, 240, 240, 0.6);
+    }
+    75% {
+        border-color: #b8b8b8;
+        box-shadow: 
+            0 4px 20px rgba(0, 0, 0, 0.6),
+            0 0 8px rgba(192, 192, 192, 0.4),
+            0 0 0 1px rgba(220, 220, 220, 0.5);
+    }
 }
 
 /* === PIXELS === */
@@ -757,15 +801,54 @@ body {
 }
 
 .pixel.selected {
-    background: linear-gradient(145deg, #ffb800, #ff9500);
-    border-color: #ffb800;
-    animation: pulse 1.5s infinite;
+    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+    border: 1px solid #ffb800;
+    box-shadow: 
+        0 0 0 1px rgba(255, 184, 0, 0.4),
+        0 0 4px rgba(255, 184, 0, 0.3);
+    animation: selectedGlow 2s ease-in-out infinite;
+    position: relative;
 }
 
 .pixel.mass-selected {
-    background: linear-gradient(145deg, #ff6b35, #ff4500);
-    border-color: #ff6b35;
-    animation: massSelectPulse 2s infinite;
+    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+    border: 1px solid #ff6b35;
+    box-shadow: 
+        0 0 0 1px rgba(255, 107, 53, 0.4),
+        0 0 4px rgba(255, 107, 53, 0.3);
+    animation: massSelectedGlow 2.5s ease-in-out infinite;
+    position: relative;
+}
+
+/* === АНИМАЦИИ КОНТУРОВ === */
+@keyframes selectedGlow {
+    0%, 100% {
+        border-color: #ffb800;
+        box-shadow: 
+            0 0 0 1px rgba(255, 184, 0, 0.4),
+            0 0 4px rgba(255, 184, 0, 0.3);
+    }
+    50% {
+        border-color: #ffd700;
+        box-shadow: 
+            0 0 0 1px rgba(255, 215, 0, 0.6),
+            0 0 6px rgba(255, 215, 0, 0.4);
+    }
+}
+
+@keyframes massSelectedGlow {
+    0%, 100% {
+        border-color: #ff6b35;
+        box-shadow: 
+            0 0 0 1px rgba(255, 107, 53, 0.4),
+            0 0 4px rgba(255, 107, 53, 0.3);
+    }
+    50% {
+        border-color: #ff8c42;
+        box-shadow: 
+            0 0 0 1px rgba(255, 140, 66, 0.6),
+            0 0 6px rgba(255, 140, 66, 0.4);
+    }
 }
 
 .pixel.edit-selected {
