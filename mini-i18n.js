@@ -516,7 +516,7 @@ class MiniI18n {
                 'modal.submission.commercial': 'COMMERCIAL CHANNEL',
                 'modal.submission.rules': 'MODERATION RULES',
                 'modal.submission.rules.active': 'Active channel (posts in last 30 days)',
-                'modal.submission.rules.quality': 'Quality content in Russian language',
+                'modal.submission.rules.quality': 'Quality content in English language',
                 'modal.submission.rules.category': 'Matches selected category',
                 'modal.submission.rules.auto': 'Subscriber count is determined automatically',
                 'modal.submission.rules.no_spam': 'Prohibited: spam, NSFW, fraud',
@@ -870,8 +870,446 @@ class MiniI18n {
     }
     
     updateModals() {
-        // Обновляем модальные окна
-        // Это будет вызываться при открытии каждого модального окна
+        // Обновляем About Modal content
+        this.updateAboutModal();
+        
+        // Обновляем другие модальные окна
+        this.updatePurchaseModals();
+        this.updateChannelModals();
+        this.updateEditorModal();
+    }
+
+    updateAboutModal() {
+        // Update About Modal title
+        const aboutModalTitle = document.querySelector('#about-modal h3');
+        if (aboutModalTitle) {
+            aboutModalTitle.textContent = this.t('modal.about.title');
+        }
+        
+        // Update project title and subtitle
+        const projectTitle = document.querySelector('.project-title');
+        if (projectTitle) {
+            projectTitle.textContent = this.t('modal.about.project');
+        }
+        
+        const projectSubtitle = document.querySelector('.project-subtitle');
+        if (projectSubtitle) {
+            projectSubtitle.textContent = this.t('modal.about.subtitle');
+        }
+        
+        // Update main description
+        const aboutDescription = document.querySelector('.about-description p');
+        if (aboutDescription) {
+            aboutDescription.innerHTML = `<strong>${this.t('modal.about.project')}</strong> — ${this.t('modal.about.description')}`;
+        }
+        
+        // Update feature items
+        const featureItems = document.querySelectorAll('.feature-item');
+        const featureKeys = [
+            'modal.about.catalog',
+            'modal.about.grid', 
+            'modal.about.upload',
+            'modal.about.moderation',
+            'modal.about.ton',
+            'modal.about.website'
+        ];
+        
+        featureItems.forEach((item, index) => {
+            const featureText = item.querySelector('.feature-text');
+            if (featureText && featureKeys[index]) {
+                featureText.textContent = this.t(featureKeys[index]);
+            }
+        });
+        
+        // Update inspiration section
+        const inspirationSection = document.querySelector('.inspiration-section');
+        if (inspirationSection) {
+            const paragraphs = inspirationSection.querySelectorAll('p');
+            if (paragraphs.length >= 2) {
+                paragraphs[0].innerHTML = `${this.t('modal.about.inspiration')} <strong>Million Dollar Homepage</strong> ${this.t('modal.about.inspiration.text')}`;
+                paragraphs[1].innerHTML = `<strong>${this.t('modal.about.project')}</strong> ${this.t('modal.about.community')}`;
+            }
+        }
+        
+        // Update modal action buttons
+        const websiteButton = document.getElementById('visit-website-about');
+        if (websiteButton) {
+            websiteButton.textContent = `🌐 ${this.t('button.website')}`;
+        }
+        
+        const closeButton = document.getElementById('close-about');
+        if (closeButton) {
+            closeButton.textContent = `❌ ${this.t('button.close')}`;
+        }
+    }
+
+    updatePurchaseModals() {
+        // Update Purchase Modal
+        const purchaseTitle = document.querySelector('#purchase-modal h3');
+        if (purchaseTitle) {
+            const pixelId = document.getElementById('purchase-pixel-id')?.textContent || '0';
+            purchaseTitle.innerHTML = `💰 ${this.t('modal.purchase.title')} #<span id="purchase-pixel-id">${pixelId}</span>`;
+        }
+        
+        // Update form labels
+        const telegramLabel = document.querySelector('#purchase-modal label[for="telegram-link"]');
+        if (telegramLabel) {
+            telegramLabel.textContent = `🔗 ${this.t('modal.purchase.telegram')}:`;
+        }
+        
+        const descLabel = document.querySelector('#purchase-modal label[for="pixel-description"]');
+        if (descLabel) {
+            descLabel.textContent = `📝 ${this.t('modal.purchase.description')}:`;
+        }
+        
+        // Update placeholders
+        const telegramInput = document.getElementById('telegram-link');
+        if (telegramInput) {
+            telegramInput.placeholder = this.t('modal.purchase.telegram.placeholder');
+        }
+        
+        const descInput = document.getElementById('pixel-description');
+        if (descInput) {
+            descInput.placeholder = this.t('modal.purchase.description.placeholder');
+        }
+        
+        // Update buttons
+        const confirmPurchase = document.getElementById('confirm-purchase');
+        if (confirmPurchase) {
+            confirmPurchase.textContent = `💰 ${this.t('button.buy')}`;
+        }
+        
+        const cancelPurchase = document.getElementById('cancel-purchase');
+        if (cancelPurchase) {
+            cancelPurchase.textContent = `❌ ${this.t('button.cancel')}`;
+        }
+        
+        // Update Mass Purchase Modal
+        const massPurchaseTitle = document.querySelector('#mass-purchase-modal h3');
+        if (massPurchaseTitle) {
+            massPurchaseTitle.textContent = `🛒 ${this.t('modal.mass_purchase.title')}`;
+        }
+        
+        // Update mass purchase labels
+        const massPixelsLabel = document.querySelector('#mass-purchase-modal p:first-of-type');
+        if (massPixelsLabel) {
+            const count = document.getElementById('mass-count')?.textContent || '0';
+            massPixelsLabel.innerHTML = `${this.t('modal.mass_purchase.pixels')}: <span id="mass-count">${count}</span>`;
+        }
+        
+        const massTotalLabel = document.querySelector('#mass-purchase-modal p:nth-of-type(2)');
+        if (massTotalLabel) {
+            const total = document.getElementById('mass-total')?.textContent || '0';
+            massTotalLabel.innerHTML = `${this.t('modal.mass_purchase.total')}: <span id="mass-total">${total}</span> TON`;
+        }
+
+        // Update mass purchase form labels
+        const massTelegramLabel = document.querySelector('#mass-purchase-modal label[for="mass-telegram-link"]');
+        if (massTelegramLabel) {
+            massTelegramLabel.textContent = `🔗 ${this.t('modal.purchase.telegram')}:`;
+        }
+        
+        const massDescLabel = document.querySelector('#mass-purchase-modal label[for="mass-pixel-description"]');
+        if (massDescLabel) {
+            massDescLabel.textContent = `📝 ${this.t('modal.purchase.description')}:`;
+        }
+
+        // Update mass purchase placeholders
+        const massTelegramInput = document.getElementById('mass-telegram-link');
+        if (massTelegramInput) {
+            massTelegramInput.placeholder = this.t('modal.purchase.telegram.placeholder');
+        }
+        
+        const massDescInput = document.getElementById('mass-pixel-description');
+        if (massDescInput) {
+            massDescInput.placeholder = this.t('modal.purchase.description.placeholder');
+        }
+
+        // Update mass purchase buttons
+        const confirmMassPurchase = document.getElementById('confirm-mass-purchase');
+        if (confirmMassPurchase) {
+            confirmMassPurchase.textContent = `🛒 ${this.t('button.buy')} ${this.t('mode.mass-buy')}`;
+        }
+        
+        const cancelMassPurchase = document.getElementById('cancel-mass-purchase');
+        if (cancelMassPurchase) {
+            cancelMassPurchase.textContent = `❌ ${this.t('button.cancel')}`;
+        }
+    }
+
+    updateChannelModals() {
+        // Update Channel Submission Modal
+        const submissionTitle = document.querySelector('#channel-submission-modal h3');
+        if (submissionTitle) {
+            submissionTitle.textContent = `📝 ${this.t('modal.submission.title')}`;
+        }
+
+        // Update subtitle
+        const submissionSubtitle = document.querySelector('#channel-submission-modal p');
+        if (submissionSubtitle && submissionSubtitle.textContent.includes('модерации')) {
+            submissionSubtitle.textContent = this.t('modal.submission.subtitle');
+        }
+        
+        // Update channel submission labels
+        const submissionLabels = [
+            { selector: 'label[for="submission-telegram-link"]', key: 'modal.submission.telegram' },
+            { selector: 'label[for="submission-channel-name"]', key: 'modal.submission.name' },
+            { selector: 'label[for="submission-categories"]', key: 'modal.submission.categories' },
+            { selector: 'label[for="submission-description"]', key: 'modal.submission.description' },
+            { selector: 'label[for="submission-owner-contact"]', key: 'modal.submission.contact' }
+        ];
+        
+        submissionLabels.forEach(({ selector, key }) => {
+            const label = document.querySelector(`#channel-submission-modal ${selector}`);
+            if (label) {
+                const isRequired = !key.includes('contact');
+                label.textContent = this.t(key) + (isRequired ? ' *' : '');
+            }
+        });
+        
+        // Update placeholders
+        const submissionInputs = [
+            { id: 'submission-telegram-link', key: 'modal.purchase.telegram.placeholder' },
+            { id: 'submission-channel-name', key: 'modal.submission.name.placeholder' },
+            { id: 'submission-description', key: 'modal.submission.description.placeholder' },
+            { id: 'submission-owner-contact', key: 'modal.submission.contact.placeholder' }
+        ];
+        
+        submissionInputs.forEach(({ id, key }) => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.placeholder = this.t(key);
+            }
+        });
+
+        // Update rules section
+        const rulesTitle = document.querySelector('#channel-submission-modal .terms-section h4');
+        if (rulesTitle) {
+            rulesTitle.textContent = `📋 ${this.t('modal.submission.rules')}:`;
+        }
+
+        // Update rules list
+        const rulesList = document.querySelector('#channel-submission-modal .rules-list');
+        if (rulesList) {
+            const rulesKeys = [
+                'modal.submission.rules.active',
+                'modal.submission.rules.quality',
+                'modal.submission.rules.category',
+                'modal.submission.rules.auto',
+                'modal.submission.rules.no_spam',
+                'modal.submission.rules.no_aggregators'
+            ];
+            
+            const rulesItems = rulesList.querySelectorAll('li');
+            rulesItems.forEach((item, index) => {
+                if (rulesKeys[index]) {
+                    const icon = item.textContent.includes('✅') ? '✅ ' : '❌ ';
+                    item.textContent = icon + this.t(rulesKeys[index]);
+                }
+            });
+        }
+
+        // Update terms checkbox
+        const termsCheckboxLabel = document.querySelector('#channel-submission-modal .terms-checkbox .checkbox-label');
+        if (termsCheckboxLabel) {
+            termsCheckboxLabel.textContent = this.t('modal.submission.agree');
+        }
+        
+        // Update submission buttons
+        const submitButton = document.getElementById('submit-channel-application');
+        if (submitButton) {
+            submitButton.textContent = `📤 ${this.t('button.submit')}`;
+        }
+        
+        const cancelSubmission = document.getElementById('cancel-channel-submission');
+        if (cancelSubmission) {
+            cancelSubmission.textContent = `❌ ${this.t('button.cancel')}`;
+        }
+
+        // Update Rating Modal
+        const ratingTitle = document.querySelector('#channel-rating-modal h3');
+        if (ratingTitle) {
+            ratingTitle.textContent = `⭐ ${this.t('modal.rating.title')}`;
+        }
+
+        // Update rating labels
+        const currentRatingLabel = document.querySelector('#channel-rating-modal .current-rating');
+        if (currentRatingLabel && currentRatingLabel.textContent.includes('ТЕКУЩИЙ') || currentRatingLabel?.textContent.includes('CURRENT')) {
+            const ratingValue = currentRatingLabel.querySelector('.rating-value')?.textContent || '0';
+            currentRatingLabel.innerHTML = `${this.t('modal.rating.current')}: <span class="rating-value">${ratingValue}</span> ⭐`;
+        }
+
+        const yourRatingLabel = document.querySelector('#channel-rating-modal .rating-label');
+        if (yourRatingLabel) {
+            yourRatingLabel.textContent = `${this.t('modal.rating.your')}:`;
+        }
+
+        const ratingText = document.getElementById('rating-text');
+        if (ratingText && (ratingText.textContent.includes('ВЫБЕРИТЕ') || ratingText.textContent.includes('SELECT'))) {
+            ratingText.textContent = this.t('modal.rating.select');
+        }
+
+        // Update rating comment placeholder
+        const ratingComment = document.getElementById('rating-comment');
+        if (ratingComment) {
+            ratingComment.placeholder = this.t('modal.rating.comment.placeholder');
+        }
+
+        // Update rating comment label
+        const ratingCommentLabel = document.querySelector('#channel-rating-modal label[for="rating-comment"]');
+        if (ratingCommentLabel) {
+            ratingCommentLabel.textContent = `💬 ${this.t('modal.rating.comment')}:`;
+        }
+
+        // Update verification notice
+        const verificationNoticeTitle = document.querySelector('#channel-rating-modal .notice-title');
+        if (verificationNoticeTitle) {
+            verificationNoticeTitle.textContent = this.t('modal.rating.verification');
+        }
+
+        const verificationNoticeDesc = document.querySelector('#channel-rating-modal .notice-subtitle');
+        if (verificationNoticeDesc) {
+            verificationNoticeDesc.textContent = this.t('modal.rating.verification.desc');
+        }
+
+        // Update rating buttons
+        const submitRating = document.getElementById('submit-rating');
+        if (submitRating) {
+            submitRating.textContent = `⭐ ${this.t('button.rate')}`;
+        }
+
+        const verifyAccount = document.getElementById('verify-account');
+        if (verifyAccount) {
+            verifyAccount.textContent = `✅ ${this.t('button.verify')}`;
+        }
+
+        const cancelRating = document.getElementById('cancel-rating');
+        if (cancelRating) {
+            cancelRating.textContent = `❌ ${this.t('button.cancel')}`;
+        }
+    }
+
+    updateEditorModal() {
+        // Update Editor Modal
+        const editorTitle = document.querySelector('#editor-modal h3');
+        if (editorTitle) {
+            editorTitle.textContent = `🎨 ${this.t('modal.edit.title')}`;
+        }
+
+        // Update editor buttons
+        const editorButtons = [
+            { selector: '.editor-controls button[onclick*="image-input"]', key: 'modal.edit.upload', icon: '📁' },
+            { id: 'zoom-in-editor', key: 'modal.edit.zoom_in' },
+            { id: 'zoom-out-editor', key: 'modal.edit.zoom_out' },
+            { id: 'rotate-left', key: 'modal.edit.rotate_left' },
+            { id: 'rotate-right', key: 'modal.edit.rotate_right' },
+            { id: 'reset-editor', key: 'modal.edit.reset' },
+            { id: 'preview-editor', key: 'modal.edit.preview', icon: '👁️' },
+            { id: 'apply-editor', key: 'modal.edit.apply', icon: '✅' },
+            { id: 'close-editor', key: 'button.close', icon: '❌' }
+        ];
+
+        editorButtons.forEach(({ id, selector, key, icon }) => {
+            const button = id ? document.getElementById(id) : document.querySelector(selector);
+            if (button) {
+                const text = this.t(key);
+                button.textContent = icon ? `${icon} ${text}` : text;
+            }
+        });
+
+        // Update upload message
+        const uploadMessage = document.querySelector('#editor-modal .canvas-container');
+        if (uploadMessage && uploadMessage.textContent.includes('Загрузите') || uploadMessage?.textContent.includes('Upload')) {
+            // This will be updated when canvas is drawn
+        }
+
+        // Update Pixel Info Edit Modal
+        const pixelInfoEditTitle = document.querySelector('#pixel-info-edit-modal h3');
+        if (pixelInfoEditTitle) {
+            const pixelCount = document.getElementById('edit-pixel-count')?.textContent || '0';
+            pixelInfoEditTitle.innerHTML = `📝 ${this.t('modal.edit_info.title')} <span id="edit-pixel-count">${pixelCount}</span>`;
+        }
+
+        // Update pixel info edit labels
+        const editInfoLabels = [
+            { selector: 'label[for="edit-categories"]', key: 'modal.edit_info.categories' },
+            { selector: 'label[for="edit-telegram-link"]', key: 'modal.purchase.telegram' },
+            { selector: 'label[for="edit-description"]', key: 'modal.edit_info.description' }
+        ];
+
+        editInfoLabels.forEach(({ selector, key }) => {
+            const label = document.querySelector(`#pixel-info-edit-modal ${selector}`);
+            if (label) {
+                const icon = label.textContent.match(/^[^\s]+/)?.[0] || '';
+                label.textContent = `${icon} ${this.t(key)}:`;
+            }
+        });
+
+        // Update selected categories display
+        const selectedCategoriesText = document.getElementById('selected-categories-text');
+        if (selectedCategoriesText && (selectedCategoriesText.textContent === 'НЕТ' || selectedCategoriesText.textContent === 'NONE')) {
+            selectedCategoriesText.textContent = this.t('modal.edit_info.none');
+        }
+
+        const selectedCategoriesLabel = document.querySelector('#pixel-info-edit-modal .selected-categories');
+        if (selectedCategoriesLabel) {
+            const textSpan = selectedCategoriesLabel.querySelector('#selected-categories-text');
+            if (textSpan) {
+                selectedCategoriesLabel.innerHTML = `${this.t('modal.edit_info.selected')}: <span id="selected-categories-text">${textSpan.textContent}</span>`;
+            }
+        }
+
+        // Update character counter
+        const charCounter = document.querySelector('#pixel-info-edit-modal .char-counter');
+        if (charCounter) {
+            const chars = document.getElementById('edit-description-chars')?.textContent || '0';
+            charCounter.innerHTML = `<span id="edit-description-chars">${chars}</span>/200 ${this.t('modal.edit_info.chars')}`;
+        }
+
+        // Update pixel info edit buttons
+        const savePixelInfo = document.getElementById('save-pixel-info');
+        if (savePixelInfo) {
+            savePixelInfo.textContent = `💾 ${this.t('button.save')}`;
+        }
+
+        const cancelPixelInfoEdit = document.getElementById('cancel-pixel-info-edit');
+        if (cancelPixelInfoEdit) {
+            cancelPixelInfoEdit.textContent = `❌ ${this.t('button.cancel')}`;
+        }
+
+        // Update Pixel Info Modal
+        const pixelInfoTitle = document.querySelector('#pixel-info-modal h3');
+        if (pixelInfoTitle) {
+            const pixelId = document.getElementById('info-pixel-id')?.textContent || '0';
+            pixelInfoTitle.innerHTML = `ℹ️ ${this.t('modal.pixel_info.title')} #<span id="info-pixel-id">${pixelId}</span>`;
+        }
+
+        // Update pixel info labels
+        const pixelInfoLabels = [
+            { selector: '.info-row:nth-child(1) .info-label', key: 'modal.pixel_info.owner' },
+            { selector: '.info-row:nth-child(2) .info-label', key: 'modal.pixel_info.categories' },
+            { selector: '.info-row:nth-child(3) .info-label', key: 'modal.pixel_info.date' },
+            { selector: '.info-row:nth-child(4) .info-label', key: 'modal.pixel_info.price' }
+        ];
+
+        pixelInfoLabels.forEach(({ selector, key }) => {
+            const label = document.querySelector(`#pixel-info-modal ${selector}`);
+            if (label) {
+                const icon = label.textContent.match(/^[^\s]+/)?.[0] || '';
+                label.textContent = `${icon} ${this.t(key)}:`;
+            }
+        });
+
+        // Update pixel info buttons
+        const visitChannel = document.getElementById('visit-channel');
+        if (visitChannel) {
+            visitChannel.textContent = `🔗 ${this.t('button.visit')}`;
+        }
+
+        const closePixelInfo = document.getElementById('close-pixel-info');
+        if (closePixelInfo) {
+            closePixelInfo.textContent = `❌ ${this.t('button.close')}`;
+        }
     }
     
     updateChannelSidebar() {
@@ -879,6 +1317,12 @@ class MiniI18n {
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             searchInput.placeholder = this.t('channels.search');
+        }
+
+        // Update sidebar title
+        const sidebarTitle = document.querySelector('#channel-sidebar .sidebar-header h3');
+        if (sidebarTitle) {
+            sidebarTitle.textContent = `📺 ${this.t('channels.title')}`;
         }
         
         // Обновляем категории
@@ -896,7 +1340,18 @@ class MiniI18n {
         const sortKeys = ['newest', 'rating', 'subscribers', 'activity'];
         sortOptions.forEach((option, index) => {
             if (sortKeys[index]) {
-                option.textContent = this.t('channels.sort.' + sortKeys[index]);
+                const icon = option.textContent.match(/^[^\s]+/)?.[0] || '';
+                option.textContent = icon + ' ' + this.t('channels.sort.' + sortKeys[index]);
+            }
+        });
+
+        // Update filter labels
+        const filterLabels = document.querySelectorAll('#channel-sidebar .filter-group label');
+        filterLabels.forEach(label => {
+            if (label.textContent.includes('КАТЕГОРИИ') || label.textContent.includes('CATEGORIES')) {
+                label.textContent = this.t('channels.categories') + ':';
+            } else if (label.textContent.includes('СОРТИРОВКА') || label.textContent.includes('SORT')) {
+                label.textContent = this.t('channels.sort') + ':';
             }
         });
     }
