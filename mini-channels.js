@@ -381,10 +381,7 @@ class MiniChannels {
                 postsPerMonth: this.generatePostsPerMonth(submission.id.hashCode()),
                 verified: true, // Одобренные заявки считаются верифицированными
                 userRating: this.userRatings.get(submission.channelName) || null,
-                type: 'approved', // Тип: одобренная заявка
-                adultContent: submission.adultContent,
-                paidContent: submission.paidContent,
-                commercial: submission.commercial
+                type: 'approved' // Тип: одобренная заявка
             });
         });
 
@@ -433,10 +430,7 @@ class MiniChannels {
                     submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
                     status: 'approved',
                     subscriberCount: 15420,
-                    ownerContact: '@crypto_admin',
-                    adultContent: false,
-                    paidContent: true,
-                    commercial: true
+                    ownerContact: '@crypto_admin'
                 },
                 {
                     id: 'demo_approved_2',
@@ -447,10 +441,7 @@ class MiniChannels {
                     submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
                     status: 'approved',
                     subscriberCount: 8750,
-                    ownerContact: '@gamedev_moderator',
-                    adultContent: false,
-                    paidContent: false,
-                    commercial: false
+                    ownerContact: '@gamedev_moderator'
                 }
             ];
             
