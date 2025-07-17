@@ -699,18 +699,9 @@ class MiniModals {
             if (field) field.value = '';
         });
         
-        // Reset checkboxes
-        const checkboxes = [
-            'submission-adult-content',
-            'submission-paid-content', 
-            'submission-commercial',
-            'submission-terms'
-        ];
-        
-        checkboxes.forEach(checkboxId => {
-            const checkbox = document.getElementById(checkboxId);
-            if (checkbox) checkbox.checked = false;
-        });
+        // Reset checkbox
+        const termsCheckbox = document.getElementById('submission-terms');
+        if (termsCheckbox) termsCheckbox.checked = false;
         
         // Reset categories
         this.selectedCategories = [];
@@ -737,10 +728,6 @@ class MiniModals {
         const channelName = document.getElementById('submission-channel-name')?.value.trim();
         const description = document.getElementById('submission-description')?.value.trim();
         const ownerContact = document.getElementById('submission-owner-contact')?.value.trim();
-        
-        const adultContent = document.getElementById('submission-adult-content')?.checked || false;
-        const paidContent = document.getElementById('submission-paid-content')?.checked || false;
-        const commercial = document.getElementById('submission-commercial')?.checked || false;
         const termsAccepted = document.getElementById('submission-terms')?.checked || false;
         
         // Валидация
@@ -772,7 +759,7 @@ class MiniModals {
             return;
         }
         
-        // Создаем заявку
+        // Создаем заявку (БЕЗ дополнительных опций)
         const submission = {
             id: MiniUtils.generateId(),
             telegramLink: MiniUtils.normalizeTelegramLink(telegramLink),
@@ -780,9 +767,6 @@ class MiniModals {
             categories: [...this.selectedCategories],
             description: description,
             ownerContact: ownerContact || null,
-            adultContent: adultContent,
-            paidContent: paidContent,
-            commercial: commercial,
             submittedAt: new Date().toISOString(),
             status: 'pending'
         };
