@@ -43,6 +43,7 @@ class MiniApp {
         this.channels = null;
         this.editor = null;
         this.wallet = null;
+        this.moderator = null;
         this.telegramConfig = null;
         
         this.currentMode = 'view';
@@ -131,6 +132,10 @@ class MiniApp {
         this.editor = new MiniEditor();
         window.miniEditor = this.editor;
         
+        // Initialize moderator (after all other modules)
+        this.moderator = new MiniModerator();
+        window.miniModerator = this.moderator;
+        
         // Initialize wallet (after TON Connect UI loads)
         this.initializeWallet();
         
@@ -193,6 +198,21 @@ class MiniApp {
             }, 100);
         };
 
+        // Hook модератора для обновления статистики
+        if (this.moderator && this.moderator.isModerator) {
+            const originalPurchasePixelMod = this.grid.purchasePixel.bind(this.grid);
+            this.grid.purchasePixel = (pixelId, data) => {
+                originalPurchasePixelMod(pixelId, data);
+                
+                // Обновляем статистику модератора
+                setTimeout(() => {
+                    if (this.moderator.isModeratorPanelOpen) {
+                        this.moderator.updateModerationStats();
+                    }
+                }, 100);
+            };
+        }
+
         // Setup Telegram WebApp back button handling
         if (this.telegramConfig.isWebApp) {
             try {
@@ -207,6 +227,8 @@ class MiniApp {
                             this.channels.closeMainSidebar();
                         } else if (this.editor.isOpen) {
                             this.editor.closeEditor();
+                        } else if (this.moderator && this.moderator.isModeratorPanelOpen) {
+                            this.moderator.closeModeratorPanel();
                         } else {
                             this.telegramConfig.telegram.close();
                         }
@@ -271,7 +293,7 @@ class MiniApp {
             }
 
             // Skip if modal is open
-            if (this.modals.isModalOpen() || this.channels.isOpen || this.channels.isMainSidebarOpen || this.editor.isOpen) {
+            if (this.modals.isModalOpen() || this.channels.isOpen || this.channels.isMainSidebarOpen || this.editor.isOpen || (this.moderator && this.moderator.isModeratorPanelOpen)) {
                 return;
             }
 
@@ -321,6 +343,13 @@ class MiniApp {
                 case 'L':
                     // Клавиша для переключения языка
                     this.toggleLanguage();
+                    break;
+                case 'm':
+                case 'M':
+                    // Клавиша для открытия модерации (только для модераторов)
+                    if (this.moderator && this.moderator.isModerator) {
+                        this.moderator.toggleModeratorPanel();
+                    }
                     break;
                 case 'Escape':
                     this.handleEscapeKey();
@@ -699,6 +728,8 @@ class MiniApp {
             this.channels.closeMainSidebar();
         } else if (this.editor.isOpen) {
             this.editor.closeEditor();
+        } else if (this.moderator && this.moderator.isModeratorPanelOpen) {
+            this.moderator.closeModeratorPanel();
         } else {
             // Clear all selections
             this.grid.clearSelection();
@@ -813,7 +844,7 @@ class MiniApp {
         }
     }
 
-    // Методы для управления бесшовным режимом
+    // ДОБАВЛЕНО: Публичные методы для управления бесшовным режимом
     enableSeamlessMode() {
         if (this.grid) {
             this.grid.enableSeamlessMode();
@@ -883,6 +914,32 @@ class MiniApp {
         return window.MiniI18n ? window.MiniI18n.getAvailableLanguages() : ['ru', 'en'];
     }
 
+    // Методы для управления модерацией
+    isModerator() {
+        return this.moderator ? this.moderator.isModerator : false;
+    }
+
+    getModerationInfo() {
+        if (this.moderator) {
+            return {
+                isModerator: this.moderator.isModerator,
+                moderatorUsername: this.moderator.getModeratorUsername(),
+                pendingSubmissions: this.moderator.getPendingSubmissionsCount(),
+                flaggedPixels: this.moderator.getFlaggedPixelsCount(),
+                stats: this.moderator.getModerationStats()
+            };
+        }
+        return { isModerator: false };
+    }
+
+    exportModerationReport() {
+        if (this.moderator && this.moderator.isModerator) {
+            return this.moderator.exportModerationReport();
+        } else {
+            MiniUtils.showNotification('Доступ запрещен: требуются права модератора', 'error');
+        }
+    }
+
     // Debug and development methods
     getDebugInfo() {
         return {
@@ -895,11 +952,18 @@ class MiniApp {
                 channels: this.channels?.getDebugInfo?.() || 'Not available',
                 editor: this.editor?.getState?.() || 'Not available',
                 wallet: this.wallet?.getDebugInfo?.() || 'Not available',
+                moderator: this.moderator?.getDebugInfo?.() || 'Not available',
                 i18n: window.MiniI18n?.getDebugInfo?.() || 'Not available'
             },
             selectedPixels: this.getSelectedPixels(),
             seamlessMode: this.grid?.seamlessMode || false,
             walletInfo: this.getWalletInfo(),
+            moderatorInfo: this.moderator ? {
+                isModerator: this.moderator.isModerator,
+                moderatorUsername: this.moderator.getModeratorUsername(),
+                pendingSubmissions: this.moderator.getPendingSubmissionsCount(),
+                flaggedPixels: this.moderator.getFlaggedPixelsCount()
+            } : 'Not available',
             performance: {
                 memory: performance.memory ? {
                     used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
@@ -932,6 +996,7 @@ class MiniApp {
             seamlessMode: this.grid?.seamlessMode || false,
             walletConnected: this.wallet?.isConnected || false,
             currentLanguage: this.getCurrentLanguage(),
+            moderatorInfo: this.getModerationInfo(),
             exportDate: new Date().toISOString(),
             version: '1.3.0'
         };
@@ -1055,8 +1120,21 @@ function initMiniApp() {
             window.toggleLang = () => window.miniApp.toggleLanguage();
             window.getLang = () => window.miniApp.getCurrentLanguage();
             
+            // Moderator development helpers
+            if (window.miniApp.moderator && window.miniApp.moderator.isModerator) {
+                window.openModerator = () => window.miniApp.moderator.openModeratorPanel();
+                window.closeModerator = () => window.miniApp.moderator.closeModeratorPanel();
+                window.moderatorStats = () => window.miniApp.moderator.getModerationStats();
+                window.exportModerationReport = () => window.miniApp.moderator.exportModerationReport();
+                window.moderatorDebug = () => window.miniApp.moderator.getDebugInfo();
+            }
+            
             console.log('🛠️ Development mode active');
             console.log('Available commands: debugApp(), resetApp(), exportApp(), toggleSeamless(), enableSeamless(), disableSeamless(), connectWallet(), disconnectWallet(), walletInfo(), setLang(lang), toggleLang(), getLang()');
+            
+            if (window.miniApp.moderator && window.miniApp.moderator.isModerator) {
+                console.log('🛡️ Moderator commands: openModerator(), closeModerator(), moderatorStats(), exportModerationReport(), moderatorDebug()');
+            }
         }
         
     } catch (error) {
