@@ -30,16 +30,18 @@ class MiniChannels {
     }
 
     setupEventListeners() {
-        // Hamburger menu toggle
-        const hamburgerBtn = document.getElementById('hamburger-menu');
-        const closeMainSidebarBtn = document.getElementById('close-main-sidebar');
-        
-        if (hamburgerBtn) {
-            hamburgerBtn.addEventListener('click', () => this.toggleMainSidebar());
-        }
-        
-        if (closeMainSidebarBtn) {
-            closeMainSidebarBtn.addEventListener('click', () => this.closeMainSidebar());
+        // КРИТИЧНО: Используем оптимизированные обработчики из index.html
+        // Проверяем, что OptimizedSidebar уже создан
+        if (window.optimizedSidebar) {
+            // Переопределяем методы для совместимости
+            this.openMainSidebar = () => window.optimizedSidebar.openMainSidebar();
+            this.closeMainSidebar = () => window.optimizedSidebar.closeMainSidebar();
+            this.toggleMainSidebar = () => window.optimizedSidebar.toggleMainSidebar();
+            this.openSidebar = () => window.optimizedSidebar.openChannelSidebar();
+            this.closeSidebar = () => window.optimizedSidebar.closeChannelSidebar();
+        } else {
+            // Fallback для совместимости
+            this.setupFallbackEventListeners();
         }
 
         // Main menu items
@@ -86,12 +88,6 @@ class MiniChannels {
             statsBtn.addEventListener('click', () => this.showStats());
         }
 
-        // Channel navigator close
-        const closeSidebarBtn = document.getElementById('close-sidebar');
-        if (closeSidebarBtn) {
-            closeSidebarBtn.addEventListener('click', () => this.closeSidebar());
-        }
-
         // Search and filters
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
@@ -121,8 +117,27 @@ class MiniChannels {
 
         // Rating modal events
         this.setupRatingModalEvents();
+    }
 
-        // Optimized click handler for closing sidebar
+    setupFallbackEventListeners() {
+        // Fallback обработчики для совместимости
+        const hamburgerBtn = document.getElementById('hamburger-menu');
+        const closeMainSidebarBtn = document.getElementById('close-main-sidebar');
+        const closeSidebarBtn = document.getElementById('close-sidebar');
+        
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', () => this.toggleMainSidebar());
+        }
+        
+        if (closeMainSidebarBtn) {
+            closeMainSidebarBtn.addEventListener('click', () => this.closeMainSidebar());
+        }
+
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', () => this.closeSidebar());
+        }
+
+        // Оптимизированный обработчик для закрытия сайдбара
         document.addEventListener('click', (e) => {
             if (!this.isOpen && !this.isMainSidebarOpen) return;
             
@@ -139,7 +154,7 @@ class MiniChannels {
             }
         }, { passive: true });
 
-        // Close on escape key
+        // Закрытие по Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (this.isOpen) {
@@ -149,17 +164,6 @@ class MiniChannels {
                 }
             }
         });
-
-        // Telegram WebApp back button
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.onEvent('backButtonClicked', () => {
-                if (this.isOpen) {
-                    this.closeSidebar();
-                } else if (this.isMainSidebarOpen) {
-                    this.closeMainSidebar();
-                }
-            });
-        }
     }
 
     toggleMainSidebar() {
@@ -171,8 +175,18 @@ class MiniChannels {
     }
 
     openMainSidebar() {
+        // Если используется OptimizedSidebar, вызываем его метод
+        if (window.optimizedSidebar) {
+            window.optimizedSidebar.openMainSidebar();
+            this.isMainSidebarOpen = true;
+            this.updateUserInfo();
+            return;
+        }
+
+        // Fallback реализация
         const sidebar = document.getElementById('main-sidebar');
         const hamburger = document.getElementById('hamburger-menu');
+        const backdrop = document.getElementById('sidebar-backdrop');
         
         if (sidebar) {
             requestAnimationFrame(() => {
@@ -183,23 +197,37 @@ class MiniChannels {
                     hamburger.classList.add('active');
                 }
                 
-                // Defer Telegram API call
-                setTimeout(() => {
-                    if (window.Telegram?.WebApp) {
-                        window.Telegram.WebApp.BackButton.show();
-                    }
-                }, 0);
+                if (backdrop) {
+                    backdrop.classList.add('active');
+                }
+                
+                // Блокируем прокрутку фона
+                document.body.style.overflow = 'hidden';
+                
+                // Telegram WebApp
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.BackButton.show();
+                }
                 
                 this.updateUserInfo();
-                MiniUtils.vibrate([30]); // Reduced vibration duration
+                MiniUtils.vibrate([30]);
                 console.log('Main sidebar opened');
             });
         }
     }
 
     closeMainSidebar() {
+        // Если используется OptimizedSidebar, вызываем его метод
+        if (window.optimizedSidebar) {
+            window.optimizedSidebar.closeMainSidebar();
+            this.isMainSidebarOpen = false;
+            return;
+        }
+
+        // Fallback реализация
         const sidebar = document.getElementById('main-sidebar');
         const hamburger = document.getElementById('hamburger-menu');
+        const backdrop = document.getElementById('sidebar-backdrop');
         
         if (sidebar) {
             requestAnimationFrame(() => {
@@ -210,6 +238,13 @@ class MiniChannels {
                     hamburger.classList.remove('active');
                 }
                 
+                if (backdrop) {
+                    backdrop.classList.remove('active');
+                }
+                
+                // Разблокируем прокрутку фона
+                document.body.style.overflow = '';
+                
                 if (window.Telegram?.WebApp && !this.isOpen && !window.miniModals?.isModalOpen()) {
                     window.Telegram.WebApp.BackButton.hide();
                 }
@@ -219,7 +254,86 @@ class MiniChannels {
         }
     }
 
+    openSidebar() {
+        // Если используется OptimizedSidebar, вызываем его метод
+        if (window.optimizedSidebar) {
+            window.optimizedSidebar.openChannelSidebar();
+            this.isOpen = true;
+            this.loadChannelsFromPixels();
+            this.applyFilters();
+            return;
+        }
+
+        // Fallback реализация
+        const sidebar = document.getElementById('channel-sidebar');
+        const hamburger = document.getElementById('hamburger-menu');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        
+        if (sidebar) {
+            sidebar.classList.add('active');
+            this.isOpen = true;
+            
+            if (hamburger) {
+                hamburger.classList.add('active');
+            }
+            
+            if (backdrop) {
+                backdrop.classList.add('active');
+            }
+            
+            // Блокируем прокрутку фона
+            document.body.style.overflow = 'hidden';
+            
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.BackButton.show();
+            }
+            
+            this.loadChannelsFromPixels();
+            this.applyFilters();
+            
+            MiniUtils.vibrate([30]);
+            console.log('Channels sidebar opened');
+        }
+    }
+
+    closeSidebar() {
+        // Если используется OptimizedSidebar, вызываем его метод
+        if (window.optimizedSidebar) {
+            window.optimizedSidebar.closeChannelSidebar();
+            this.isOpen = false;
+            return;
+        }
+
+        // Fallback реализация
+        const sidebar = document.getElementById('channel-sidebar');
+        const hamburger = document.getElementById('hamburger-menu');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        
+        if (sidebar) {
+            sidebar.classList.remove('active');
+            this.isOpen = false;
+            
+            if (hamburger) {
+                hamburger.classList.remove('active');
+            }
+            
+            if (backdrop) {
+                backdrop.classList.remove('active');
+            }
+            
+            // Разблокируем прокрутку фона
+            document.body.style.overflow = '';
+            
+            if (window.Telegram?.WebApp && !window.miniModals?.isModalOpen()) {
+                window.Telegram.WebApp.BackButton.hide();
+            }
+            
+            console.log('Channels sidebar closed');
+        }
+    }
+
     updateUserInfo() {
+        // Оптимизированное обновление информации пользователя
         requestAnimationFrame(() => {
             if (this.userNameElement) {
                 this.userNameElement.textContent = window.miniGrid ? window.miniGrid.currentUser : '@demo_user';
@@ -268,50 +382,6 @@ class MiniChannels {
             statusElement.style.color = config.color;
             statusElement.style.background = config.background;
         });
-    }
-
-    openSidebar() {
-        const sidebar = document.getElementById('channel-sidebar');
-        const hamburger = document.getElementById('hamburger-menu');
-        
-        if (sidebar) {
-            sidebar.classList.add('active');
-            this.isOpen = true;
-            
-            if (hamburger) {
-                hamburger.classList.add('active');
-            }
-            
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.BackButton.show();
-            }
-            
-            this.loadChannelsFromPixels();
-            this.applyFilters();
-            
-            MiniUtils.vibrate([30]);
-            console.log('Channels sidebar opened');
-        }
-    }
-
-    closeSidebar() {
-        const sidebar = document.getElementById('channel-sidebar');
-        const hamburger = document.getElementById('hamburger-menu');
-        
-        if (sidebar) {
-            sidebar.classList.remove('active');
-            this.isOpen = false;
-            
-            if (hamburger) {
-                hamburger.classList.remove('active');
-            }
-            
-            if (window.Telegram?.WebApp && !window.miniModals?.isModalOpen()) {
-                window.Telegram.WebApp.BackButton.hide();
-            }
-            
-            console.log('Channels sidebar closed');
-        }
     }
 
     loadChannelsFromPixels() {
@@ -606,6 +676,7 @@ class MiniChannels {
             </div>
         `).join('');
 
+        // Оптимизированная анимация появления карточек
         setTimeout(() => {
             const cards = document.querySelectorAll('.channel-card');
             cards.forEach((card, index) => {
@@ -1247,11 +1318,13 @@ class MiniChannels {
             userVerified: this.userVerified,
             verificationStatus: this.verificationStatus,
             verificationHash: this.verificationTransactionHash,
-            userRatingsCount: this.userRatings.size
+            userRatingsCount: this.userRatings.size,
+            usingOptimizedSidebar: !!window.optimizedSidebar
         };
     }
 }
 
+// Вспомогательная функция для hashCode
 String.prototype.hashCode = function() {
     let hash = 0;
     for (let i = 0; i < this.length; i++) {

@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no,viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -26,6 +26,11 @@
         
         // Отключаем предупреждения о закрытии
         window.Telegram.WebApp.enableClosingConfirmation();
+        
+        // КРИТИЧНО: Фиксируем viewport для Telegram
+        if (window.Telegram.WebApp.disableVerticalSwipes) {
+            window.Telegram.WebApp.disableVerticalSwipes();
+        }
     } else {
         console.log('Running in regular browser');
     }
@@ -42,6 +47,9 @@
     </script>
 </head>
 <body>
+    <!-- Backdrop для сайдбаров -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
     <!-- Header -->
     <div class="header">
         <div class="logo">NFTG-ZONIX</div>
@@ -598,14 +606,326 @@
     </div>
 
     <!-- Scripts - ПРАВИЛЬНЫЙ ПОРЯДОК -->
-<script src="mini-utils.js"></script>
-<script src="mini-i18n.js"></script>
-<script src="mini-grid.js"></script>
-<script src="mini-modals.js"></script>
-<script src="mini-channels.js"></script>
-<script src="mini-editor.js"></script>
-<script src="mini-wallet.js"></script>
-<script src="mini-moderator.js"></script> 
-<script src="mini-app.js"></script>
+    <script src="mini-utils.js"></script>
+    <script src="mini-i18n.js"></script>
+    <script src="mini-grid.js"></script>
+    <script src="mini-modals.js"></script>
+    <script src="mini-channels.js"></script>
+    <script src="mini-editor.js"></script>
+    <script src="mini-wallet.js"></script>
+    <script src="mini-moderator.js"></script> 
+    <script src="mini-app.js"></script>
+
+    <!-- КРИТИЧЕСКИЙ ФИКС ДЛЯ TELEGRAM SIDEBAR -->
+    <script>
+    // === КРИТИЧЕСКИЙ ФИКС ДЛЯ TELEGRAM SIDEBAR ===
+
+    // 1. Инициализация Telegram WebView фикса
+    function initTelegramWebViewFix() {
+        // Проверяем производительность устройства
+        const userAgent = navigator.userAgent;
+        const isLowPerformance = userAgent.includes('LOW') || 
+                               /Android [456]/.test(userAgent) || 
+                               /iPhone OS [89]/.test(userAgent);
+        
+        if (isLowPerformance) {
+            document.body.classList.add('low-performance');
+            console.log('Low performance device detected');
+        }
+        
+        // Фикс для Telegram WebView
+        ensureDocumentIsScrollable();
+        
+        // Предотвращаем коллапс
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.expand();
+            // Новые методы для предотвращения свайпов
+            if (window.Telegram.WebApp.disableVerticalSwipes) {
+                window.Telegram.WebApp.disableVerticalSwipes();
+            }
+        }
+    }
+
+    // 2. Обеспечиваем scrollable документ
+    function ensureDocumentIsScrollable() {
+        const isScrollable = document.documentElement.scrollHeight > window.innerHeight;
+        
+        if (!isScrollable) {
+            document.body.style.minHeight = 'calc(100vh + 1px)';
+        }
+    }
+
+    // 3. Оптимизированный класс для сайдбаров
+    class OptimizedSidebar {
+        constructor() {
+            this.isMainSidebarOpen = false;
+            this.isChannelSidebarOpen = false;
+            this.isAnimating = false;
+            
+            // Кэшируем элементы
+            this.mainSidebar = document.getElementById('main-sidebar');
+            this.channelSidebar = document.getElementById('channel-sidebar');
+            this.hamburgerBtn = document.getElementById('hamburger-menu');
+            this.backdrop = document.getElementById('sidebar-backdrop');
+            
+            this.init();
+        }
+        
+        init() {
+            // Настраиваем обработчики
+            this.setupEventListeners();
+            
+            // Предотвращаем множественные вызовы
+            this.openMainSidebar = this.debounce(this.openMainSidebar.bind(this), 100);
+            this.closeMainSidebar = this.debounce(this.closeMainSidebar.bind(this), 100);
+            this.openChannelSidebar = this.debounce(this.openChannelSidebar.bind(this), 100);
+            this.closeChannelSidebar = this.debounce(this.closeChannelSidebar.bind(this), 100);
+        }
+        
+        setupEventListeners() {
+            // Backdrop
+            if (this.backdrop) {
+                this.backdrop.addEventListener('click', () => {
+                    this.closeAllSidebars();
+                });
+            }
+            
+            // Гамбургер
+            if (this.hamburgerBtn) {
+                this.hamburgerBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleMainSidebar();
+                });
+            }
+            
+            // Закрытие по Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.closeAllSidebars();
+                }
+            });
+            
+            // Предотвращение прокрутки фона
+            document.addEventListener('touchmove', (e) => {
+                if (this.isMainSidebarOpen || this.isChannelSidebarOpen) {
+                    if (!e.target.closest('.main-sidebar') && 
+                        !e.target.closest('.channel-sidebar')) {
+                        e.preventDefault();
+                    }
+                }
+            }, { passive: false });
+        }
+        
+        toggleMainSidebar() {
+            if (this.isAnimating) return;
+            
+            if (this.isMainSidebarOpen) {
+                this.closeMainSidebar();
+            } else {
+                this.openMainSidebar();
+            }
+        }
+        
+        openMainSidebar() {
+            if (this.isAnimating || this.isMainSidebarOpen) return;
+            
+            this.isAnimating = true;
+            this.isMainSidebarOpen = true;
+            
+            // Закрываем другие сайдбары
+            this.closeChannelSidebar();
+            
+            // Используем requestAnimationFrame для плавности
+            requestAnimationFrame(() => {
+                if (this.mainSidebar) {
+                    this.mainSidebar.classList.add('active');
+                }
+                
+                if (this.hamburgerBtn) {
+                    this.hamburgerBtn.classList.add('active');
+                }
+                
+                if (this.backdrop) {
+                    this.backdrop.classList.add('active');
+                }
+                
+                // Блокируем прокрутку фона
+                document.body.style.overflow = 'hidden';
+                
+                // Показываем кнопку назад в Telegram
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.BackButton.show();
+                }
+                
+                // Сбрасываем флаг анимации
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 150);
+            });
+        }
+        
+        closeMainSidebar() {
+            if (this.isAnimating || !this.isMainSidebarOpen) return;
+            
+            this.isAnimating = true;
+            this.isMainSidebarOpen = false;
+            
+            requestAnimationFrame(() => {
+                if (this.mainSidebar) {
+                    this.mainSidebar.classList.remove('active');
+                }
+                
+                if (this.hamburgerBtn) {
+                    this.hamburgerBtn.classList.remove('active');
+                }
+                
+                if (this.backdrop) {
+                    this.backdrop.classList.remove('active');
+                }
+                
+                // Разблокируем прокрутку фона
+                document.body.style.overflow = '';
+                
+                // Скрываем кнопку назад в Telegram
+                if (window.Telegram?.WebApp && !this.isChannelSidebarOpen) {
+                    window.Telegram.WebApp.BackButton.hide();
+                }
+                
+                // Сбрасываем флаг анимации
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 150);
+            });
+        }
+        
+        openChannelSidebar() {
+            if (this.isAnimating || this.isChannelSidebarOpen) return;
+            
+            this.isAnimating = true;
+            this.isChannelSidebarOpen = true;
+            
+            // Закрываем другие сайдбары
+            this.closeMainSidebar();
+            
+            requestAnimationFrame(() => {
+                if (this.channelSidebar) {
+                    this.channelSidebar.classList.add('active');
+                }
+                
+                if (this.hamburgerBtn) {
+                    this.hamburgerBtn.classList.add('active');
+                }
+                
+                if (this.backdrop) {
+                    this.backdrop.classList.add('active');
+                }
+                
+                // Блокируем прокрутку фона
+                document.body.style.overflow = 'hidden';
+                
+                // Показываем кнопку назад в Telegram
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.BackButton.show();
+                }
+                
+                // Сбрасываем флаг анимации
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 150);
+            });
+        }
+        
+        closeChannelSidebar() {
+            if (this.isAnimating || !this.isChannelSidebarOpen) return;
+            
+            this.isAnimating = true;
+            this.isChannelSidebarOpen = false;
+            
+            requestAnimationFrame(() => {
+                if (this.channelSidebar) {
+                    this.channelSidebar.classList.remove('active');
+                }
+                
+                if (this.hamburgerBtn) {
+                    this.hamburgerBtn.classList.remove('active');
+                }
+                
+                if (this.backdrop) {
+                    this.backdrop.classList.remove('active');
+                }
+                
+                // Разблокируем прокрутку фона
+                document.body.style.overflow = '';
+                
+                // Скрываем кнопку назад в Telegram
+                if (window.Telegram?.WebApp && !this.isMainSidebarOpen) {
+                    window.Telegram.WebApp.BackButton.hide();
+                }
+                
+                // Сбрасываем флаг анимации
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 150);
+            });
+        }
+        
+        closeAllSidebars() {
+            this.closeMainSidebar();
+            this.closeChannelSidebar();
+        }
+        
+        // Утилита debounce
+        debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    }
+
+    // 4. Инициализация при загрузке
+    document.addEventListener('DOMContentLoaded', () => {
+        initTelegramWebViewFix();
+        
+        // Заменяем старые обработчики на оптимизированные
+        window.optimizedSidebar = new OptimizedSidebar();
+        
+        // Обновляем существующие методы в MiniChannels
+        if (window.miniChannels) {
+            window.miniChannels.openMainSidebar = () => window.optimizedSidebar.openMainSidebar();
+            window.miniChannels.closeMainSidebar = () => window.optimizedSidebar.closeMainSidebar();
+            window.miniChannels.toggleMainSidebar = () => window.optimizedSidebar.toggleMainSidebar();
+            window.miniChannels.openSidebar = () => window.optimizedSidebar.openChannelSidebar();
+            window.miniChannels.closeSidebar = () => window.optimizedSidebar.closeChannelSidebar();
+        }
+    });
+
+    // 5. Фикс для Telegram WebApp Back Button
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.onEvent('backButtonClicked', () => {
+            if (window.optimizedSidebar) {
+                window.optimizedSidebar.closeAllSidebars();
+            }
+        });
+    }
+
+    // 6. Фикс для viewport changes
+    window.addEventListener('resize', () => {
+        ensureDocumentIsScrollable();
+    });
+
+    // 7. Экспорт для использования в других модулях
+    window.TelegramSidebarFix = {
+        initTelegramWebViewFix,
+        ensureDocumentIsScrollable,
+        OptimizedSidebar
+    };
+    </script>
 </body>
 </html>
