@@ -1,101 +1,93 @@
-# 🧩 NFTG-ZONIX
 
-**NFTG-ZONIX** is a Telegram-native Web3 platform that transforms a pixel grid into a visual and interactive catalog of Telegram channels.
+# NFTG-ZONIX
 
-Inspired by the [Million Dollar Homepage] and adapted for Telegram and the TON ecosystem, this project turns each pixel (or group of pixels) into an interactive block linked to a real Telegram channel.
+NFTG-ZONIX is a Telegram-native Web3 platform that transforms a pixel grid into a visual and interactive catalog of Telegram channels.
 
-Users can purchase pixels, upload an image, and assign a channel link and description — creating a living visual showcase directly inside a Telegram Mini App.
-
----
-
-## 🔧 Platform Overview
-
-- ✅ Telegram Mini App (functional)
-- 🌐 Web catalog (in development) with filters and categories
-- 🔗 TON Connect integration (done)
-- 🖼️ Image editor with multi-select and link editing
-- 🛡️ Manual moderation of images and links
+Inspired by the Million Dollar Homepage concept and adapted for the Telegram + TON ecosystem, the project turns each pixel (or group of pixels) into an interactive block linked to a real Telegram channel. Users can purchase pixels, upload an image, and add a link and description for their channel — creating a vibrant visual showcase of Telegram communities, directly inside a Telegram Mini App.
 
 ---
 
-## 🌐 Value for the TON Ecosystem
+## 🔧 Platform Overview:
 
-NFTG-ZONIX acts as a visual Telegram hub that:
-
-- Generates organic traffic for Telegram channels
-- Promotes Web3 engagement through NFTs and SBTs
-- Encourages Mini App adoption in the TON ecosystem
-- Enables creative in-app self-promotion
-
----
-
-## ✅ MVP Features
-
-- 10×10 interactive pixel grid
-- TON wallet connection (TON Connect)
-- Zoomable image editor with drag/positioning
-- Multi-pixel selection and bulk purchase
-- Image upload and link assignment
-- Manual moderation
-- Telegram Mini App adaptation (mobile)
-- Burger menu for navigation
-- Admin panel (local-only)
-- Channel submission (without pixel purchase)
-
-> ⚠️ Supabase was planned but not implemented in time
+✅ Telegram Mini App (already functional)  
+🌐 Web catalog (in development) — with advanced search, filters, and categories  
+🔗 TON Connect integration (already functional)  
+🖼️ Image editor with multi-select and link attachment  
+🛡️ Manual moderation of images and links to prevent abuse  
 
 ---
 
-## 🔮 Roadmap
+## 🌐 Value for the TON Ecosystem:
 
-- NFT marketplace for pixel trading
-- SBT-based community status and rewards
-- AI-powered discovery and channel recommendations
-- Automatic moderation
-- Telegram channel stats parsing
-- UI improvements: animations, glow, themes
-
-Moderation will stay active post-NFT launch — all content is reviewed.
+NFTG-ZONIX creates a visual board of Telegram communities that users can explore, interact with, and join. It:
+- Drives organic traffic to Telegram channels
+- Boosts Mini App adoption
+- Promotes NFTs and Web3 functionality on TON
+- Enables new forms of digital self-promotion and in-app advertising
 
 ---
 
-## 🧠 Built with AI Support
+## ✅ MVP Currently Includes:
 
-This MVP was created solo, using tools like GPT and Claude — no prior coding experience.
+- 10×10 interactive pixel grid  
+- TON wallet connection via TON Connect  
+- Visual image editor with zoom and positioning  
+- Multi-pixel selection and purchase  
+- Image upload and link assignment  
+- Manual content moderation  
+- Fully adapted for mobile in Telegram Mini App  
+- Basic burger menu and navigation  
+- 🛠️ Admin panel to track income and transactions (local version)  
+- Submission system for channels — even without buying pixels — for inclusion in the searchable directory  
+- ⚠️ Supabase integration was planned, but not yet implemented (can be added post-MVP)  
 
 ---
 
-## 🔗 Links
+## 🔮 Future Plans:
 
-- Bot: [@nftg_zonix_bot](https://t.me/nftg_zonix_bot)
-- Website Layout (Sketch): https://nftg-zonix-web-6j3a.vercel.app
-## 📘 How to Use
+- NFT marketplace for pixel trading  
+- Badges, rewards, and SBT-based community status  
+- AI-powered channel recommendations and discovery  
+- Automated content moderation  
+- Telegram channel parsing (e.g., subscriber count, post activity)  
+- Visual improvements (animations, glow effects, thematic backgrounds)  
+- ⚠️ Even after NFT integration, content moderation will remain active — all uploads and links will be reviewed to avoid inappropriate or illegal content.  
 
-Before you begin, connect your TON wallet using the main menu (burger icon in the top-right corner).
+---
 
-There are 4 main interaction modes:
+## 🧠 Created by myself with AI support
 
-1. **View Mode**  
-   You can explore the pixel grid, check who owns which pixel, and view information about the owner and their Telegram channel.
+This MVP was created entirely by myself - without a team. I don't even know programming languages, I only had an idea and a vision and neural networks like GPT, Claude and others.
 
-2. **Single Purchase Mode**  
-   Click on a free pixel and press the green button to buy it.
+---
 
-3. **Mass Purchase Mode**  
-   Select multiple free pixels and buy them all at once.
+## 📘 How to Use the App
 
-4. **Editor Mode**  
-   - **Image Editor**: Click on a purchased area to upload or change an image.  
-   - **Info Editor**: Edit the link, channel name, description, and category.
+Before you begin, you must connect your TON wallet from the main menu (accessed via the three-bar menu at the top right).
 
-### 📂 Main Menu (Burger Icon)
+There are 4 interaction modes:
 
-1. **Channel Navigator** – Search and filter Telegram channels by category and name.
-2. **Submit Channel** – Submit your channel to the directory (does not require buying pixels).
-3. **Marketplace** – (Coming soon) Trade pixel NFTs with other users.
-4. **TON Wallet** – Required to buy pixels.
-5. **Website** – Redirects to the external site of the project (under development).
-6. **Verification** – Pay 0.01 TON to verify your account before submitting reviews (anti-bot protection).
-7. **Statistics** – View platform metrics and channel stats.
-8. **Moderation** – For admin use to review content.
-9. **Your Profile** – Access your profile and submissions.
+1. **View Mode** – Allows you to see who owns each cell and view the associated channel info by clicking a pixel.
+2. **Single Purchase Mode** – Click on a free cell to buy it using the green button.
+3. **Multi-Purchase Mode** – Allows you to select and purchase multiple pixels at once.
+4. **Editor Mode** – Divided into:
+   - **Image Editor** – Upload your image by clicking your purchased pixel area.
+   - **Info Editor** – Edit the link to the channel, its tag name, description, and category.
+
+---
+
+### Main Menu (Hamburger):
+
+1. **Channel Navigator** – Search for channels by category, name, and other filters.  
+2. **Submit Channel** – Submit your channel to the base (non-grid listing).  
+3. **Market** – (Coming soon) For pixel NFT resale and trade.  
+4. **TON Wallet** – Required for pixel purchases.  
+5. **Website** – Link to the project's website (currently in development).  
+6. **Verification** – Pay 0.01 TON to verify identity (used to prevent spam and bot reviews).  
+7. **Statistics** – View general app metrics.  
+8. **Moderation** – Admin-only feature for content moderation.  
+9. **Your Profile** – Access your personal dashboard.
+
+---
+
+Thank you for reviewing this project!
