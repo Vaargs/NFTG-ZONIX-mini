@@ -1,6 +1,3 @@
-// @ts-nocheck
-// === MINI CHANNELS NAVIGATOR ===
-
 class MiniChannels {
     constructor() {
         this.channels = [];
@@ -17,6 +14,10 @@ class MiniChannels {
         this.verificationStatus = 'none'; // none, pending, verified, failed
         this.verificationTransactionHash = null;
         
+        // Cache DOM elements
+        this.userNameElement = document.getElementById('user-name');
+        this.userStatusElement = document.getElementById('user-status');
+        
         this.init();
     }
 
@@ -29,7 +30,7 @@ class MiniChannels {
     }
 
     setupEventListeners() {
-        // Hamburger menu toggle - теперь открывает главное меню
+        // Hamburger menu toggle
         const hamburgerBtn = document.getElementById('hamburger-menu');
         const closeMainSidebarBtn = document.getElementById('close-main-sidebar');
         
@@ -41,7 +42,7 @@ class MiniChannels {
             closeMainSidebarBtn.addEventListener('click', () => this.closeMainSidebar());
         }
 
-        // Main menu items - используем стрелочные функции для всех обработчиков
+        // Main menu items
         const channelsNavigatorBtn = document.getElementById('channels-navigator-btn');
         if (channelsNavigatorBtn) {
             channelsNavigatorBtn.addEventListener('click', () => {
@@ -50,7 +51,6 @@ class MiniChannels {
             });
         }
 
-        // ИСПРАВЛЕНО: Подача заявки на канал - используем стрелочную функцию для сохранения контекста
         const submitChannelBtn = document.getElementById('submit-channel-btn');
         if (submitChannelBtn) {
             submitChannelBtn.addEventListener('click', () => {
@@ -122,20 +122,22 @@ class MiniChannels {
         // Rating modal events
         this.setupRatingModalEvents();
 
-        // Close sidebar when clicking outside
+        // Optimized click handler for closing sidebar
         document.addEventListener('click', (e) => {
+            if (!this.isOpen && !this.isMainSidebarOpen) return;
+            
             const sidebar = document.getElementById('channel-sidebar');
             const mainSidebar = document.getElementById('main-sidebar');
             const hamburger = document.getElementById('hamburger-menu');
             
-            if (this.isOpen && sidebar && !sidebar.contains(e.target) && !hamburger.contains(e.target)) {
-                this.closeSidebar();
+            if (
+                (this.isOpen && sidebar && !sidebar.contains(e.target) && !hamburger.contains(e.target)) ||
+                (this.isMainSidebarOpen && mainSidebar && !mainSidebar.contains(e.target) && !hamburger.contains(e.target))
+            ) {
+                if (this.isOpen) this.closeSidebar();
+                if (this.isMainSidebarOpen) this.closeMainSidebar();
             }
-            
-            if (this.isMainSidebarOpen && mainSidebar && !mainSidebar.contains(e.target) && !hamburger.contains(e.target)) {
-                this.closeMainSidebar();
-            }
-        });
+        }, { passive: true });
 
         // Close on escape key
         document.addEventListener('keydown', (e) => {
@@ -173,26 +175,25 @@ class MiniChannels {
         const hamburger = document.getElementById('hamburger-menu');
         
         if (sidebar) {
-            sidebar.classList.add('active');
-            this.isMainSidebarOpen = true;
-            
-            // Animate hamburger
-            if (hamburger) {
-                hamburger.classList.add('active');
-            }
-            
-            // Show Telegram back button
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.BackButton.show();
-            }
-            
-            // Update user info
-            this.updateUserInfo();
-            
-            // Vibration feedback
-            MiniUtils.vibrate([50]);
-            
-            console.log('Main sidebar opened');
+            requestAnimationFrame(() => {
+                sidebar.classList.add('active');
+                this.isMainSidebarOpen = true;
+                
+                if (hamburger) {
+                    hamburger.classList.add('active');
+                }
+                
+                // Defer Telegram API call
+                setTimeout(() => {
+                    if (window.Telegram?.WebApp) {
+                        window.Telegram.WebApp.BackButton.show();
+                    }
+                }, 0);
+                
+                this.updateUserInfo();
+                MiniUtils.vibrate([30]); // Reduced vibration duration
+                console.log('Main sidebar opened');
+            });
         }
     }
 
@@ -201,64 +202,72 @@ class MiniChannels {
         const hamburger = document.getElementById('hamburger-menu');
         
         if (sidebar) {
-            sidebar.classList.remove('active');
-            this.isMainSidebarOpen = false;
-            
-            // Reset hamburger
-            if (hamburger) {
-                hamburger.classList.remove('active');
-            }
-            
-            // Hide Telegram back button if no other modals open
-            if (window.Telegram?.WebApp && !this.isOpen && !window.miniModals?.isModalOpen()) {
-                window.Telegram.WebApp.BackButton.hide();
-            }
-            
-            console.log('Main sidebar closed');
+            requestAnimationFrame(() => {
+                sidebar.classList.remove('active');
+                this.isMainSidebarOpen = false;
+                
+                if (hamburger) {
+                    hamburger.classList.remove('active');
+                }
+                
+                if (window.Telegram?.WebApp && !this.isOpen && !window.miniModals?.isModalOpen()) {
+                    window.Telegram.WebApp.BackButton.hide();
+                }
+                
+                console.log('Main sidebar closed');
+            });
         }
     }
 
     updateUserInfo() {
-        const userName = document.getElementById('user-name');
-        const userStatus = document.getElementById('user-status');
-        
-        if (userName) {
-            userName.textContent = window.miniGrid ? window.miniGrid.currentUser : '@demo_user';
-        }
-        
-        if (userStatus) {
-            this.updateVerificationStatus(userStatus);
-        }
+        requestAnimationFrame(() => {
+            if (this.userNameElement) {
+                this.userNameElement.textContent = window.miniGrid ? window.miniGrid.currentUser : '@demo_user';
+            }
+            
+            if (this.userStatusElement) {
+                this.updateVerificationStatus(this.userStatusElement);
+            }
+        });
     }
 
     updateVerificationStatus(statusElement) {
-        if (!statusElement) return;
+        requestAnimationFrame(() => {
+            if (!statusElement) return;
 
-        switch (this.verificationStatus) {
-            case 'verified':
-                statusElement.textContent = 'Верифицирован ✓';
-                statusElement.className = 'user-status verified';
-                statusElement.style.color = '#00FF88';
-                statusElement.style.background = 'rgba(0, 255, 136, 0.1)';
-                break;
-            case 'pending':
-                statusElement.textContent = 'Верификация...';
-                statusElement.className = 'user-status pending';
-                statusElement.style.color = '#FFB800';
-                statusElement.style.background = 'rgba(255, 184, 0, 0.1)';
-                break;
-            case 'failed':
-                statusElement.textContent = 'Ошибка верификации';
-                statusElement.className = 'user-status failed';
-                statusElement.style.color = '#FF4444';
-                statusElement.style.background = 'rgba(255, 68, 68, 0.1)';
-                break;
-            default:
-                statusElement.textContent = 'Не верифицирован';
-                statusElement.className = 'user-status';
-                statusElement.style.color = '#FFB800';
-                statusElement.style.background = 'rgba(255, 184, 0, 0.1)';
-        }
+            const statusConfig = {
+                verified: {
+                    text: 'Верифицирован ✓',
+                    class: 'verified',
+                    color: '#00FF88',
+                    background: 'rgba(0, 255, 136, 0.1)'
+                },
+                pending: {
+                    text: 'Верификация...',
+                    class: 'pending',
+                    color: '#FFB800',
+                    background: 'rgba(255, 184, 0, 0.1)'
+                },
+                failed: {
+                    text: 'Ошибка верификации',
+                    class: 'failed',
+                    color: '#FF4444',
+                    background: 'rgba(255, 68, 68, 0.1)'
+                },
+                none: {
+                    text: 'Не верифицирован',
+                    class: '',
+                    color: '#FFB800',
+                    background: 'rgba(255, 184, 0, 0.1)'
+                }
+            };
+
+            const config = statusConfig[this.verificationStatus] || statusConfig.none;
+            statusElement.textContent = config.text;
+            statusElement.className = `user-status ${config.class}`;
+            statusElement.style.color = config.color;
+            statusElement.style.background = config.background;
+        });
     }
 
     openSidebar() {
@@ -269,23 +278,18 @@ class MiniChannels {
             sidebar.classList.add('active');
             this.isOpen = true;
             
-            // Animate hamburger
             if (hamburger) {
                 hamburger.classList.add('active');
             }
             
-            // Show Telegram back button
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.BackButton.show();
             }
             
-            // Load fresh channel data
             this.loadChannelsFromPixels();
             this.applyFilters();
             
-            // Vibration feedback
-            MiniUtils.vibrate([50]);
-            
+            MiniUtils.vibrate([30]);
             console.log('Channels sidebar opened');
         }
     }
@@ -298,12 +302,10 @@ class MiniChannels {
             sidebar.classList.remove('active');
             this.isOpen = false;
             
-            // Reset hamburger
             if (hamburger) {
                 hamburger.classList.remove('active');
             }
             
-            // Hide Telegram back button
             if (window.Telegram?.WebApp && !window.miniModals?.isModalOpen()) {
                 window.Telegram.WebApp.BackButton.hide();
             }
@@ -320,7 +322,6 @@ class MiniChannels {
                 if (pixelData.channel || pixelData.telegramLink) {
                     const channelName = pixelData.channel || MiniUtils.extractTelegramUsername(pixelData.telegramLink);
                     
-                    // Check if channel already exists
                     const existingChannel = pixelChannels.find(ch => ch.channel === channelName);
                     
                     if (!existingChannel) {
@@ -347,10 +348,9 @@ class MiniChannels {
                             postsPerMonth: this.generatePostsPerMonth(pixelId),
                             verified: Math.random() > 0.7,
                             userRating: this.userRatings.get(channelName) || null,
-                            type: 'pixel' // Тип: канал с пикселем
+                            type: 'pixel'
                         });
                     } else {
-                        // Add additional pixel IDs to existing channel
                         if (!existingChannel.pixelIds) {
                             existingChannel.pixelIds = [existingChannel.pixelId];
                         }
@@ -360,7 +360,6 @@ class MiniChannels {
             });
         }
 
-        // НОВОЕ: Загружаем одобренные заявки
         const approvedSubmissions = this.loadApprovedSubmissions();
         approvedSubmissions.forEach(submission => {
             pixelChannels.push({
@@ -373,19 +372,18 @@ class MiniChannels {
                 telegramLink: submission.telegramLink,
                 owner: submission.ownerContact || 'Модерация',
                 purchaseDate: submission.submittedAt,
-                pixelId: null, // Нет пикселя
+                pixelId: null,
                 isOwned: false,
                 price: 0,
                 subscribers: submission.subscriberCount || this.generateSubscriberCount(submission.categories[0] || 'Разное', submission.id.hashCode()),
                 rating: this.generateRating(submission.id.hashCode()),
                 postsPerMonth: this.generatePostsPerMonth(submission.id.hashCode()),
-                verified: true, // Одобренные заявки считаются верифицированными
+                verified: true,
                 userRating: this.userRatings.get(submission.channelName) || null,
-                type: 'approved' // Тип: одобренная заявка
+                type: 'approved'
             });
         });
 
-        // Add demo channels if no channels exist
         if (pixelChannels.length === 0) {
             pixelChannels.push({
                 id: 'demo_1',
@@ -413,12 +411,10 @@ class MiniChannels {
         console.log('Loaded channels:', this.channels.length, 'pixel channels:', pixelChannels.filter(ch => ch.type === 'pixel').length, 'approved submissions:', pixelChannels.filter(ch => ch.type === 'approved').length);
     }
 
-    // НОВОЕ: Загрузка одобренных заявок
     loadApprovedSubmissions() {
         const submissions = MiniUtils.loadFromStorage('nftg-channel-submissions', []);
         const approved = submissions.filter(sub => sub.status === 'approved');
         
-        // Для демо создадим несколько одобренных заявок
         if (approved.length === 0) {
             const demoApproved = [
                 {
@@ -445,7 +441,6 @@ class MiniChannels {
                 }
             ];
             
-            // Сохраняем демо заявки
             MiniUtils.saveToStorage('nftg-channel-submissions', demoApproved);
             return demoApproved;
         }
@@ -521,7 +516,6 @@ class MiniChannels {
     applyFilters() {
         let filtered = [...this.channels];
 
-        // Apply search filter
         if (this.searchTerm) {
             filtered = filtered.filter(channel => 
                 channel.name.toLowerCase().includes(this.searchTerm) ||
@@ -533,7 +527,6 @@ class MiniChannels {
             );
         }
 
-        // Apply category filters
         if (this.activeFilters.length > 0) {
             filtered = filtered.filter(channel => {
                 if (channel.categories && Array.isArray(channel.categories)) {
@@ -545,7 +538,6 @@ class MiniChannels {
             });
         }
 
-        // Apply sorting
         switch (this.currentSort) {
             case 'newest':
                 filtered.sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate));
@@ -614,7 +606,6 @@ class MiniChannels {
             </div>
         `).join('');
 
-        // Animate channel cards
         setTimeout(() => {
             const cards = document.querySelectorAll('.channel-card');
             cards.forEach((card, index) => {
@@ -640,7 +631,6 @@ class MiniChannels {
             this.closeSidebar();
             
             if (channel.type === 'pixel' && window.miniGrid && channel.pixelId) {
-                // Для каналов с пикселями - центрируем на пикселе
                 const pixelElement = document.querySelector(`[data-id="${channel.pixelId}"]`);
                 if (pixelElement) {
                     const rect = pixelElement.getBoundingClientRect();
@@ -662,7 +652,6 @@ class MiniChannels {
                 const categoriesText = this.formatCategories(channel.categories);
                 MiniUtils.showNotification(`Пиксель #${channel.pixelId} (${this.formatSubscriberCount(channel.subscribers)} подписчиков, ${categoriesText})`, 'success');
             } else if (channel.type === 'approved') {
-                // Для одобренных заявок - просто показываем информацию
                 const categoriesText = this.formatCategories(channel.categories);
                 MiniUtils.showNotification(`${channel.name} (${this.formatSubscriberCount(channel.subscribers)} подписчиков, ${categoriesText}) - Одобренная заявка`, 'success');
             }
@@ -844,8 +833,6 @@ class MiniChannels {
         this.closeMainSidebar();
     }
 
-    // === НОВОЕ: ВЕРИФИКАЦИЯ ЧЕРЕЗ TON ТРАНЗАКЦИЮ ===
-    
     handleVerificationClick() {
         this.closeRatingModal();
         this.closeMainSidebar();
@@ -911,7 +898,6 @@ class MiniChannels {
     }
 
     async startVerification() {
-        // Проверяем подключен ли кошелек
         if (!window.miniWallet || !window.miniWallet.isConnected) {
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.showPopup({
@@ -940,7 +926,6 @@ class MiniChannels {
             return;
         }
 
-        // Показываем информацию о верификации
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.showPopup({
                 title: '🔐 Верификация аккаунта',
@@ -975,7 +960,6 @@ class MiniChannels {
             if (isDemo) {
                 MiniUtils.showNotification('Демо верификация запущена...', 'info');
                 
-                // Симуляция демо верификации
                 setTimeout(() => {
                     this.completeVerification({
                         hash: 'demo_transaction_' + Date.now(),
@@ -987,11 +971,9 @@ class MiniChannels {
             } else {
                 MiniUtils.showNotification('Отправка верификационной транзакции...', 'info');
                 
-                // Отправляем реальную транзакцию
                 const success = await window.miniWallet.sendVerificationTransaction();
                 
                 if (success) {
-                    // Запускаем проверку статуса через 30 секунд
                     setTimeout(() => {
                         this.checkVerificationStatus();
                     }, 30000);
@@ -1014,8 +996,6 @@ class MiniChannels {
         MiniUtils.showNotification('Проверка статуса верификации...', 'info');
         
         try {
-            // В реальном приложении здесь был бы запрос к API
-            // Для демо просто симулируем успешную проверку
             setTimeout(() => {
                 this.completeVerification({
                     hash: this.verificationTransactionHash || 'verified_' + Date.now(),
@@ -1112,7 +1092,6 @@ class MiniChannels {
         statsMessage += `Средние подписчики: ${this.formatSubscriberCount(stats.avgSubscribers)}\n`;
         statsMessage += `Средний рейтинг: ${stats.avgRating}⭐\n\n`;
         
-        // Добавляем информацию о верификации
         if (verificationData.verified) {
             statsMessage += `🔐 Статус: Верифицирован ✓\n`;
             statsMessage += `📅 Дата верификации: ${MiniUtils.formatDate(verificationData.date)}\n`;
@@ -1243,6 +1222,7 @@ class MiniChannels {
         if (this.isOpen) {
             this.applyFilters();
         }
+        console.log('Channels refreshed');
     }
 
     refreshChannels() {
@@ -1272,7 +1252,6 @@ class MiniChannels {
     }
 }
 
-// Добавляем хеш-функцию для строк (для обработки ID заявок)
 String.prototype.hashCode = function() {
     let hash = 0;
     for (let i = 0; i < this.length; i++) {
@@ -1283,5 +1262,4 @@ String.prototype.hashCode = function() {
     return Math.abs(hash);
 };
 
-// Global initialization
 window.MiniChannels = MiniChannels;
